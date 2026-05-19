@@ -1,0 +1,31 @@
+services:
+  backend:
+    build:
+      context: ./
+    restart: always
+    ports:
+      - "5004:5004" # Host 5004 -> Container 5004
+    environment:
+      - PORT=5004
+      - DATABASE_URL=postgresql://postgres:test123@db:5432/mydb
+    depends_on:
+      - db
+    volumes:
+      - uploads_data:/app/uploads # Removed bind mount (./:/app) for production
+
+  db:
+    image: postgres:15-alpine
+    container_name: new_project_db # Changed name to avoid conflict
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test123
+      POSTGRES_DB: mydb
+    ports:
+      - "5435:5432" # Host 5435 -> Container 5432
+    volumes:
+      - new_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  new_postgres_data:
+  uploads_data:

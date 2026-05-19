@@ -1,0 +1,258 @@
+-- Complete schema creation for fresh database
+-- This creates all tables from scratch with the multi-company architecture
+-- Matches the Drizzle ORM schema definitions in src/db/schema/
+
+CREATE TABLE IF NOT EXISTS companies (
+    id SERIAL PRIMARY KEY,
+    uuid UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+    business_name TEXT NOT NULL,
+    business_address TEXT,
+    tax_id TEXT,
+    phone TEXT,
+    email TEXT,
+    logo_url TEXT,
+    created_by_employee_id INTEGER,
+    is_deleted BOOLEAN DEFAULT false NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS employees (
+    id SERIAL PRIMARY KEY,
+    uuid UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    password TEXT,
+    phone TEXT,
+    address TEXT,
+    position TEXT,
+    salary DOUBLE PRECISION,
+    role TEXT DEFAULT 'employee' NOT NULL,
+    avatar_url TEXT,
+    google_auth BOOLEAN DEFAULT false NOT NULL,
+    is_owner BOOLEAN DEFAULT false NOT NULL,
+    company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    is_email_verified BOOLEAN DEFAULT false NOT NULL,
+    email_verification_token TEXT,
+    email_verification_expires TIMESTAMP,
+    password_reset_token TEXT,
+    password_reset_expires TIMESTAMP,
+    is_deleted BOOLEAN DEFAULT false NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    UNIQUE(email, company_id)
+);
+
+CREATE TABLE IF NOT EXISTS categories (
+    id SERIAL PRIMARY KEY,
+    uuid UUID DEFAULT gen_random_uuid() NOT NULL,
+    name TEXT NOT NULL,
+    subcategory TEXT,
+    is_active BOOLEAN DEFAULT true NOT NULL,
+    company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    is_deleted BOOLEAN DEFAULT false NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS units (
+    id SERIAL PRIMARY KEY,
+    uuid UUID DEFAULT gen_random_uuid() NOT NULL,
+    name TEXT NOT NULL,
+    symbol TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT true NOT NULL,
+    company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    is_deleted BOOLEAN DEFAULT false NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS brands (
+    id SERIAL PRIMARY KEY,
+    uuid UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    description TEXT,
+    is_active BOOLEAN DEFAULT true NOT NULL,
+    company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    is_deleted BOOLEAN DEFAULT false NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS products (
+    id SERIAL PRIMARY KEY,
+    uuid UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    sku TEXT,
+    hsn TEXT,
+    category_id INTEGER REFERENCES categories(id),
+    unit_id INTEGER REFERENCES units(id),
+    brand_id INTEGER REFERENCES brands(id),
+    type TEXT,
+    pack_size TEXT,
+    price DOUBLE PRECISION NOT NULL,
+    cost DOUBLE PRECISION,
+    stock_quantity INTEGER DEFAULT 0 NOT NULL,
+    is_active BOOLEAN DEFAULT true NOT NULL,
+    gst_type TEXT,
+    gst_rate TEXT,
+    image_url TEXT,
+    description TEXT,
+    discount DOUBLE PRECISION DEFAULT 0.0 NOT NULL,
+    is_percent_discount BOOLEAN DEFAULT false NOT NULL,
+    company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    is_deleted BOOLEAN DEFAULT false NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS customers (
+    id SERIAL PRIMARY KEY,
+    uuid UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    phone TEXT,
+    email TEXT,
+    address TEXT,
+    credit_limit DOUBLE PRECISION DEFAULT 0.0 NOT NULL,
+    current_balance DOUBLE PRECISION DEFAULT 0.0 NOT NULL,
+    company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    is_deleted BOOLEAN DEFAULT false NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS suppliers (
+    id SERIAL PRIMARY KEY,
+    uuid UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    phone TEXT,
+    email TEXT,
+    address TEXT,
+    company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    is_deleted BOOLEAN DEFAULT false NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS invoices (
+    id SERIAL PRIMARY KEY,
+    uuid UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+    invoice_number TEXT NOT NULL,
+    customer_id INTEGER REFERENCES customers(id),
+    date TIMESTAMP DEFAULT NOW() NOT NULL,
+    subtotal DOUBLE PRECISION NOT NULL,
+    tax DOUBLE PRECISION NOT NULL,
+    discount DOUBLE PRECISION DEFAULT 0.0 NOT NULL,
+    total DOUBLE PRECISION NOT NULL,
+    sign_url TEXT,
+    company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS invoice_items (
+    id SERIAL PRIMARY KEY,
+    uuid UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+    invoice_id INTEGER REFERENCES invoices(id),
+    product_id INTEGER REFERENCES products(id),
+    quantity INTEGER NOT NULL,
+    bonus INTEGER DEFAULT 0 NOT NULL,
+    unit_price DOUBLE PRECISION NOT NULL,
+    discount DOUBLE PRECISION DEFAULT 0.0 NOT NULL,
+    total_price DOUBLE PRECISION NOT NULL,
+    company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS invoice_settings (
+    id SERIAL PRIMARY KEY,
+    business_name TEXT NOT NULL,
+    layout TEXT NOT NULL,
+    footer_message TEXT NOT NULL,
+    accent_color TEXT NOT NULL,
+    font_family TEXT NOT NULL,
+    font_size_multiplier DOUBLE PRECISION NOT NULL,
+    show_address BOOLEAN DEFAULT true NOT NULL,
+    show_customer_details BOOLEAN DEFAULT true NOT NULL,
+    show_footer BOOLEAN DEFAULT true NOT NULL,
+    business_phone TEXT,
+    business_address TEXT,
+    business_gstin TEXT,
+    company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tasks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    hex_color TEXT NOT NULL,
+    company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    due_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS role_permissions (
+    id SERIAL PRIMARY KEY,
+    role TEXT NOT NULL,
+    permission TEXT NOT NULL,
+    company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    UNIQUE(role, permission, company_id)
+);
+
+-- Ensure missing columns exist in existing tables (for legacy updates)
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS created_by_employee_id INTEGER;
+ALTER TABLE employees DROP CONSTRAINT IF EXISTS employees_email_unique;
+
+-- Purchase Receipts
+CREATE TABLE IF NOT EXISTS purchase_receipts (
+    id SERIAL PRIMARY KEY,
+    uuid UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+    invoice_number TEXT NOT NULL,
+    supplier_invoice_number TEXT,
+    supplier_id INTEGER REFERENCES suppliers(id),
+    subtotal DOUBLE PRECISION DEFAULT 0.0 NOT NULL,
+    tax DOUBLE PRECISION DEFAULT 0.0 NOT NULL,
+    discount DOUBLE PRECISION DEFAULT 0.0 NOT NULL,
+    total_amount DOUBLE PRECISION DEFAULT 0.0 NOT NULL,
+    notes TEXT,
+    status TEXT DEFAULT 'COMPLETED' NOT NULL,
+    created_by TEXT,
+    date TIMESTAMP DEFAULT NOW() NOT NULL,
+    items JSONB DEFAULT '[]'::jsonb NOT NULL,
+    company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    is_deleted BOOLEAN DEFAULT false NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
+-- Customer Transactions
+CREATE TABLE IF NOT EXISTS customer_transactions (
+    id SERIAL PRIMARY KEY,
+    uuid UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+    customer_id INTEGER NOT NULL REFERENCES customers(id),
+    amount DOUBLE PRECISION NOT NULL,
+    type TEXT NOT NULL,
+    remarks TEXT,
+    company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    is_deleted BOOLEAN DEFAULT false NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
+-- Supplier Transactions
+CREATE TABLE IF NOT EXISTS supplier_transactions (
+    id SERIAL PRIMARY KEY,
+    uuid UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+    supplier_id INTEGER NOT NULL REFERENCES suppliers(id),
+    amount DOUBLE PRECISION NOT NULL,
+    type TEXT NOT NULL,
+    remarks TEXT,
+    company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    is_deleted BOOLEAN DEFAULT false NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
