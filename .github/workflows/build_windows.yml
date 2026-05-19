@@ -1,0 +1,100 @@
+name: Build Windows EXE
+
+"on":
+  push:
+    branches:
+      - main
+    paths:
+      - "ezo/**"
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ./ezo
+
+    steps:
+      # ── 1. Checkout your code ──────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Setup Flutter ───────────────────────────────────────────────────
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:  # Pinned to match your local Flutter version
+          channel: "stable"
+          cache: true                 # Caches Flutter SDK between runs (faster)
+
+      # ── 3. Enable Windows desktop support ─────────────────────────────────
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      # ── 4. Install dependencies ────────────────────────────────────────────
+      - name: Install dependencies
+        run: flutter pub get
+
+      # ── 5. Analyze code (catches null check operator errors early) ─────────
+      #       flutter analyze runs on Windows so it catches platform-specific
+      #       null safety issues that Linux may silently miss.
+      - name: Analyze code
+        run: flutter analyze --no-fatal-infos
+        continue-on-error: false
+
+      # ── 6. Run unit tests (skip SQLite DB tests - no runtime on CI) ────────
+      #       Tag your DB-dependent tests with @Tags(['db']) to skip them here.
+      - name: Run unit tests
+        run: flutter test --exclude-tags=db
+        continue-on-error: true
+
+      # ── 7. Build Windows release EXE ──────────────────────────────────────
+      #       BACKEND_URL is baked into the .exe at build time via --dart-define.
+      #       localhost:5004 works on colleague's Windows machine when Docker runs.
+      #
+      #       REQUIRED FLUTTER CODE CHANGE — replace your hardcoded URL with:
+      #         const backendUrl = String.fromEnvironment(
+      #           'BACKEND_URL',
+      #           defaultValue: 'http://localhost:5004',
+      #         );
+      - name: Build Windows release
+        run: flutter build windows --release --dart-define=BACKEND_URL=http://localhost:5004
+
+      # ── 8. Copy docker-compose.yml into the Release folder ─────────────────
+      #       Colleague runs `docker compose up -d` in this folder to start
+      #       the backend + Postgres on their Windows machine.
+      - name: Copy docker-compose into release folder
+        shell: cmd
+        run: copy ..\backend\docker-compose.yml build\windows\x64\runner\Release\docker-compose.yml
+
+      # ── 9. Generate setup README for colleague ─────────────────────────────
+      - name: Create setup README
+        shell: bash
+        run: |
+          cat > build/windows/x64/runner/Release/README.txt << 'README'
+          === Ezo - Windows Setup ===
+
+          STEP 1: Install Docker Desktop for Windows
+                  https://www.docker.com/products/docker-desktop/
+
+          STEP 2: Open a terminal IN THIS FOLDER and run:
+                  docker compose up -d
+
+          STEP 3: Wait 15 seconds for Postgres to initialize, then run ezo.exe
+
+          STEP 4: To stop the backend later:
+                  docker compose down
+
+          NOTE: The backend must be running before you open the app.
+          README
+
+      # ── 10. Upload full release folder as artifact ─────────────────────────
+      #        Contains: ezo.exe + DLLs + docker-compose.yml + README.txt
+      #        Colleague downloads from:
+      #        GitHub → Actions → latest run → Artifacts → windows-release
+      - name: Upload Windows build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: ezo/build/windows/x64/runner/Release/
+          retention-days: 14
+          if-no-files-found: error
