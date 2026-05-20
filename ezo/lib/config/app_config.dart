@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 class AppConfig {
   // API Configuration
   static String get apiBaseUrl {
-    // If we're in development mode (e.g., flutter run), use localhost
+    // If we're in development mode (e.g., flutter run), use localhost .
     if (kDebugMode) {
       if (kIsWeb) {
         // return 'http://localhost:5004/';
