@@ -67,7 +67,7 @@ app.use(cors({
 }));
 
 app.use(compression({
-  threshold: 10240, // 10KB - only compress if larger
+  threshold: 10240, // 10KB - only compress if larger compression level: 1-9, higher is more compression but slower
   level: 6, // good balance of speed and compression
 }));
 
