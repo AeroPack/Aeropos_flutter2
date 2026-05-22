@@ -18,7 +18,7 @@ class QuickServeThermalTemplate extends InvoiceTemplate {
   String get styleName => 'SPEEDY';
   @override
   String get previewImagePath =>
-      'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400';
+      'assets/preview_templates/quick_serve_thermal_template.png';
   @override
   Color get badgeColor => Colors.orange.shade600;
   @override
@@ -59,8 +59,8 @@ class QuickServeThermalTemplate extends InvoiceTemplate {
               pw.Text('${data.taxLabel}: ${data.gstin}', style: const pw.TextStyle(fontSize: 7)),
               pw.Divider(thickness: 1, color: themePdfColor),
               pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-                pw.Text('Date: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}', style: const pw.TextStyle(fontSize: 7)),
-                pw.Text('Time: ${DateTime.now().hour}:${DateTime.now().minute}', style: const pw.TextStyle(fontSize: 7)),
+                pw.Text('Date: ${data.invoiceDate.day}/${data.invoiceDate.month}/${data.invoiceDate.year}', style: const pw.TextStyle(fontSize: 7)),
+                pw.Text('Time: ${data.invoiceDate.hour}:${data.invoiceDate.minute.toString().padLeft(2, '0')}', style: const pw.TextStyle(fontSize: 7)),
               ]),
               if (data.paymentMethod != null)
                 pw.Text('Payment: ${data.paymentMethod!.toUpperCase()}', style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold)),
@@ -87,7 +87,7 @@ class QuickServeThermalTemplate extends InvoiceTemplate {
               _totalRow('${data.taxLabel} (${data.taxRate}%):', data.taxAmount.toStringAsFixed(2)),
               pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
                 pw.Text('GRAND TOTAL', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                pw.Text('₹${data.total.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                pw.Text('Rs ${data.total.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
               ]),
               pw.Divider(thickness: 1, color: themePdfColor),
               pw.Text('Thank you for your purchase!', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: themePdfColor)),
@@ -131,8 +131,8 @@ class QuickServeThermalTemplate extends InvoiceTemplate {
           Text('${data.taxLabel}: ${data.gstin}', style: const TextStyle(fontSize: 7)),
           Divider(height: 12, thickness: 1, color: data.themeColor),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text('Date: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}', style: const TextStyle(fontSize: 7)),
-            Text('Time: ${DateTime.now().hour}:${DateTime.now().minute}', style: const TextStyle(fontSize: 7)),
+            Text('Date: ${data.invoiceDate.day}/${data.invoiceDate.month}/${data.invoiceDate.year}', style: const TextStyle(fontSize: 7)),
+            Text('Time: ${data.invoiceDate.hour}:${data.invoiceDate.minute.toString().padLeft(2, '0')}', style: const TextStyle(fontSize: 7)),
           ]),
           if (data.paymentMethod != null) Text('Payment: ${data.paymentMethod!.toUpperCase()}', style: const TextStyle(fontSize: 7, fontWeight: FontWeight.bold)),
           Divider(height: 12, thickness: 1, color: data.themeColor),

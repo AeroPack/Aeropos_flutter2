@@ -14,6 +14,10 @@ abstract class InvoiceTemplate {
   String get metadata;
   String? get tag;
   bool get isThermal => format.toUpperCase() == 'THERMAL';
+  bool get supportsTableNumbers => false;
+  bool get supportsShipping => false;
+  bool get supportsDiscounts => false;
+  bool get supportsTaxBreakdown => false;
 
   pw.Document buildPdf(InvoiceData data);
 

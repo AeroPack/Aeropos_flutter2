@@ -17,7 +17,7 @@ class DesignSystemsIndiaTemplate extends InvoiceTemplate {
   String get styleName => 'PROFESSIONAL';
   @override
   String get previewImagePath =>
-      'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?auto=format&fit=crop&q=80&w=400';
+      'assets/preview_templates/design_systems_india_template.png';
   @override
   Color get badgeColor => const Color(0xFF13a4ec);
   @override
@@ -30,299 +30,253 @@ class DesignSystemsIndiaTemplate extends InvoiceTemplate {
     final pdf = pw.Document();
     final accentColor = PdfColor.fromInt(data.themeColorArgb);
 
-    pw.MemoryImage? logoImage;
-    if (data.showLogo && data.logoBytes != null) {
-      logoImage = pw.MemoryImage(data.logoBytes!);
-    }
-
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(32),
+        margin: pw.EdgeInsets.zero, // Zero margin to allow full-width wave
         build: (context) {
           return wrapWithFont(pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // Header with bar
-              pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Expanded(
-                    child: pw.Row(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        if (data.showLogo) ...[
-                          if (logoImage != null) ...[
-                            pw.Container(
-                              width: 50,
-                              height: 50,
-                              child: pw.Image(logoImage),
-                            ),
-                            pw.SizedBox(width: 12),
-                          ],
-                        ],
-                        pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.start,
-                          children: [
-                            pw.Text(
-                              data.businessName.toUpperCase(),
-                              style: pw.TextStyle(
-                                fontSize: 20,
-                                fontWeight: pw.FontWeight.bold,
-                                color: accentColor,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                            pw.SizedBox(height: 8),
-                            if (data.showBusinessAddress)
-                              pw.Text(
-                                data.businessAddress,
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  color: PdfColors.grey600,
-                                ),
-                              ),
-                            pw.Text(
-                              data.businessPhone,
-                              style: pw.TextStyle(
-                                fontSize: 10,
-                                color: PdfColors.grey600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    color: accentColor,
-                    child: pw.Text(
-                      'INVOICE',
-                      style: pw.TextStyle(
-                        color: PdfColors.white,
-                        fontWeight: pw.FontWeight.bold,
-                        fontSize: 26,
+              // Wave Header
+              pw.Container(
+                height: 160,
+                width: double.infinity,
+                child: pw.Stack(
+                  children: [
+                    pw.Positioned.fill(
+                      child: pw.CustomPaint(
+                        painter: (PdfGraphics canvas, PdfPoint size) {
+                          canvas.setFillColor(accentColor);
+                          // In PDF, (0,0) is the bottom-left of the CustomPaint box
+                          canvas.moveTo(0, size.y);
+                          canvas.lineTo(size.x, size.y);
+                          canvas.lineTo(size.x, 60);
+                          // cubic curve to create the wave
+                          canvas.curveTo(
+                            size.x * 0.6, 90, 
+                            size.x * 0.4, 20, 
+                            0, 40
+                          );
+                          canvas.lineTo(0, size.y);
+                          canvas.fillPath();
+                        },
                       ),
                     ),
-                  ),
-                ],
+                    pw.Positioned(
+                      top: 40,
+                      left: 32,
+                      right: 32,
+                      child: pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: pw.CrossAxisAlignment.center,
+                        children: [
+                          pw.Text(
+                            'INVOICE',
+                            style: pw.TextStyle(
+                              color: PdfColors.white,
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 36,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                          pw.Text(
+                            data.invoiceNumber.isNotEmpty ? 'NO: ${data.invoiceNumber}' : 'NO: INV-001',
+                            style: pw.TextStyle(
+                              color: PdfColors.white,
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
-              pw.SizedBox(height: 48),
+              pw.SizedBox(height: 20),
 
-              // Client and Meta Row
-              pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Expanded(
-                    child: data.showClientContact
-                        ? pw.Column(
+              // Padded Body
+              pw.Expanded(
+                child: pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 32),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      // Bill To / From Section
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          // Bill To
+                          pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
                               pw.Text(
-                                'CLIENT',
+                                'Bill To:',
                                 style: pw.TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 16,
                                   fontWeight: pw.FontWeight.bold,
-                                  color: accentColor,
+                                  color: PdfColors.grey800,
                                 ),
                               ),
-                              pw.SizedBox(height: 8),
+                              pw.SizedBox(height: 4),
                               pw.Text(
                                 data.clientName,
-                                style: pw.TextStyle(
-                                  fontWeight: pw.FontWeight.bold,
-                                  fontSize: 13,
-                                ),
+                                style: pw.TextStyle(color: PdfColors.grey700, fontSize: 11),
+                              ),
+                              pw.Text(
+                                data.clientPhone.isNotEmpty ? data.clientPhone : "+123-456-7890", 
+                                style: pw.TextStyle(color: PdfColors.grey700, fontSize: 11),
                               ),
                               pw.Text(
                                 data.clientAddress,
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  color: PdfColors.grey700,
-                                ),
+                                style: pw.TextStyle(color: PdfColors.grey700, fontSize: 11),
                               ),
                             ],
-                          )
-                        : pw.SizedBox(),
-                  ),
-                  pw.Expanded(
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      children: [
-                        _pdfMetaRow(
-                          'DATE:',
-                          '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
-                        ),
-                        if (data.paymentMethod != null)
-                          _pdfMetaRow(
-                            'PAYMENT:',
-                            data.paymentMethod!.toUpperCase(),
                           ),
-                        _pdfMetaRow('INVOICE #:', 'DS-2024-001'),
-                        _pdfMetaRow('DUE DATE:', 'Next 30 Days'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              pw.SizedBox(height: 40),
-
-              // Items Table
-              pw.Table(
-                border: pw.TableBorder(
-                  bottom: pw.BorderSide(color: accentColor, width: 2),
-                ),
-                children: [
-                  pw.TableRow(
-                    decoration: pw.BoxDecoration(
-                      border: pw.Border(
-                        bottom: pw.BorderSide(color: accentColor, width: 2),
-                      ),
-                    ),
-                    children: [
-                      _pdfHeaderCell('DESCRIPTION', pw.TextAlign.left),
-                      _pdfHeaderCell('QTY', pw.TextAlign.center),
-                      _pdfHeaderCell('RATE', pw.TextAlign.right),
-                      _pdfHeaderCell('AMOUNT', pw.TextAlign.right),
-                    ],
-                  ),
-                  ...data.items.map(
-                    (item) => pw.TableRow(
-                      children: [
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.symmetric(vertical: 10),
-                          child: pw.Text(
-                            item.desc,
-                            style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ),
-                        _pdfDataCell(item.qty.toString(), pw.TextAlign.center),
-                        _pdfDataCell(
-                          item.rate.toStringAsFixed(0),
-                          pw.TextAlign.right,
-                        ),
-                        _pdfDataCell(
-                          item.amount.toStringAsFixed(0),
-                          pw.TextAlign.right,
-                          isBold: true,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              pw.SizedBox(height: 32),
-
-              // Totals Table
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.end,
-                children: [
-                  pw.Container(
-                    width: 200,
-                    child: pw.Column(
-                      children: [
-                        _pdfTotalRow(
-                          'Subtotal',
-                          data.subtotal.toStringAsFixed(0),
-                        ),
-                        pw.SizedBox(height: 8),
-                        if (data.showTaxBreakdown &&
-                            data.taxLabel.toUpperCase() == 'GST') ...[
-                          _pdfTotalRow(
-                            'SGST (${(data.taxRate / 2)}%)',
-                            (data.taxAmount / 2).toStringAsFixed(0),
-                          ),
-                          pw.SizedBox(height: 4),
-                          _pdfTotalRow(
-                            'CGST (${(data.taxRate / 2)}%)',
-                            (data.taxAmount / 2).toStringAsFixed(0),
-                          ),
-                        ] else ...[
-                          _pdfTotalRow(
-                            '${data.taxLabel} (${data.taxRate}%)',
-                            data.taxAmount.toStringAsFixed(0),
+                          // From
+                          pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.end,
+                            children: [
+                              pw.Text(
+                                'From:',
+                                style: pw.TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: PdfColors.grey800,
+                                ),
+                              ),
+                              pw.SizedBox(height: 4),
+                              pw.Text(
+                                data.businessName,
+                                style: pw.TextStyle(color: PdfColors.grey700, fontSize: 11),
+                              ),
+                              pw.Text(
+                                data.businessPhone,
+                                style: pw.TextStyle(color: PdfColors.grey700, fontSize: 11),
+                              ),
+                              pw.Text(
+                                data.businessAddress,
+                                style: pw.TextStyle(color: PdfColors.grey700, fontSize: 11),
+                              ),
+                            ],
                           ),
                         ],
-                        pw.SizedBox(height: 4),
-                        pw.Divider(thickness: 1, color: accentColor),
-                        pw.SizedBox(height: 4),
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Text(
-                              'TOTAL',
-                              style: pw.TextStyle(
-                                fontWeight: pw.FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                            pw.Text(
-                              '₹${data.total.toStringAsFixed(0)}',
-                              style: pw.TextStyle(
-                                fontWeight: pw.FontWeight.bold,
-                                fontSize: 18,
-                                color: accentColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                      ),
 
-              pw.Spacer(),
+                      pw.SizedBox(height: 24),
 
-              // Bank info and Thanks
-              pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.end,
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
+                      // Date
                       pw.Text(
-                        'PAYMENT INFORMATION',
-                        style: pw.TextStyle(
-                          fontSize: 8,
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColors.grey500,
-                        ),
+                        'Date: ${data.invoiceDate.day} ${_getMonth(data.invoiceDate.month)} ${data.invoiceDate.year}',
+                        style: pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
                       ),
-                      pw.Text(
-                        'Bank: State Bank of India',
-                        style: const pw.TextStyle(fontSize: 9),
+
+                      pw.SizedBox(height: 24),
+
+                      // Table
+                      pw.Table(
+                        border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+                        columnWidths: {
+                          0: const pw.FlexColumnWidth(4),
+                          1: const pw.FlexColumnWidth(1),
+                          2: const pw.FlexColumnWidth(1.5),
+                          3: const pw.FlexColumnWidth(1.5),
+                        },
+                        children: [
+                          // Table Header
+                          pw.TableRow(
+                            decoration: pw.BoxDecoration(color: accentColor),
+                            children: [
+                              _pdfHeaderCell('Description', pw.TextAlign.left),
+                              _pdfHeaderCell('Qty', pw.TextAlign.center),
+                              _pdfHeaderCell('Price', pw.TextAlign.center),
+                              _pdfHeaderCell('Total', pw.TextAlign.center),
+                            ],
+                          ),
+                          // Table Rows
+                          ...data.items.map((item) => pw.TableRow(
+                            children: [
+                              _pdfDataCell(item.desc, pw.TextAlign.left),
+                              _pdfDataCell(item.qty.toString(), pw.TextAlign.center),
+                              _pdfDataCell('Rs ${item.rate.toStringAsFixed(2)}', pw.TextAlign.center),
+                              _pdfDataCell('Rs ${item.amount.toStringAsFixed(2)}', pw.TextAlign.center),
+                            ],
+                          )),
+                        ],
                       ),
-                      pw.Text(
-                        'A/C No: 9928172615',
-                        style: const pw.TextStyle(fontSize: 9),
+
+                      pw.SizedBox(height: 16),
+
+                      // Sub Total Box
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.end,
+                        children: [
+                          pw.Container(
+                            width: 220,
+                            color: accentColor,
+                            padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: pw.Row(
+                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                              children: [
+                                pw.Text(
+                                  'Sub Total',
+                                  style: pw.TextStyle(color: PdfColors.white, fontSize: 10, fontWeight: pw.FontWeight.bold),
+                                ),
+                                pw.Text(
+                                  'Rs ${data.total.toStringAsFixed(2)}',
+                                  style: pw.TextStyle(color: PdfColors.white, fontSize: 10),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      pw.Text(
-                        'IFSC: SBIN00291',
-                        style: const pw.TextStyle(fontSize: 9),
+
+                      pw.Spacer(),
+
+                      // Footer Content
+                      pw.Row(
+                        crossAxisAlignment: pw.CrossAxisAlignment.end,
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Notes and Payment Info
+                          pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              // Lines for Note
+                              pw.Text('Note:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                              pw.Container(width: 150, height: 1, color: PdfColors.grey400, margin: const pw.EdgeInsets.only(top: 4, bottom: 6)),
+                              pw.Container(width: 150, height: 1, color: PdfColors.grey400, margin: const pw.EdgeInsets.only(bottom: 6)),
+                              pw.Container(width: 150, height: 1, color: PdfColors.grey400, margin: const pw.EdgeInsets.only(bottom: 24)),
+
+                              // Payment Info
+                              pw.Text('Payment Information:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                              pw.SizedBox(height: 6),
+                              _pdfPaymentRow('Bank:', data.bankName.isNotEmpty ? data.bankName : 'Bank Name'),
+                              _pdfPaymentRow('A/C No:', data.bankAccountNo.isNotEmpty ? data.bankAccountNo : 'Account No'),
+                              _pdfPaymentRow('IFSC:', data.bankIfsc.isNotEmpty ? data.bankIfsc : 'IFSC Code'),
+                            ],
+                          ),
+                          
+                          // Thank You text
+                          pw.Text(
+                            'Thank You!',
+                            style: pw.TextStyle(
+                              fontSize: 28,
+                              color: accentColor,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
+                      
+                      pw.SizedBox(height: 32),
                     ],
                   ),
-                  pw.Text(
-                    'Thank you for your business!',
-                    style: pw.TextStyle(
-                      fontSize: 10,
-                      fontStyle: pw.FontStyle.italic,
-                      color: PdfColors.grey600,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ],
           ), data);
@@ -332,448 +286,244 @@ class DesignSystemsIndiaTemplate extends InvoiceTemplate {
     return pdf;
   }
 
-  pw.Widget _pdfMetaRow(String label, String value) {
+  pw.Widget _pdfHeaderCell(String text, pw.TextAlign align) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 4),
+      padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(color: PdfColors.white, fontSize: 10, fontWeight: pw.FontWeight.bold),
+        textAlign: align,
+      ),
+    );
+  }
+
+  pw.Widget _pdfDataCell(String text, pw.TextAlign align) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(color: PdfColors.grey700, fontSize: 9),
+        textAlign: align,
+      ),
+    );
+  }
+
+  pw.Widget _pdfPaymentRow(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 2),
       child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.end,
         children: [
-          pw.Text(
-            label,
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+          pw.Container(
+            width: 60,
+            child: pw.Text(label, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10, color: PdfColors.grey800)),
           ),
-          pw.SizedBox(width: 8),
-          pw.Text(value, style: const pw.TextStyle(fontSize: 10)),
+          pw.Text(value, style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
         ],
       ),
     );
   }
 
-  pw.Widget _pdfHeaderCell(String label, pw.TextAlign align) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 8),
-      child: pw.Text(
-        label,
-        style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
-        textAlign: align,
-      ),
-    );
-  }
-
-  pw.Widget _pdfDataCell(
-    String value,
-    pw.TextAlign align, {
-    bool isBold = false,
-  }) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 10),
-      child: pw.Text(
-        value,
-        style: pw.TextStyle(
-          fontSize: 10,
-          fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
-        ),
-        textAlign: align,
-      ),
-    );
-  }
-
-  pw.Widget _pdfTotalRow(String label, String value) {
-    return pw.Row(
-      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-      children: [
-        pw.Text(
-          label,
-          style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
-        ),
-        pw.Text(value, style: const pw.TextStyle(fontSize: 10)),
-      ],
-    );
+  String _getMonth(int month) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[month - 1];
   }
 
   @override
   Widget buildFlutterPreview(InvoiceData data) {
+    final accentColor = data.themeColor;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Row(
+        // Wave Header
+        ClipPath(
+          clipper: WaveClipper(),
+          child: Container(
+            height: 160,
+            width: double.infinity,
+            color: accentColor,
+            padding: const EdgeInsets.only(top: 40, left: 32, right: 32),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'INVOICE',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 36,
+                    letterSpacing: 2,
+                  ),
+                ),
+                Text(
+                  data.invoiceNumber.isNotEmpty ? 'NO: ${data.invoiceNumber}' : 'NO: INV-001',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Padded Body
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              
+              // Bill To / From Section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (data.showLogo &&
-                      (data.logoBytes != null || data.logoPath != null)) ...[
-                    buildLogoWidget(data, size: 50),
-                    const SizedBox(width: 12),
-                  ],
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        data.businessName.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          color: data.themeColor,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (data.showBusinessAddress)
-                        Text(
-                          data.businessAddress,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      Text(
-                        data.businessPhone,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey,
-                        ),
-                      ),
+                      const Text('Bill To:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text(data.clientName, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      Text(data.clientPhone.isNotEmpty ? data.clientPhone : "+123-456-7890", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      Text(data.clientAddress, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text('From:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text(data.businessName, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      Text(data.businessPhone, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      Text(data.businessAddress, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                     ],
                   ),
                 ],
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: data.themeColor,
-              child: const Text(
-                'INVOICE',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 24,
-                ),
+
+              const SizedBox(height: 24),
+
+              Text(
+                'Date: ${data.invoiceDate.day} ${_getMonth(data.invoiceDate.month)} ${data.invoiceDate.year}',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 48),
-        Row(
-          children: [
-            Expanded(
-              child: data.showClientContact
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+
+              const SizedBox(height: 24),
+
+              // Table
+              Table(
+                border: TableBorder.all(color: Colors.grey.shade400, width: 0.5),
+                columnWidths: const {
+                  0: FlexColumnWidth(4),
+                  1: FlexColumnWidth(1),
+                  2: FlexColumnWidth(1.5),
+                  3: FlexColumnWidth(1.5),
+                },
+                children: [
+                  TableRow(
+                    decoration: BoxDecoration(color: accentColor),
+                    children: const [
+                      Padding(padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text('Description', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))),
+                      Padding(padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text('Qty', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))),
+                      Padding(padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text('Price', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))),
+                      Padding(padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text('Total', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))),
+                    ],
+                  ),
+                  ...data.items.map((item) => TableRow(
+                    children: [
+                      Padding(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text(item.desc, style: const TextStyle(color: Colors.grey, fontSize: 11))),
+                      Padding(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text(item.qty.toString(), textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 11))),
+                      Padding(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text('Rs ${item.rate.toStringAsFixed(2)}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 11))),
+                      Padding(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text('Rs ${item.amount.toStringAsFixed(2)}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 11))),
+                    ],
+                  )),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // Sub Total Box
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Container(
+                    width: 220,
+                    color: accentColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'CLIENT',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: data.themeColor,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          data.clientName,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          data.clientAddress,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
+                        const Text('Sub Total', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                        Text('Rs ${data.total.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 12)),
                       ],
-                    )
-                  : const SizedBox(),
-            ),
-            Expanded(
-              child: Column(
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 60),
+
+              // Footer Content
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'DATE: ',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                        ),
-                      ),
-                      Text(
-                        '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
-                        style: const TextStyle(fontSize: 11),
-                      ),
+                      const Text('Note:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      Container(width: 150, height: 1, color: Colors.grey.shade400, margin: const EdgeInsets.only(top: 4, bottom: 6)),
+                      Container(width: 150, height: 1, color: Colors.grey.shade400, margin: const EdgeInsets.only(bottom: 6)),
+                      Container(width: 150, height: 1, color: Colors.grey.shade400, margin: const EdgeInsets.only(bottom: 24)),
+
+                      const Text('Payment Information:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      const SizedBox(height: 6),
+                      _flutterPaymentRow('Bank:', data.bankName.isNotEmpty ? data.bankName : 'Bank Name'),
+                      _flutterPaymentRow('A/C No:', data.bankAccountNo.isNotEmpty ? data.bankAccountNo : 'Account No'),
+                      _flutterPaymentRow('IFSC:', data.bankIfsc.isNotEmpty ? data.bankIfsc : 'IFSC Code'),
                     ],
                   ),
-                  if (data.paymentMethod != null)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        const Text(
-                          'PAYMENT: ',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                        Text(
-                          data.paymentMethod!.toUpperCase(),
-                          style: const TextStyle(fontSize: 11),
-                        ),
-                      ],
-                    ),
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        'INVOICE #: ',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                        ),
-                      ),
-                      Text('DS-2024-001', style: TextStyle(fontSize: 11)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 40),
-        Table(
-          columnWidths: const {
-            0: FlexColumnWidth(4),
-            1: FlexColumnWidth(1),
-            2: FlexColumnWidth(1),
-            3: FlexColumnWidth(1),
-          },
-          children: [
-            TableRow(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: data.themeColor, width: 2),
-                ),
-              ),
-              children: const [
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    'DESCRIPTION',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    'QTY',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    'RATE',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    'AMOUNT',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-              ],
-            ),
-            ...data.items.map(
-              (item) => TableRow(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.desc,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        Text(
-                          item.details,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      item.qty.toString(),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      item.rate.toStringAsFixed(0),
-                      textAlign: TextAlign.right,
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      item.amount.toStringAsFixed(0),
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                  
+                  Text(
+                    'Thank You!',
+                    style: TextStyle(
+                      fontSize: 28,
+                      color: accentColor,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 32),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Table(
-              columnWidths: const {
-                0: FixedColumnWidth(100),
-                1: FixedColumnWidth(100),
-              },
-              children: [
-                TableRow(
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Text('Subtotal'),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: Text(
-                        data.subtotal.toStringAsFixed(0),
-                        textAlign: TextAlign.right,
-                      ),
-                    ),
-                  ],
-                ),
-                if (data.showTaxBreakdown &&
-                    data.taxLabel.toUpperCase() == 'GST') ...[
-                  TableRow(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Text(
-                          'SGST (${(data.taxRate / 2).toStringAsFixed(1)}%)',
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Text(
-                          (data.taxAmount / 2).toStringAsFixed(0),
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                    ],
-                  ),
-                  TableRow(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Text(
-                          'CGST (${(data.taxRate / 2).toStringAsFixed(1)}%)',
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Text(
-                          (data.taxAmount / 2).toStringAsFixed(0),
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                    ],
-                  ),
-                ] else
-                  TableRow(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Text('${data.taxLabel} (${data.taxRate}%)'),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Text(
-                          data.taxAmount.toStringAsFixed(0),
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                    ],
-                  ),
-                TableRow(
-                  decoration: BoxDecoration(
-                    color: data.themeColor.withValues(alpha: 0.05),
-                  ),
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.all(8),
-                      child: Text(
-                        'TOTAL',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Text(
-                        data.total.toStringAsFixed(0),
-                        textAlign: TextAlign.right,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: data.themeColor,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 64),
-        if (data.showNotes && data.notes.isNotEmpty) ...[
-          const Divider(),
-          const SizedBox(height: 16),
-          Text(
-            'NOTES',
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.bold,
-              color: data.themeColor,
-            ),
+              const SizedBox(height: 32),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            data.notes,
-            style: const TextStyle(fontSize: 10, color: Colors.grey),
-          ),
-        ],
+        ),
       ],
+    );
+  }
+
+  Widget _flutterPaymentRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 70,
+            child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black87)),
+          ),
+          Text(value, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        ],
+      ),
     );
   }
 
   @override
   InvoiceData getDefaultData() {
+    // Retained your original default data so it matches your existing setup
     return InvoiceData(
       businessName: "Design Systems India Pvt. Ltd.",
       businessEmail: "billing@dsindia.in",
@@ -784,7 +534,7 @@ class DesignSystemsIndiaTemplate extends InvoiceTemplate {
       clientAddress: "12th Floor, Prestige Tech Park, Bangalore, KA 560103",
       taxLabel: "GST",
       taxRate: 18,
-      themeColorArgb: const Color(0xFF13a4ec).toARGB32(),
+      themeColorArgb: const Color(0xFF0A3D7B).toARGB32(), // Deep Blue matching the new wave design
       fontFamily: "Inter",
       items: [
         InvoiceItem(
@@ -803,8 +553,30 @@ class DesignSystemsIndiaTemplate extends InvoiceTemplate {
         ),
       ],
       notes:
-          "Please include the invoice number in your bank transfer description. Payment is due within 15 days of the invoice date. GST is applicable as per Indian tax laws. Thank you for your business!",
+          "Please include the invoice number in your bank transfer description. Payment is due within 15 days of the invoice date.",
       isThermal: false,
     );
   }
+}
+
+// Custom Clipper for Flutter Preview Header
+class WaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    // Top-left to bottom-left
+    path.lineTo(0, size.height - 40);
+    // Cubic bezier curve for wave effect
+    path.cubicTo(
+        size.width * 0.4, size.height + 20, 
+        size.width * 0.6, size.height - 90, 
+        size.width, size.height - 60);
+    // Bottom-right to top-right
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

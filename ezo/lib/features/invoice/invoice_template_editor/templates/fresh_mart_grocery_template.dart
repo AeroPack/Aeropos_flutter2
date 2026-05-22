@@ -18,7 +18,7 @@ class FreshMartGroceryTemplate extends InvoiceTemplate {
   String get styleName => 'COMPACT';
   @override
   String get previewImagePath =>
-      'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400';
+      'assets/preview_templates/fresh_mart_grocery_template.png';
   @override
   Color get badgeColor => Colors.green.shade600;
   @override
@@ -103,11 +103,11 @@ class FreshMartGroceryTemplate extends InvoiceTemplate {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    'Date: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                    'Date: ${data.invoiceDate.day}/${data.invoiceDate.month}/${data.invoiceDate.year}',
                     style: const pw.TextStyle(fontSize: 8),
                   ),
                   pw.Text(
-                    'Time: ${DateTime.now().hour}:${DateTime.now().minute}',
+                    'Time: ${data.invoiceDate.hour}:${data.invoiceDate.minute.toString().padLeft(2, '0')}',
                     style: const pw.TextStyle(fontSize: 8),
                   ),
                 ],
@@ -215,7 +215,7 @@ class FreshMartGroceryTemplate extends InvoiceTemplate {
                     ),
                   ),
                   pw.Text(
-                    '₹${data.total.toStringAsFixed(2)}',
+                    'Rs ${data.total.toStringAsFixed(2)}',
                     style: pw.TextStyle(
                       fontSize: 11,
                       fontWeight: pw.FontWeight.bold,
@@ -333,11 +333,11 @@ class FreshMartGroceryTemplate extends InvoiceTemplate {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Date: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                  'Date: ${data.invoiceDate.day}/${data.invoiceDate.month}/${data.invoiceDate.year}',
                   style: const TextStyle(fontSize: 8),
                 ),
                 Text(
-                  'Time: ${DateTime.now().hour}:${DateTime.now().minute}',
+                  'Time: ${data.invoiceDate.hour}:${data.invoiceDate.minute.toString().padLeft(2, '0')}',
                   style: const TextStyle(fontSize: 8),
                 ),
               ],

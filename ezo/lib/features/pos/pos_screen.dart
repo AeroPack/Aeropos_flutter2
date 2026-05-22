@@ -182,6 +182,13 @@ class _PosScreenState extends ConsumerState<PosScreen> {
           .toList();
 
       if (!mounted) return;
+
+      // Clear cart immediately so cashier can start next order
+      if (shouldSave) {
+        ref.read(cartProvider.notifier).clearCart();
+        PosToast.showSuccess(context, "Checkout completed");
+      }
+
       showDialog(
         context: context,
         barrierDismissible: true,
@@ -192,10 +199,6 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             return generatePdfInIsolate(invoiceData, templateId);
           },
           onPrintComplete: () {
-            if (shouldSave) {
-              ref.read(cartProvider.notifier).clearCart();
-              PosToast.showSuccess(context, "Checkout completed");
-            }
             if (mounted) Navigator.pop(context);
           },
         ),

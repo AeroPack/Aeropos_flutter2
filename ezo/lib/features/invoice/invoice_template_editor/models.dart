@@ -82,6 +82,7 @@ class InvoiceData {
   bool showBusinessAddress;
   bool showClientContact;
   bool showNotes;
+  String? logoLocalPath;
   String? logoPath;
   Uint8List? logoBytes;
   String? paymentMethod;
@@ -98,6 +99,9 @@ class InvoiceData {
   String upiId;
   String termsAndConditions;
   String authorizedSignatory;
+  String? tableNumber;
+  String? shippingAddress;
+  double discountAmount;
 
   InvoiceData({
     required this.businessName,
@@ -139,6 +143,9 @@ class InvoiceData {
     this.upiId = '',
     this.termsAndConditions = '',
     this.authorizedSignatory = '',
+    this.tableNumber,
+    this.shippingAddress,
+    this.discountAmount = 0.0,
   }) : invoiceDate = invoiceDate ?? DateTime.now();
 
   double get subtotal => items.fold(0.0, (sum, item) => sum + item.amount);

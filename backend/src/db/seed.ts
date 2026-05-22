@@ -45,6 +45,7 @@ export async function initializeDatabase() {
             "009_ops_log_archive.sql",
             "010_products_hsn_column.sql",
             "011_add_missing_sync_tables.sql",
+            "012_add_payment_method_to_invoices.sql",
         ];
 
         for (const file of migrationFiles) {

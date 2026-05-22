@@ -51,6 +51,7 @@ class SalesHistoryNotifier extends StateNotifier<SalesHistoryState> {
 
   final _db = ServiceLocator.instance.database;
   StreamSubscription? _subscription;
+  Timer? _debounceTimer;
 
   int get _tenantId {
     final tenantId = ServiceLocator.instance.tenantService.tenantId;
@@ -66,14 +67,17 @@ class SalesHistoryNotifier extends StateNotifier<SalesHistoryState> {
       ..limit(1);
 
     _subscription = trigger.watch().listen((_) {
-      // Silent refresh
-      _loadData(fetchCount: true);
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+        _loadData(fetchCount: true);
+      });
     });
   }
 
   @override
   void dispose() {
     _subscription?.cancel();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
@@ -94,8 +98,10 @@ class SalesHistoryNotifier extends StateNotifier<SalesHistoryState> {
     await _loadData(fetchCount: true);
   }
 
-  Future<void> refresh() async {
-    state = state.copyWith(isLoading: true);
+  Future<void> refresh({bool silent = false}) async {
+    if (!silent) {
+      state = state.copyWith(isLoading: true);
+    }
     await _loadData(fetchCount: true);
   }
 

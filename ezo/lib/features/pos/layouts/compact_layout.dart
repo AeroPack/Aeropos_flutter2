@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aeropos/features/pos/layouts/base_pos_layout.dart';
-import 'package:aeropos/features/pos/widgets/common/product_card.dart';
+// import 'package:aeropos/features/pos/widgets/common/product_card.dart';
 import 'package:aeropos/features/pos/widgets/common/totals_display.dart';
 import 'package:aeropos/features/pos/widgets/quantity_with_unit_dialog.dart';
 import 'package:aeropos/features/pos/state/cart_state.dart';
@@ -76,11 +76,13 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
     super.dispose();
   }
 
+  // Increased width thresholds to make the cards noticeably larger
   int _gridColumns(double availableWidth) {
-    if (availableWidth < 320) return 2;
-    if (availableWidth < 480) return 3;
-    if (availableWidth < 680) return 4;
-    return 5;
+    if (availableWidth < 400) return 2; // Mobile
+    if (availableWidth < 650) return 3; // Large Mobile / Small Tablet
+    if (availableWidth < 950) return 4; // Tablet portrait
+    if (availableWidth < 1300) return 5; // Tablet landscape / Small Desktop
+    return 6; // Large Desktop
   }
 
   @override
@@ -107,30 +109,24 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
 
     return Stack(
       children: [
-        // Product area — always full width
         Column(
           children: [
             _buildMobileToolbar(),
             widget.categories.when(
               data: (cats) => _buildCategoryTabs(cats, isMobile: true),
               loading: () => const SizedBox(height: 52),
-              error: (e, _) =>
-                  SizedBox(height: 52, child: Center(child: Text('$e'))),
+              error: (e, _) => SizedBox(height: 52, child: Center(child: Text('$e'))),
             ),
             Expanded(
               child: widget.products.when(
                 data: _buildProductGrid,
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Center(child: Text('Error: $e')),
               ),
             ),
-            // Reserve space so product list doesn't hide behind the cart bar
             const SizedBox(height: 72),
           ],
         ),
-
-        // Dark scrim — tap to close cart
         if (_mobileCartOpen)
           Positioned.fill(
             child: GestureDetector(
@@ -138,8 +134,6 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
               child: Container(color: Colors.black.withValues(alpha: 0.35)),
             ),
           ),
-
-        // Sliding cart panel
         AnimatedPositioned(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
@@ -148,8 +142,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
           right: 0,
           height: _mobileCartOpen ? cartOpenHeight : 72,
           child: ClipRRect(
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             child: _buildMobileCartPanel(itemCount),
           ),
         ),
@@ -172,7 +165,6 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Drag handle
           Center(
             child: Container(
               margin: const EdgeInsets.only(top: 10, bottom: 2),
@@ -184,19 +176,15 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
               ),
             ),
           ),
-
-          // Mini bar — always visible, tap to toggle
           GestureDetector(
             onTap: () => setState(() => _mobileCartOpen = !_mobileCartOpen),
             behavior: HitTestBehavior.opaque,
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: itemCount > 0 ? _primaryBlue : Colors.grey[400],
                       borderRadius: BorderRadius.circular(10),
@@ -213,22 +201,18 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      itemCount == 0
-                          ? 'Cart is empty'
-                          : '$itemCount item${itemCount != 1 ? 's' : ''}',
+                      itemCount == 0 ? 'Cart is empty' : '$itemCount item${itemCount != 1 ? 's' : ''}',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
-                        color: itemCount > 0
-                            ? Colors.black87
-                            : Colors.grey[500],
+                        color: itemCount > 0 ? Colors.black87 : Colors.grey[500],
                       ),
                     ),
                   ),
                   if (itemCount > 0) ...[
                     Text(
                       'Rs ${widget.cartState.total.toStringAsFixed(2)}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 16,
                         color: _primaryBlueDark,
@@ -248,8 +232,6 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
               ),
             ),
           ),
-
-          // Cart body — only rendered when open
           if (_mobileCartOpen)
             Expanded(
               child: Column(
@@ -257,9 +239,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
                   Divider(height: 1, color: Colors.grey[200]),
                   _buildCartHeader(),
                   Expanded(
-                    child: widget.cartState.items.isEmpty
-                        ? _buildEmptyCart()
-                        : _buildCartItems(),
+                    child: widget.cartState.items.isEmpty ? _buildEmptyCart() : _buildCartItems(),
                   ),
                   if (_showNotes) _buildNotesSection(),
                   _buildQuickActionsBar(),
@@ -271,10 +251,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
                     ),
                     compact: true,
                   ),
-                  SafeArea(
-                    top: false,
-                    child: _buildPaymentSection(),
-                  ),
+                  SafeArea(top: false, child: _buildPaymentSection()),
                 ],
               ),
             ),
@@ -293,7 +270,6 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Row 1 — navigation + quick actions
           Row(
             children: [
               IconButton(
@@ -308,18 +284,14 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
                   color: _primaryBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.storefront,
-                    color: _primaryBlue, size: 20),
+                child: const Icon(Icons.storefront, color: _primaryBlue, size: 20),
               ),
               const Spacer(),
               _mobileIconBtn(
-                icon: _showFavoritesOnly
-                    ? Icons.favorite
-                    : Icons.favorite_border,
+                icon: _showFavoritesOnly ? Icons.favorite : Icons.favorite_border,
                 tooltip: 'Favourites',
                 isActive: _showFavoritesOnly,
-                onTap: () =>
-                    setState(() => _showFavoritesOnly = !_showFavoritesOnly),
+                onTap: () => setState(() => _showFavoritesOnly = !_showFavoritesOnly),
               ),
               const SizedBox(width: 8),
               _mobileIconBtn(
@@ -332,14 +304,12 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
             ],
           ),
           const SizedBox(height: 8),
-          // Row 2 — product search full width
           _buildProductSearchBar(height: 44),
         ],
       ),
     );
   }
 
-  /// 44×44 icon button used in the mobile toolbar.
   Widget _mobileIconBtn({
     required IconData icon,
     required String tooltip,
@@ -347,8 +317,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
     required VoidCallback onTap,
     Color? iconColor,
   }) {
-    final color =
-        iconColor ?? (isActive ? _primaryBlue : Colors.grey[600]!);
+    final color = iconColor ?? (isActive ? _primaryBlue : Colors.grey[600]!);
     return Tooltip(
       message: tooltip,
       child: InkWell(
@@ -359,12 +328,9 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
           height: 44,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: isActive
-                ? _primaryBlue.withValues(alpha: 0.1)
-                : Colors.transparent,
+            color: isActive ? _primaryBlue.withValues(alpha: 0.1) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
-            border:
-                Border.all(color: isActive ? _primaryBlue : Colors.grey[200]!),
+            border: Border.all(color: isActive ? _primaryBlue : Colors.grey[200]!),
           ),
           child: Icon(icon, size: 20, color: color),
         ),
@@ -389,15 +355,11 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: _showBarcodeScan
-                    ? 'Scan or enter barcode...'
-                    : 'Search products...',
+                hintText: _showBarcodeScan ? 'Scan or enter barcode...' : 'Search products...',
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                    vertical: height > 40 ? 10 : 8),
+                contentPadding: EdgeInsets.symmetric(vertical: height > 40 ? 10 : 8),
                 isDense: true,
-                hintStyle:
-                    TextStyle(color: Colors.grey[400], fontSize: 14),
+                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
               ),
               style: const TextStyle(fontSize: 14),
               onChanged: widget.onSearch,
@@ -417,8 +379,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
               size: 20,
               color: _showBarcodeScan ? _accentBlue : Colors.grey[400],
             ),
-            onPressed: () =>
-                setState(() => _showBarcodeScan = !_showBarcodeScan),
+            onPressed: () => setState(() => _showBarcodeScan = !_showBarcodeScan),
             tooltip: 'Scan Barcode',
           ),
         ],
@@ -428,8 +389,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
 
   // ─── TABLET / DESKTOP LAYOUT ──────────────────────────────────────────────
 
-  Widget _buildSideBySideLayout(BuildContext context,
-      {required double cartWidth}) {
+  Widget _buildSideBySideLayout(BuildContext context, {required double cartWidth}) {
     return Row(
       children: [
         Expanded(
@@ -439,14 +399,12 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
               widget.categories.when(
                 data: (cats) => _buildCategoryTabs(cats),
                 loading: () => const SizedBox(height: 44),
-                error: (e, _) =>
-                    SizedBox(height: 44, child: Center(child: Text('$e'))),
+                error: (e, _) => SizedBox(height: 44, child: Center(child: Text('$e'))),
               ),
               Expanded(
                 child: widget.products.when(
                   data: _buildProductGrid,
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
+                  loading: () => const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Center(child: Text('Error: $e')),
                 ),
               ),
@@ -470,9 +428,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
             children: [
               _buildCartHeader(),
               Expanded(
-                child: widget.cartState.items.isEmpty
-                    ? _buildEmptyCart()
-                    : _buildCartItems(),
+                child: widget.cartState.items.isEmpty ? _buildEmptyCart() : _buildCartItems(),
               ),
               if (_showNotes) _buildNotesSection(),
               _buildQuickActionsBar(),
@@ -516,11 +472,9 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
               color: _primaryBlue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child:
-                const Icon(Icons.storefront, color: _primaryBlue, size: 22),
+            child: const Icon(Icons.storefront, color: _primaryBlue, size: 22),
           ),
           const SizedBox(width: 12),
-          // Product search
           Expanded(
             flex: 2,
             child: Container(
@@ -539,36 +493,27 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
                     child: TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
-                        hintText: _showBarcodeScan
-                            ? 'Scan or enter barcode...'
-                            : 'Search products...',
+                        hintText: _showBarcodeScan ? 'Scan or enter barcode...' : 'Search products...',
                         border: InputBorder.none,
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
                         isDense: true,
-                        hintStyle: TextStyle(
-                            color: Colors.grey[400], fontSize: 13),
+                        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
                       ),
                       onChanged: widget.onSearch,
                     ),
                   ),
                   IconButton(
                     icon: Icon(
-                      _showBarcodeScan
-                          ? Icons.qr_code_scanner
-                          : Icons.qr_code,
+                      _showBarcodeScan ? Icons.qr_code_scanner : Icons.qr_code,
                       size: 18,
-                      color:
-                          _showBarcodeScan ? _accentBlue : Colors.grey[400],
+                      color: _showBarcodeScan ? _accentBlue : Colors.grey[400],
                     ),
-                    onPressed: () => setState(
-                        () => _showBarcodeScan = !_showBarcodeScan),
+                    onPressed: () => setState(() => _showBarcodeScan = !_showBarcodeScan),
                     tooltip: 'Scan Barcode',
                   ),
                   if (_searchController.text.isNotEmpty)
                     IconButton(
-                      icon:
-                          Icon(Icons.close, size: 16, color: Colors.grey[400]),
+                      icon: Icon(Icons.close, size: 16, color: Colors.grey[400]),
                       onPressed: () {
                         _searchController.clear();
                         widget.onSearch('');
@@ -587,7 +532,6 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
             isActive: _showFavoritesOnly,
           ),
           const SizedBox(width: 8),
-          // Customer search
           Expanded(
             flex: 2,
             child: Container(
@@ -600,8 +544,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
               child: Row(
                 children: [
                   const SizedBox(width: 10),
-                  Icon(Icons.person_search,
-                      color: Colors.grey[400], size: 18),
+                  Icon(Icons.person_search, color: Colors.grey[400], size: 18),
                   const SizedBox(width: 6),
                   Expanded(
                     child: TextField(
@@ -609,22 +552,18 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
                       decoration: InputDecoration(
                         hintText: 'Search customer...',
                         border: InputBorder.none,
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
                         isDense: true,
-                        hintStyle: TextStyle(
-                            color: Colors.grey[400], fontSize: 13),
+                        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
                       ),
                       onChanged: (value) {
-                        ref.read(customerSearchProvider.notifier).state =
-                            value;
+                        ref.read(customerSearchProvider.notifier).state = value;
                       },
                     ),
                   ),
                   if (_customerSearchController.text.isNotEmpty)
                     IconButton(
-                      icon:
-                          Icon(Icons.close, size: 16, color: Colors.grey[400]),
+                      icon: Icon(Icons.close, size: 16, color: Colors.grey[400]),
                       onPressed: () {
                         _customerSearchController.clear();
                         ref.read(customerSearchProvider.notifier).state = '';
@@ -644,14 +583,13 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
 
   // ─── CATEGORY TABS ────────────────────────────────────────────────────────
 
-  Widget _buildCategoryTabs(List<dynamic> categories,
-      {bool isMobile = false}) {
+  Widget _buildCategoryTabs(List<dynamic> categories, {bool isMobile = false}) {
     return Container(
       height: isMobile ? 52.0 : 44.0,
       color: Colors.white,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         children: [
           _compactTabItem(
             'ALL PRODUCTS',
@@ -672,27 +610,23 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
     );
   }
 
-  Widget _compactTabItem(String label, bool active, VoidCallback onTap,
-      {bool isMobile = false}) {
+  Widget _compactTabItem(String label, bool active, VoidCallback onTap, {bool isMobile = false}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         alignment: Alignment.center,
-        margin: EdgeInsets.only(
-            right: 6, top: isMobile ? 8 : 6, bottom: isMobile ? 8 : 6),
-        padding: EdgeInsets.symmetric(
-            horizontal: 14, vertical: isMobile ? 6 : 4),
+        margin: EdgeInsets.only(right: 8, top: isMobile ? 8 : 6, bottom: isMobile ? 8 : 6),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: isMobile ? 6 : 4),
         decoration: BoxDecoration(
           color: active ? _primaryBlue : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          border:
-              Border.all(color: active ? _primaryBlue : Colors.grey[200]!),
+          border: Border.all(color: active ? _primaryBlue : Colors.grey[200]!),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontWeight: FontWeight.w700,
-            color: active ? Colors.white : Colors.grey[600],
+            color: active ? Colors.white : Colors.grey[700],
             fontSize: isMobile ? 12 : 11,
             letterSpacing: 0.5,
           ),
@@ -701,13 +635,11 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
     );
   }
 
-  // ─── PRODUCT GRID ─────────────────────────────────────────────────────────
+  // ─── PRODUCT GRID & CUSTOM 3D MODERN PRODUCT CARD ─────────────────────────
 
   Widget _buildProductGrid(List<ProductEntity> products) {
     final displayProducts = _showFavoritesOnly
-        ? products
-            .where((p) => _favoriteProductIds.contains(p.id))
-            .toList()
+        ? products.where((p) => _favoriteProductIds.contains(p.id)).toList()
         : products;
 
     if (displayProducts.isEmpty) {
@@ -716,29 +648,23 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              _showFavoritesOnly
-                  ? Icons.favorite_border
-                  : Icons.inventory_2_outlined,
-              size: 48,
+              _showFavoritesOnly ? Icons.favorite_border : Icons.inventory_2_outlined,
+              size: 56,
               color: Colors.grey[300],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Text(
-              _showFavoritesOnly
-                  ? 'No favorites added'
-                  : 'No products found',
+              _showFavoritesOnly ? 'No favorites added' : 'No products found',
               style: TextStyle(
-                color: Colors.grey[500],
+                color: Colors.grey[600],
                 fontWeight: FontWeight.w600,
-                fontSize: 14,
+                fontSize: 16,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
-              _showFavoritesOnly
-                  ? 'Tap ♡ on products to add to favorites'
-                  : 'Try different search or category',
-              style: TextStyle(color: Colors.grey[400], fontSize: 12),
+              _showFavoritesOnly ? 'Tap ♡ on products to add to favorites' : 'Try different search or category',
+              style: TextStyle(color: Colors.grey[400], fontSize: 13),
             ),
           ],
         ),
@@ -747,77 +673,271 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
 
     return LayoutBuilder(
       builder: (context, constraints) => GridView.builder(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: _gridColumns(constraints.maxWidth),
-          childAspectRatio: 0.85,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
+          childAspectRatio: 0.82, // Taller ratio for larger looking cards
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 18, // Extra vertical space for the 3D shadow lift
         ),
         itemCount: displayProducts.length,
-        itemBuilder: (_, i) => _buildCompactProductCard(displayProducts[i]),
+        itemBuilder: (_, i) => _buildModernProductCard(displayProducts[i]),
       ),
     );
   }
 
-  Widget _buildCompactProductCard(ProductEntity product) {
+  Widget _buildModernProductCard(ProductEntity product) {
     final isFavorite = _favoriteProductIds.contains(product.id);
-    final inCart =
-        widget.cartState.items.any((i) => i.product.id == product.id);
+    final inCart = widget.cartState.items.any((i) => i.product.id == product.id);
 
-    return Stack(
-      children: [
-        PosProductCard(
-          product: product,
-          onTap: () => _addToCart(product),
-          size: PosCardSize.small,
-          showSku: false,
+    double price = 0.0;
+    int stock = 0;
+    String? imageUrl;
+    try { price = (product as dynamic).price?.toDouble() ?? 0.0; } catch (_) {}
+    try { stock = (product as dynamic).stock ?? (product as dynamic).quantity ?? 0; } catch (_) {}
+    try { imageUrl = (product as dynamic).imageUrl ?? (product as dynamic).image; } catch (_) {}
+
+    // 3D Theme Variables
+    final Color cardBorderColor = inCart ? _primaryBlue : const Color(0xFFE2E8F0); // Beautiful Slate 200
+    final Color cardShadowColor = inCart ? _primaryBlue.withValues(alpha: 0.3) : const Color(0xFFCBD5E1); // Slate 300
+
+    return GestureDetector(
+      onTap: () => _addToCart(product),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: cardBorderColor,
+            width: 1.5,
+          ),
+          boxShadow: [
+            // Soft ambient blur
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+            // Solid 3D Base Shadow
+            BoxShadow(
+              color: cardShadowColor,
+              blurRadius: 0,
+              offset: const Offset(0, 5), // Creating the thick 3D bottom edge
+            ),
+          ],
         ),
-        Positioned(
-          top: 4,
-          right: 4,
-          child: GestureDetector(
-            onTap: () {
-              setState(() {
-                if (isFavorite) {
-                  _favoriteProductIds.remove(product.id);
-                } else {
-                  _favoriteProductIds.add(product.id);
-                }
-              });
-            },
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 2,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // --- Image Section (Expands to fill available top space) ---
+            Expanded(
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                    child: Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      color: Colors.grey[50],
+                      child: imageUrl != null && imageUrl.isNotEmpty
+                          ? Image.network(imageUrl, fit: BoxFit.cover)
+                          : _buildDummyImage(product.name),
+                    ),
+                  ),
+                  
+                  // Top Left: Stock Badge
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: _buildStockBadge(stock),
+                  ),
+
+                  // Top Right: Favorite Button
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (isFavorite) {
+                            _favoriteProductIds.remove(product.id);
+                          } else {
+                            _favoriteProductIds.add(product.id);
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.95),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                          size: 16,
+                          color: isFavorite ? Colors.redAccent : Colors.grey[400],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
-              child: Icon(
-                isFavorite ? Icons.favorite : Icons.favorite_border,
-                size: 14,
-                color: isFavorite ? Colors.amber : Colors.grey[400],
+            ),
+            
+            // --- Info Section (Shrink-wraps to remove awkward spacing) ---
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(14)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Product Name
+                  Text(
+                    product.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      height: 1.2,
+                      color: Color(0xFF1E293B), // Slate 800 - elegant dark
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  // SKU (Optional & Subtle)
+                  if (product.sku != null && product.sku!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'SKU: ${product.sku}',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFF94A3B8), // Slate 400
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  // Tight Spacing directly to the price
+                  const SizedBox(height: 8),
+                  
+                  // Price & Action Button Row
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'Rs ${price.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            color: _primaryBlueDark,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: inCart ? _primaryBlue : const Color(0xFFF1F5F9), // Slate 100
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: inCart ? _primaryBlueDark : const Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        child: Icon(
+                          inCart ? Icons.check : Icons.add,
+                          size: 16,
+                          color: inCart ? Colors.white : _primaryBlue,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ),
+          ],
         ),
-        if (inCart)
-          Positioned(
-            top: 4,
-            left: 4,
-            child: Container(
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                  color: _accentBlue, shape: BoxShape.circle),
-              child: const Icon(Icons.check, size: 10, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildDummyImage(String productName) {
+    final initial = productName.isNotEmpty ? productName[0].toUpperCase() : '?';
+    // Dynamic soft beautiful pastel gradients based on name length
+    final colorIndex = productName.length % Colors.primaries.length;
+    final color = Colors.primaries[colorIndex];
+    
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withValues(alpha: 0.25),
+            color.withValues(alpha: 0.08),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inventory_2_rounded, size: 32, color: color.withValues(alpha: 0.6)),
+            const SizedBox(height: 6),
+            Text(
+              initial,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: color.withValues(alpha: 0.7),
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStockBadge(int stock) {
+    final bool outOfStock = stock <= 0;
+    final bool lowStock = stock > 0 && stock <= 5;
+    
+    final Color bgColor = outOfStock ? Colors.redAccent : (lowStock ? Colors.orange : Colors.teal);
+    final String label = outOfStock ? 'Out of Stock' : '$stock in stock';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(6),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
-      ],
+        ],
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.3,
+        ),
+      ),
     );
   }
 
@@ -851,7 +971,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
             Flexible(
               child: Text(
                 customer.name,
-                style: TextStyle(
+                style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: _primaryBlue),
@@ -859,7 +979,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
               ),
             ),
           ] else ...[
-            Text(
+            const Text(
               'CART',
               style: TextStyle(
                   fontSize: 13,
@@ -869,15 +989,14 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
           ],
           const Spacer(),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: _primaryBlue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
               '$itemCount item${itemCount != 1 ? 's' : ''}',
-              style: TextStyle(
+              style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: _primaryBlue),
@@ -886,7 +1005,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
           const SizedBox(width: 8),
           Text(
             'Rs ${itemTotal.toStringAsFixed(2)}',
-            style: TextStyle(
+            style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
                 color: _primaryBlueDark),
@@ -906,15 +1025,14 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: _primaryBlue.withValues(alpha: 0.1),
-            border:
-                Border.all(color: _primaryBlue.withValues(alpha: 0.3)),
+            border: Border.all(color: _primaryBlue.withValues(alpha: 0.3)),
             borderRadius: BorderRadius.circular(6),
           ),
-          child: Row(
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.person_add_alt_1, size: 16, color: _primaryBlue),
-              const SizedBox(width: 6),
+              SizedBox(width: 6),
               Flexible(
                 child: Text(
                   'Add Customer',
@@ -937,8 +1055,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.shopping_cart_outlined,
-              size: 64, color: Colors.grey[300]),
+          Icon(Icons.shopping_cart_outlined, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 12),
           Text(
             'Cart is empty',
@@ -962,8 +1079,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
       padding: const EdgeInsets.all(8),
       itemCount: widget.cartState.items.length,
       separatorBuilder: (context, index) => const SizedBox(height: 6),
-      itemBuilder: (context, i) =>
-          _compactCartItemTile(widget.cartState.items[i]),
+      itemBuilder: (context, i) => _compactCartItemTile(widget.cartState.items[i]),
     );
   }
 
@@ -990,8 +1106,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
               Expanded(
                 child: Text(
                   item.product.name,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 13),
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -999,7 +1114,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
               const SizedBox(width: 8),
               Text(
                 'Rs ${item.total.toStringAsFixed(2)}',
-                style: TextStyle(
+                style: const TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 13,
                     color: _primaryBlueDark),
@@ -1018,8 +1133,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.green.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
@@ -1040,27 +1154,23 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
             children: [
               _compactQtyButton(
                 Icons.remove,
-                () => widget.cartNotifier.updateQuantity(
-                    item.product, item.quantity - 1),
+                () => widget.cartNotifier.updateQuantity(item.product, item.quantity - 1),
               ),
               GestureDetector(
                 onTap: () => _showQuantityDialog(item),
                 child: Container(
                   constraints: const BoxConstraints(minWidth: 44),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   alignment: Alignment.center,
                   child: Text(
                     '${item.quantity}${item.selectedUnit?.unitSymbol != null ? ' ${item.selectedUnit!.unitSymbol}' : ''}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 14),
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                   ),
                 ),
               ),
               _compactQtyButton(
                 Icons.add,
-                () => widget.cartNotifier.updateQuantity(
-                    item.product, item.quantity + 1),
+                () => widget.cartNotifier.updateQuantity(item.product, item.quantity + 1),
               ),
               const Spacer(),
               _compactIconBtn(
@@ -1085,7 +1195,6 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
     );
   }
 
-  /// Min 36×36 qty +/- button.
   Widget _compactQtyButton(IconData icon, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
@@ -1097,15 +1206,13 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
         decoration: BoxDecoration(
           color: _primaryBlue.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(6),
-          border:
-              Border.all(color: _primaryBlue.withValues(alpha: 0.2)),
+          border: Border.all(color: _primaryBlue.withValues(alpha: 0.2)),
         ),
         child: Icon(icon, size: 16, color: _primaryBlue),
       ),
     );
   }
 
-  /// Min 36×36 icon action button in a cart item row.
   Widget _compactIconBtn(
     IconData icon,
     String tooltip,
@@ -1159,10 +1266,8 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
         maxLines: 2,
         onChanged: (value) => widget.cartNotifier.setNotes(value),
         decoration: InputDecoration(
-          hintText:
-              'Add order notes (e.g., special instructions, gift wrap)...',
-          hintStyle:
-              TextStyle(color: Colors.grey[400], fontSize: 11),
+          hintText: 'Add order notes (e.g., special instructions, gift wrap)...',
+          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 11),
           filled: true,
           fillColor: Colors.grey[50],
           border: OutlineInputBorder(
@@ -1171,8 +1276,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
           ),
           contentPadding: const EdgeInsets.all(10),
           isDense: true,
-          prefixIcon:
-              Icon(Icons.note_outlined, size: 16, color: Colors.grey[400]),
+          prefixIcon: Icon(Icons.note_outlined, size: 16, color: Colors.grey[400]),
         ),
         style: const TextStyle(fontSize: 12),
       ),
@@ -1239,9 +1343,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(
-            color: isActive
-                ? _primaryBlue.withValues(alpha: 0.1)
-                : Colors.transparent,
+            color: isActive ? _primaryBlue.withValues(alpha: 0.1) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
@@ -1251,8 +1353,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
               const SizedBox(height: 2),
               Text(
                 label,
-                style: TextStyle(
-                    fontSize: 9, fontWeight: FontWeight.w700, color: color),
+                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: color),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
               ),
@@ -1272,17 +1373,11 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
           if (!isEmpty) ...[
             Row(
               children: [
-                Expanded(
-                    child: _compactPaymentChip(
-                        'Cash', Icons.payments_outlined, 'cash')),
+                Expanded(child: _compactPaymentChip('Cash', Icons.payments_outlined, 'cash')),
                 const SizedBox(width: 8),
-                Expanded(
-                    child: _compactPaymentChip(
-                        'Card', Icons.credit_card, 'card')),
+                Expanded(child: _compactPaymentChip('Card', Icons.credit_card, 'card')),
                 const SizedBox(width: 8),
-                Expanded(
-                    child: _compactPaymentChip(
-                        'QR/UPI', Icons.qr_code, 'qr_upi')),
+                Expanded(child: _compactPaymentChip('QR/UPI', Icons.qr_code, 'qr_upi')),
               ],
             ),
             const SizedBox(height: 10),
@@ -1301,8 +1396,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
                 backgroundColor: _primaryBlue,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 disabledBackgroundColor: Colors.grey[200],
               ),
               child: Row(
@@ -1333,14 +1427,10 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
 
   IconData _getPaymentIcon(String method) {
     switch (method) {
-      case 'cash':
-        return Icons.payments_outlined;
-      case 'card':
-        return Icons.credit_card;
-      case 'qr_upi':
-        return Icons.qr_code;
-      default:
-        return Icons.payment;
+      case 'cash': return Icons.payments_outlined;
+      case 'card': return Icons.credit_card;
+      case 'qr_upi': return Icons.qr_code;
+      default: return Icons.payment;
     }
   }
 
@@ -1354,14 +1444,12 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
         decoration: BoxDecoration(
           color: selected ? _primaryBlue : Colors.grey[50],
           borderRadius: BorderRadius.circular(10),
-          border:
-              Border.all(color: selected ? _primaryBlue : Colors.grey[200]!),
+          border: Border.all(color: selected ? _primaryBlue : Colors.grey[200]!),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon,
-                size: 16, color: selected ? Colors.white : Colors.grey[600]),
+            Icon(icon, size: 16, color: selected ? Colors.white : Colors.grey[600]),
             const SizedBox(width: 6),
             Text(
               label,
@@ -1392,19 +1480,14 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: isActive
-                ? _primaryBlue.withValues(alpha: 0.1)
-                : Colors.transparent,
-            border: Border.all(
-                color: isActive ? _primaryBlue : Colors.grey[200]!),
+            color: isActive ? _primaryBlue.withValues(alpha: 0.1) : Colors.transparent,
+            border: Border.all(color: isActive ? _primaryBlue : Colors.grey[200]!),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon,
-                  size: 18,
-                  color: isActive ? _primaryBlue : Colors.grey[600]),
+              Icon(icon, size: 18, color: isActive ? _primaryBlue : Colors.grey[600]),
               const SizedBox(width: 4),
               Text(
                 label,

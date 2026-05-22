@@ -12,6 +12,8 @@ import 'package:excel/excel.dart' as xl;
 import 'package:http/http.dart' as http;
 import '../../features/auth/presentation/providers/auth_controller.dart';
 import '../../features/profile/presentation/providers/profile_controller.dart';
+import '../../features/customers/widgets/bulk_import_dialog_stub.dart'
+    if (dart.library.html) '../../features/customers/widgets/bulk_import_dialog_web.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TableExportActions — Reusable PDF / Excel / Print widget for any data table
@@ -129,53 +131,36 @@ class TableExportActions extends ConsumerWidget {
   }
 
   Future<void> _savePdfDesktop(Uint8List pdfBytes) async {
-    await Printing.sharePdf(
-      bytes: pdfBytes,
-      filename:
+    final result = await FilePicker.platform.saveFile(
+      dialogTitle: 'Save PDF',
+      fileName:
           '${title.toLowerCase().replaceAll(' ', '_')}_${DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now())}.pdf',
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
     );
+    if (result != null) {
+      final file = File(result);
+      await file.writeAsBytes(pdfBytes);
+    }
   }
 
   Future<void> _downloadPdfWeb(Uint8List pdfBytes) async {
     try {
-      final web = await _loadWebLibrary();
-      final blob = web.Blob([
-        pdfBytes,
-      ], web.BlobPropertyBag(type: 'application/pdf'));
-      final url = web.URL.createObjectURL(blob);
       final fileName =
           '${title.toLowerCase().replaceAll(' ', '_')}_${DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now())}.pdf';
-      final anchor = web.document.createElement('a');
-      anchor.href = url;
-      anchor.download = fileName;
-      anchor.click();
-      web.URL.revokeObjectURL(url);
+      downloadBlobAsFile(pdfBytes, fileName, 'application/pdf');
     } catch (_) {}
-  }
-
-  Future<dynamic> _loadWebLibrary() async {
-    throw UnimplementedError('Web only');
   }
 
   Future<void> _downloadExcelWeb(Uint8List bytes) async {
     try {
-      // ignore: avoid_dynamic_calls
-      final web = await _loadWebLibrary();
-      final blob = web.Blob(
-        [bytes],
-        web.BlobPropertyBag(
-          type:
-              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        ),
-      );
-      final url = web.URL.createObjectURL(blob);
       final fileName =
           '${title.toLowerCase().replaceAll(' ', '_')}_${DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now())}.xlsx';
-      final anchor = web.document.createElement('a');
-      anchor.href = url;
-      anchor.download = fileName;
-      anchor.click();
-      web.URL.revokeObjectURL(url);
+      downloadBlobAsFile(
+        bytes,
+        fileName,
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
     } catch (_) {}
   }
 

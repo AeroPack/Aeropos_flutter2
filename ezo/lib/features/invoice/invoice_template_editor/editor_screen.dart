@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
 import 'models.dart';
 import 'package:printing/printing.dart';
 import 'template_engine/invoice_template.dart';
@@ -28,16 +31,6 @@ class Debouncer {
   void dispose() {
     _timer?.cancel();
   }
-}
-
-class EditorScreen extends ConsumerStatefulWidget {
-  final VoidCallback onBack;
-  final String? templateId;
-
-  const EditorScreen({super.key, required this.onBack, this.templateId});
-
-  @override
-  ConsumerState<EditorScreen> createState() => _EditorScreenState();
 }
 
 class _ToolbarItem extends StatelessWidget {
@@ -103,6 +96,16 @@ class _DeviceIcon extends StatelessWidget {
   }
 }
 
+class EditorScreen extends ConsumerStatefulWidget {
+  final VoidCallback onBack;
+  final String? templateId;
+
+  const EditorScreen({super.key, required this.onBack, this.templateId});
+
+  @override
+  ConsumerState<EditorScreen> createState() => _EditorScreenState();
+}
+
 class _EditorScreenState extends ConsumerState<EditorScreen> {
   bool isLoading = true;
   late bool isThermal;
@@ -119,7 +122,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   late String fontFamily;
   late List<InvoiceItem> items;
   late String notes;
-  String? logoPath; // This will store the server URL
+  String? logoPath;
+  String? logoLocalPath;
   Uint8List? logoBytes;
   late int thermalWidth;
   late bool showTaxBreakdown;
@@ -128,20 +132,44 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   late bool showClientContact;
   late bool showNotes;
 
+  // FAT MODEL FIELDS
+  late String tableNumber;
+  late String shippingAddress;
+  late double discountAmount;
+
+  // INVOICE & PAYMENT FIELDS
+  late String invoiceNumber;
+  late DateTime invoiceDate;
+  late String clientPhone;
+  late String clientGstin;
+  late String bankName;
+  late String bankAccountNo;
+  late String bankIfsc;
+
   final TextEditingController _businessNameController = TextEditingController();
-  final TextEditingController _businessEmailController =
-      TextEditingController();
-  final TextEditingController _businessPhoneController =
-      TextEditingController();
-  final TextEditingController _businessAddressController =
-      TextEditingController();
+  final TextEditingController _businessEmailController = TextEditingController();
+  final TextEditingController _businessPhoneController = TextEditingController();
+  final TextEditingController _businessAddressController = TextEditingController();
   final TextEditingController _gstinController = TextEditingController();
   final TextEditingController _clientNameController = TextEditingController();
-  final TextEditingController _clientAddressController =
-      TextEditingController();
+  final TextEditingController _clientAddressController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _taxRateController = TextEditingController();
   final TextEditingController _taxLabelController = TextEditingController();
+  
+  // FAT MODEL CONTROLLERS
+  final TextEditingController _tableNumberController = TextEditingController();
+  final TextEditingController _shippingAddressController = TextEditingController();
+  final TextEditingController _discountController = TextEditingController();
+
+  // INVOICE & PAYMENT CONTROLLERS
+  final TextEditingController _invoiceNumberController = TextEditingController();
+  final TextEditingController _clientPhoneController = TextEditingController();
+  final TextEditingController _clientGstinController = TextEditingController();
+  final TextEditingController _bankNameController = TextEditingController();
+  final TextEditingController _bankAccountNoController = TextEditingController();
+  final TextEditingController _bankIfscController = TextEditingController();
+
   final Map<String, TextEditingController> _itemDescControllers = {};
   final Map<String, TextEditingController> _itemQtyControllers = {};
   final Map<String, TextEditingController> _itemRateControllers = {};
@@ -157,16 +185,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     {'name': 'Inter', 'family': 'Inter', 'displayName': 'Inter'},
     {'name': 'Roboto', 'family': 'Roboto', 'displayName': 'Roboto'},
     {'name': 'Montserrat', 'family': 'Montserrat', 'displayName': 'Montserrat'},
-    {
-      'name': 'Playfair Display',
-      'family': 'Playfair Display',
-      'displayName': 'Playfair',
-    },
-    {
-      'name': 'JetBrains Mono',
-      'family': 'JetBrains Mono',
-      'displayName': 'Mono',
-    },
+    {'name': 'Playfair Display', 'family': 'Playfair Display', 'displayName': 'Playfair'},
+    {'name': 'JetBrains Mono', 'family': 'JetBrains Mono', 'displayName': 'Mono'},
   ];
 
   final List<Color> themeColors = const [
@@ -207,16 +227,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     try {
       final profileRepo = ServiceLocator.instance.profileRepository;
       final storage = ServiceLocator.instance.secureStorage;
-
       profile = await profileRepo.getProfile();
-
-      // Read cached logo URL from secure storage
       cachedLogoUrl = await storage.read(key: 'cached_logo_url');
-
-      // If we have a cached URL but no logoBytes, fetch them
-      if (cachedLogoUrl != null &&
-          cachedLogoUrl.isNotEmpty &&
-          logoBytes == null) {
+      if (cachedLogoUrl != null && cachedLogoUrl.isNotEmpty && logoBytes == null) {
         _loadLogoFromUrl(cachedLogoUrl);
       }
     } catch (e) {
@@ -224,34 +237,17 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     }
 
     try {
-      final (data: data, templateId: _) = await repo.getHydratedInvoiceData(
-        tenantId,
-        widget.templateId,
-      );
+      final (data: data, templateId: _) = await repo.getHydratedInvoiceData(tenantId, widget.templateId);
 
       if (mounted) {
         setState(() {
-          activeTemplate = TemplateRegistry.getTemplateById(
-            widget.templateId ?? 'default_a4',
-          );
+          activeTemplate = TemplateRegistry.getTemplateById(widget.templateId ?? 'default_a4');
 
-          businessName = data.businessName.isNotEmpty
-              ? data.businessName
-              : (profile?['businessName'] ??
-                    profile?['companyName'] ??
-                    'Your Business');
-          businessEmail = data.businessEmail.isNotEmpty
-              ? data.businessEmail
-              : (profile?['email'] ?? '');
-          businessPhone = data.businessPhone.isNotEmpty
-              ? data.businessPhone
-              : (profile?['phone'] ?? '');
-          businessAddress = data.businessAddress.isNotEmpty
-              ? data.businessAddress
-              : (profile?['address'] ?? '');
-          gstin = data.gstin.isNotEmpty
-              ? data.gstin
-              : (profile?['taxId'] ?? '');
+          businessName = data.businessName.isNotEmpty ? data.businessName : (profile?['businessName'] ?? profile?['companyName'] ?? 'Your Business');
+          businessEmail = data.businessEmail.isNotEmpty ? data.businessEmail : (profile?['email'] ?? '');
+          businessPhone = data.businessPhone.isNotEmpty ? data.businessPhone : (profile?['phone'] ?? '');
+          businessAddress = data.businessAddress.isNotEmpty ? data.businessAddress : (profile?['address'] ?? '');
+          gstin = data.gstin.isNotEmpty ? data.gstin : (profile?['taxId'] ?? '');
           clientName = data.clientName;
           clientAddress = data.clientAddress;
           taxLabel = data.taxLabel;
@@ -261,41 +257,37 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           items = data.items;
           notes = data.notes;
           isThermal = data.isThermal;
+          
+          // INITIALIZE FAT MODEL FIELDS
+          tableNumber = data.tableNumber ?? '';
+          shippingAddress = data.shippingAddress ?? '';
+          discountAmount = data.discountAmount;
 
-          // Load logo bytes from DB directly (zero network)
+          // INITIALIZE INVOICE & PAYMENT FIELDS
+          invoiceNumber = data.invoiceNumber;
+          invoiceDate = data.invoiceDate;
+          clientPhone = data.clientPhone;
+          clientGstin = data.clientGstin;
+          bankName = data.bankName;
+          bankAccountNo = data.bankAccountNo;
+          bankIfsc = data.bankIfsc;
+
           logoBytes = data.logoBytes;
-          // Load logo path in priority order:
-          // 1. Saved logoPath from template data (server URL from database)
-          // 2. Cached logo URL from secure storage
-          // 3. Profile logo URL
           if (data.logoPath != null && data.logoPath!.isNotEmpty) {
             logoPath = data.logoPath;
-            if (logoPath!.startsWith('http') && logoBytes == null) {
-              _loadLogoFromUrl(logoPath!);
-            }
+            if (logoPath!.startsWith('http') && logoBytes == null) _loadLogoFromUrl(logoPath!);
           } else if (cachedLogoUrl != null && cachedLogoUrl.isNotEmpty) {
             logoPath = cachedLogoUrl;
-            if (logoBytes == null) {
-              _loadLogoFromUrl(cachedLogoUrl);
-            }
-          } else if (profile?['logoUrl'] != null &&
-              profile!['logoUrl'].toString().isNotEmpty) {
+            if (logoBytes == null) _loadLogoFromUrl(cachedLogoUrl);
+          } else if (profile?['logoUrl'] != null && profile!['logoUrl'].toString().isNotEmpty) {
             logoPath = profile['logoUrl'] as String?;
-            if (logoBytes == null) {
-              _loadLogoFromUrl(logoPath!);
-            }
-          } else if (profile?['imageUrl'] != null &&
-              profile!['imageUrl'].toString().isNotEmpty) {
+            if (logoBytes == null) _loadLogoFromUrl(logoPath!);
+          } else if (profile?['imageUrl'] != null && profile!['imageUrl'].toString().isNotEmpty) {
             logoPath = profile['imageUrl'] as String?;
-            if (logoBytes == null) {
-              _loadLogoFromUrl(logoPath!);
-            }
-          } else if (profile?['profileImage'] != null &&
-              profile?['profileImage'].toString().isNotEmpty == true) {
+            if (logoBytes == null) _loadLogoFromUrl(logoPath!);
+          } else if (profile?['profileImage'] != null && profile?['profileImage'].toString().isNotEmpty == true) {
             logoPath = profile?['profileImage'];
-            if (logoBytes == null) {
-              _loadLogoFromUrl(logoPath!);
-            }
+            if (logoBytes == null) _loadLogoFromUrl(logoPath!);
           }
 
           thermalWidth = data.thermalWidth;
@@ -315,17 +307,24 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           _notesController.text = notes;
           _taxRateController.text = taxRate.toString();
           _taxLabelController.text = taxLabel;
+          
+          // INIT FAT MODEL CONTROLLERS
+          _tableNumberController.text = tableNumber;
+          _shippingAddressController.text = shippingAddress;
+          _discountController.text = discountAmount.toString();
+
+          // INIT INVOICE & PAYMENT CONTROLLERS
+          _invoiceNumberController.text = invoiceNumber;
+          _clientPhoneController.text = clientPhone;
+          _clientGstinController.text = clientGstin;
+          _bankNameController.text = bankName;
+          _bankAccountNoController.text = bankAccountNo;
+          _bankIfscController.text = bankIfsc;
 
           for (var item in items) {
-            _itemDescControllers[item.id] = TextEditingController(
-              text: item.desc,
-            );
-            _itemQtyControllers[item.id] = TextEditingController(
-              text: item.qty.toString(),
-            );
-            _itemRateControllers[item.id] = TextEditingController(
-              text: item.rate.toString(),
-            );
+            _itemDescControllers[item.id] = TextEditingController(text: item.desc);
+            _itemQtyControllers[item.id] = TextEditingController(text: item.qty.toString());
+            _itemRateControllers[item.id] = TextEditingController(text: item.rate.toString());
           }
 
           isLoading = false;
@@ -334,9 +333,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => isLoading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error loading data: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading data: $e')));
       }
     }
   }
@@ -354,6 +351,20 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _notesController.dispose();
     _taxRateController.dispose();
     _taxLabelController.dispose();
+    
+    // DISPOSE FAT MODEL CONTROLLERS
+    _tableNumberController.dispose();
+    _shippingAddressController.dispose();
+    _discountController.dispose();
+
+    // DISPOSE INVOICE & PAYMENT CONTROLLERS
+    _invoiceNumberController.dispose();
+    _clientPhoneController.dispose();
+    _clientGstinController.dispose();
+    _bankNameController.dispose();
+    _bankAccountNoController.dispose();
+    _bankIfscController.dispose();
+    
     for (var controller in _itemDescControllers.values) {
       controller.dispose();
     }
@@ -376,7 +387,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   double get subtotal => calculateSubtotal();
   double get gst => subtotal * (taxRate / 100);
-  double get total => subtotal + gst;
+  double get total => (subtotal - discountAmount) + gst;
 
   void addItem() {
     setState(() {
@@ -419,51 +430,78 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   Future<void> _pickLogo() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 500,
+      maxHeight: 500,
+    );
 
-    if (image != null) {
-      final bytes = await image.readAsBytes();
+    if (image == null) return;
 
-      // Show loading indicator
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Uploading logo...')));
-      }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Processing logo...')));
+    }
 
-      try {
+    try {
+      if (kIsWeb) {
+        final bytes = await image.readAsBytes();
         final profileRepo = ServiceLocator.instance.profileRepository;
         final storage = ServiceLocator.instance.secureStorage;
 
-        // Upload the logo using bytes (required for web — File(image.path) fails on web)
-        await profileRepo.updateProfile(
-          {},
-          imageBytes: bytes,
-          uploadType: 'logo',
+        await profileRepo.updateProfile({}, imageBytes: bytes, uploadType: 'logo');
+
+        final uploadedUrl = await storage.read(key: 'cached_logo_url');
+        if (uploadedUrl == null || uploadedUrl.isEmpty) throw Exception('No URL found in cache after upload');
+
+        if (!mounted) return;
+        setState(() {
+          logoPath = uploadedUrl;
+          logoBytes = bytes;
+          logoLocalPath = null;
+        });
+      } else {
+        final tenantId = ref.read(tenantIdProvider);
+        final dir = await getApplicationDocumentsDirectory();
+        final logoDir = Directory('${dir.path}/logos');
+        if (!await logoDir.exists()) await logoDir.create(recursive: true);
+
+        final localPath = '${logoDir.path}/logo_$tenantId.webp';
+
+        final XFile? compressed = await FlutterImageCompress.compressAndGetFile(
+          image.path,
+          localPath,
+          format: CompressFormat.webp,
+          minWidth: 300,
+          minHeight: 300,
+          quality: 80,
         );
 
-        // After successful upload, read the cached URL from secure storage
-        final uploadedUrl = await storage.read(key: 'cached_logo_url');
+        if (compressed == null) throw Exception('Failed to compress logo');
 
-        if (uploadedUrl != null && uploadedUrl.isNotEmpty) {
-          if (!mounted) return;
-          setState(() {
-            logoPath = uploadedUrl;
-            logoBytes = bytes;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Logo uploaded successfully!')),
-          );
-        } else {
-          throw Exception('No URL found in cache after upload');
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Failed to upload logo: $e')));
-        }
+        final bytes = await compressed.readAsBytes();
+        final profileRepo = ServiceLocator.instance.profileRepository;
+        final storage = ServiceLocator.instance.secureStorage;
+
+        await profileRepo.updateProfile({}, imageBytes: bytes, uploadType: 'logo');
+
+        final uploadedUrl = await storage.read(key: 'cached_logo_url');
+        if (uploadedUrl == null || uploadedUrl.isEmpty) throw Exception('No URL found in cache after upload');
+
+        if (!mounted) return;
+        setState(() {
+          logoPath = uploadedUrl;
+          logoLocalPath = localPath;
+          logoBytes = bytes;
+        });
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logo uploaded successfully!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to upload logo: $e')));
       }
     }
   }
@@ -476,18 +514,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       final tenantId = ref.read(tenantIdProvider);
       final storage = ServiceLocator.instance.secureStorage;
 
-      // Ensure we have the latest logo URL from cache
       final cachedLogoUrl = await storage.read(key: 'cached_logo_url');
       final finalLogoPath = logoPath ?? cachedLogoUrl;
 
-      // Save the server URL to database, not the local file path
       await repo.saveTemplateSelection(
         tenantId: tenantId,
         templateId: activeTemplate.id,
-        accentColorHex:
-            '#${themeColor.toARGB32().toRadixString(16).padLeft(8, '0')}',
+        accentColorHex: '#${themeColor.toARGB32().toRadixString(16).padLeft(8, '0')}',
         fontFamily: fontFamily,
-        logoPath: finalLogoPath, // This is the server URL
+        logoPath: finalLogoPath,
+        logoLocalPath: logoLocalPath,
         logoBytes: logoBytes,
         thermalWidth: thermalWidth,
         showTaxBreakdown: showTaxBreakdown,
@@ -501,39 +537,23 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         final profileRepo = ServiceLocator.instance.profileRepository;
         final profileData = <String, dynamic>{};
 
-        if (businessName.isNotEmpty) {
-          profileData['businessName'] = businessName;
-        }
-        if (businessEmail.isNotEmpty) {
-          profileData['email'] = businessEmail;
-        }
-        if (businessPhone.isNotEmpty) {
-          profileData['phone'] = businessPhone;
-        }
-        if (businessAddress.isNotEmpty) {
-          profileData['address'] = businessAddress;
-        }
-        if (gstin.isNotEmpty) {
-          profileData['taxId'] = gstin;
-        }
+        if (businessName.isNotEmpty) profileData['businessName'] = businessName;
+        if (businessEmail.isNotEmpty) profileData['email'] = businessEmail;
+        if (businessPhone.isNotEmpty) profileData['phone'] = businessPhone;
+        if (businessAddress.isNotEmpty) profileData['address'] = businessAddress;
+        if (gstin.isNotEmpty) profileData['taxId'] = gstin;
 
-        if (profileData.isNotEmpty) {
-          await profileRepo.updateProfile(profileData);
-        }
+        if (profileData.isNotEmpty) await profileRepo.updateProfile(profileData);
       } catch (e) {
         // Failed to sync business details
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Template and business details saved!')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Template and business details saved!')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error linking template: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error linking template: $e')));
       }
     } finally {
       if (mounted) setState(() => isSaving = false);
@@ -542,59 +562,59 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     widget.onBack();
   }
 
+  InvoiceData _buildCurrentInvoiceData() {
+    return InvoiceData(
+      businessName: businessName,
+      businessEmail: businessEmail,
+      businessPhone: businessPhone,
+      businessAddress: businessAddress,
+      gstin: gstin,
+      clientName: clientName,
+      clientAddress: clientAddress,
+      taxLabel: taxLabel,
+      taxRate: taxRate,
+      themeColorArgb: themeColor.toARGB32(),
+      fontFamily: fontFamily,
+      items: items.map((i) => InvoiceItem(id: i.id, desc: i.desc, details: i.details, qty: i.qty, rate: i.rate)).toList(),
+      notes: notes,
+      isThermal: isThermal,
+      logoPath: logoPath,
+      logoBytes: logoBytes,
+      thermalWidth: thermalWidth,
+      showTaxBreakdown: showTaxBreakdown,
+      showLogo: showLogo,
+      showBusinessAddress: showBusinessAddress,
+      showClientContact: showClientContact,
+      showNotes: showNotes,
+      // FAT MODEL DATA
+      tableNumber: tableNumber,
+      shippingAddress: shippingAddress,
+      discountAmount: discountAmount,
+      // INVOICE & PAYMENT DATA
+      invoiceNumber: invoiceNumber,
+      invoiceDate: invoiceDate,
+      clientPhone: clientPhone,
+      clientGstin: clientGstin,
+      bankName: bankName,
+      bankAccountNo: bankAccountNo,
+      bankIfsc: bankIfsc,
+    );
+  }
+
   Future<void> exportPDF() async {
     try {
-      final invoiceData = InvoiceData(
-        businessName: businessName,
-        businessEmail: businessEmail,
-        businessPhone: businessPhone,
-        businessAddress: businessAddress,
-        gstin: gstin,
-        clientName: clientName,
-        clientAddress: clientAddress,
-        taxLabel: taxLabel,
-        taxRate: taxRate,
-        themeColorArgb: themeColor.toARGB32(),
-        fontFamily: fontFamily,
-        items: items
-            .map(
-              (i) => InvoiceItem(
-                id: i.id,
-                desc: i.desc,
-                details: i.details,
-                qty: i.qty,
-                rate: i.rate,
-              ),
-            )
-            .toList(),
-        notes: notes,
-        isThermal: isThermal,
-        logoPath: logoPath, // Server URL
-        logoBytes: logoBytes, // Cached bytes for PDF generation
-        thermalWidth: thermalWidth,
-        showTaxBreakdown: showTaxBreakdown,
-        showLogo: showLogo,
-        showBusinessAddress: showBusinessAddress,
-        showClientContact: showClientContact,
-        showNotes: showNotes,
-      );
-
+      final invoiceData = _buildCurrentInvoiceData();
       final pdf = activeTemplate.buildPdf(invoiceData);
       await Printing.layoutPdf(onLayout: (format) async => pdf.save());
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Failed to generate PDF')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to generate PDF')));
       }
     }
   }
 
   String _getFontFamily(String fontName) {
-    final font = fonts.firstWhere(
-      (f) => f['name'] == fontName,
-      orElse: () => fonts.first,
-    );
+    final font = fonts.firstWhere((f) => f['name'] == fontName, orElse: () => fonts.first);
     return font['family'] ?? 'Inter';
   }
 
@@ -703,12 +723,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
-  void _onFontSelected(String fontName) {
-    setState(() {
-      fontFamily = fontName;
-    });
-  }
-
   Widget _buildEditorToolbar() {
     return Container(
       height: 70,
@@ -769,7 +783,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 children: fonts.map((font) {
                   final isSelected = fontFamily == font['name'];
                   return GestureDetector(
-                    onTap: () => _onFontSelected(font['name']!),
+                    onTap: () => setState(() => fontFamily = font['name']!),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
@@ -865,29 +879,20 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                         border: Border.all(color: Colors.grey.shade200),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child:
-                          (logoPath != null && logoPath!.isNotEmpty) ||
-                              logoBytes != null
+                      child: (logoPath != null && logoPath!.isNotEmpty) || logoBytes != null
                           ? Stack(
                               children: [
                                 Center(
                                   child: logoBytes != null
                                       ? Image.memory(logoBytes!, height: 60)
-                                      : (logoPath != null &&
-                                                logoPath!.startsWith('http')
+                                      : (logoPath != null && logoPath!.startsWith('http')
                                             ? CachedNetworkImage(
                                                 imageUrl: logoPath!,
                                                 height: 60,
                                                 placeholder: (_, _) => const SizedBox(width: 60, height: 60),
-                                                errorWidget: (_, _, _) => const Icon(
-                                                  Icons.broken_image,
-                                                  size: 40,
-                                                ),
+                                                errorWidget: (_, _, _) => const Icon(Icons.broken_image, size: 40),
                                               )
-                                            : const Icon(
-                                                Icons.image,
-                                                size: 40,
-                                              )),
+                                            : const Icon(Icons.image, size: 40)),
                                 ),
                                 Positioned(
                                   right: 0,
@@ -907,19 +912,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                           : const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.add_a_photo_outlined,
-                                  color: Colors.grey,
-                                  size: 20,
-                                ),
+                                Icon(Icons.add_a_photo_outlined, color: Colors.grey, size: 20),
                                 SizedBox(height: 4),
-                                Text(
-                                  'Upload Business Logo',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 11,
-                                  ),
-                                ),
+                                Text('Upload Business Logo', style: TextStyle(color: Colors.grey, fontSize: 11)),
                               ],
                             ),
                     ),
@@ -928,14 +923,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   _buildSectionHeader('Business Info'),
                   const SizedBox(height: 12),
                   TextField(
-                    decoration: const InputDecoration(
-                      hintText: 'Business Name',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (value) {
-                      businessName = value;
-                      _previewDebouncer.run(() => setState(() {}));
-                    },
+                    decoration: const InputDecoration(hintText: 'Business Name', border: OutlineInputBorder()),
+                    onChanged: (value) { businessName = value; _previewDebouncer.run(() => setState(() {})); },
                     controller: _businessNameController,
                   ),
                   const SizedBox(height: 8),
@@ -943,28 +932,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                     children: [
                       Expanded(
                         child: TextField(
-                          decoration: const InputDecoration(
-                            hintText: 'Email',
-                            border: OutlineInputBorder(),
-                          ),
-                          onChanged: (value) {
-                            businessEmail = value;
-                            _previewDebouncer.run(() => setState(() {}));
-                          },
+                          decoration: const InputDecoration(hintText: 'Email', border: OutlineInputBorder()),
+                          onChanged: (value) { businessEmail = value; _previewDebouncer.run(() => setState(() {})); },
                           controller: _businessEmailController,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
-                          decoration: const InputDecoration(
-                            hintText: 'Phone',
-                            border: OutlineInputBorder(),
-                          ),
-                          onChanged: (value) {
-                            businessPhone = value;
-                            _previewDebouncer.run(() => setState(() {}));
-                          },
+                          decoration: const InputDecoration(hintText: 'Phone', border: OutlineInputBorder()),
+                          onChanged: (value) { businessPhone = value; _previewDebouncer.run(() => setState(() {})); },
                           controller: _businessPhoneController,
                         ),
                       ),
@@ -972,56 +949,105 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   ),
                   const SizedBox(height: 8),
                   TextField(
-                    decoration: const InputDecoration(
-                      hintText: 'Address',
-                      border: OutlineInputBorder(),
-                    ),
+                    decoration: const InputDecoration(hintText: 'Address', border: OutlineInputBorder()),
                     maxLines: 2,
-                    onChanged: (value) {
-                      businessAddress = value;
-                      _previewDebouncer.run(() => setState(() {}));
-                    },
+                    onChanged: (value) { businessAddress = value; _previewDebouncer.run(() => setState(() {})); },
                     controller: _businessAddressController,
                   ),
                   const SizedBox(height: 8),
                   TextField(
-                    decoration: const InputDecoration(
-                      hintText: 'GSTIN',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (value) {
-                      gstin = value;
-                      _previewDebouncer.run(() => setState(() {}));
-                    },
+                    decoration: const InputDecoration(hintText: 'GSTIN', border: OutlineInputBorder()),
+                    onChanged: (value) { gstin = value; _previewDebouncer.run(() => setState(() {})); },
                     controller: _gstinController,
                   ),
                   const SizedBox(height: 16),
                   _buildSectionHeader('Client Info'),
                   const SizedBox(height: 12),
                   TextField(
-                    decoration: const InputDecoration(
-                      hintText: 'Client Name',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (value) {
-                      clientName = value;
-                      _previewDebouncer.run(() => setState(() {}));
-                    },
+                    decoration: const InputDecoration(hintText: 'Client Name', border: OutlineInputBorder()),
+                    onChanged: (value) { clientName = value; _previewDebouncer.run(() => setState(() {})); },
                     controller: _clientNameController,
                   ),
                   const SizedBox(height: 8),
                   TextField(
-                    decoration: const InputDecoration(
-                      hintText: 'Client Address',
-                      border: OutlineInputBorder(),
-                    ),
+                    decoration: const InputDecoration(hintText: 'Client Address', border: OutlineInputBorder()),
                     maxLines: 2,
-                    onChanged: (value) {
-                      clientAddress = value;
-                      _previewDebouncer.run(() => setState(() {}));
-                    },
+                    onChanged: (value) { clientAddress = value; _previewDebouncer.run(() => setState(() {})); },
                     controller: _clientAddressController,
                   ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          decoration: const InputDecoration(hintText: 'Client Phone', border: OutlineInputBorder()),
+                          onChanged: (value) { clientPhone = value; _previewDebouncer.run(() => setState(() {})); },
+                          controller: _clientPhoneController,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          decoration: const InputDecoration(hintText: 'Client GSTIN', border: OutlineInputBorder()),
+                          onChanged: (value) { clientGstin = value; _previewDebouncer.run(() => setState(() {})); },
+                          controller: _clientGstinController,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSectionHeader('Invoice Details'),
+                  const SizedBox(height: 12),
+                  TextField(
+                    decoration: const InputDecoration(hintText: 'Invoice Number (e.g. INV-001)', border: OutlineInputBorder()),
+                    onChanged: (value) { invoiceNumber = value; _previewDebouncer.run(() => setState(() {})); },
+                    controller: _invoiceNumberController,
+                  ),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: invoiceDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2030),
+                      );
+                      if (picked != null) setState(() => invoiceDate = picked);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade400),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Invoice Date: ${invoiceDate.day}/${invoiceDate.month}/${invoiceDate.year}', style: const TextStyle(fontSize: 14)),
+                          const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // DYNAMIC FIELDS
+                  if (activeTemplate.supportsTableNumbers) ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      decoration: const InputDecoration(hintText: 'Table Number', border: OutlineInputBorder()),
+                      onChanged: (value) { tableNumber = value; _previewDebouncer.run(() => setState(() {})); },
+                      controller: _tableNumberController,
+                    ),
+                  ],
+                  if (activeTemplate.supportsShipping) ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      decoration: const InputDecoration(hintText: 'Shipping Address', border: OutlineInputBorder()),
+                      maxLines: 2,
+                      onChanged: (value) { shippingAddress = value; _previewDebouncer.run(() => setState(() {})); },
+                      controller: _shippingAddressController,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1044,16 +1070,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       child: Column(
                         children: [
                           TextField(
-                            decoration: const InputDecoration(
-                              hintText: 'Description',
-                              border: OutlineInputBorder(),
-                            ),
+                            decoration: const InputDecoration(hintText: 'Description', border: OutlineInputBorder()),
                             onChanged: (value) {
                               updateItem(item.id, 'desc', value);
                               _previewDebouncer.run(() => setState(() {}));
                             },
-                            controller: _itemDescControllers[item.id] ??=
-                                TextEditingController(text: item.desc),
+                            controller: _itemDescControllers[item.id] ??= TextEditingController(text: item.desc),
                           ),
                           const SizedBox(height: 8),
                           Row(
@@ -1061,42 +1083,26 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                               Expanded(
                                 flex: 1,
                                 child: TextField(
-                                  decoration: const InputDecoration(
-                                    hintText: 'Qty',
-                                    border: OutlineInputBorder(),
-                                  ),
+                                  decoration: const InputDecoration(hintText: 'Qty', border: OutlineInputBorder()),
                                   keyboardType: TextInputType.number,
                                   onChanged: (value) {
                                     updateItem(item.id, 'qty', value);
-                                    _previewDebouncer.run(
-                                      () => setState(() {}),
-                                    );
+                                    _previewDebouncer.run(() => setState(() {}));
                                   },
-                                  controller: _itemQtyControllers[item.id] ??=
-                                      TextEditingController(
-                                        text: item.qty.toString(),
-                                      ),
+                                  controller: _itemQtyControllers[item.id] ??= TextEditingController(text: item.qty.toString()),
                                 ),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 flex: 1,
                                 child: TextField(
-                                  decoration: const InputDecoration(
-                                    hintText: 'Rate',
-                                    border: OutlineInputBorder(),
-                                  ),
+                                  decoration: const InputDecoration(hintText: 'Rate', border: OutlineInputBorder()),
                                   keyboardType: TextInputType.number,
                                   onChanged: (value) {
                                     updateItem(item.id, 'rate', value);
-                                    _previewDebouncer.run(
-                                      () => setState(() {}),
-                                    );
+                                    _previewDebouncer.run(() => setState(() {}));
                                   },
-                                  controller: _itemRateControllers[item.id] ??=
-                                      TextEditingController(
-                                        text: item.rate.toString(),
-                                      ),
+                                  controller: _itemRateControllers[item.id] ??= TextEditingController(text: item.rate.toString()),
                                 ),
                               ),
                               Expanded(
@@ -1108,17 +1114,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                                       Expanded(
                                         child: Text(
                                           formatCurrency(item.qty * item.rate),
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                                         ),
                                       ),
                                       IconButton(
-                                        icon: const Icon(
-                                          Icons.delete_outline,
-                                          size: 16,
-                                        ),
+                                        icon: const Icon(Icons.delete_outline, size: 16),
                                         onPressed: () => removeItem(item.id),
                                       ),
                                     ],
@@ -1137,29 +1137,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Colors.grey.shade200,
-                          style: BorderStyle.solid,
-                        ),
+                        border: Border.all(color: Colors.grey.shade200, style: BorderStyle.solid),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.add_circle_outline,
-                            size: 16,
-                            color: Colors.grey.shade500,
-                          ),
+                          Icon(Icons.add_circle_outline, size: 16, color: Colors.grey.shade500),
                           const SizedBox(width: 8),
-                          Text(
-                            'Add Item',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey.shade500,
-                            ),
-                          ),
+                          Text('Add Item', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
                         ],
                       ),
                     ),
@@ -1178,13 +1164,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Printer Width',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
+                        const Text('Printer Width', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                         const SizedBox(height: 8),
                         SegmentedButton<int>(
                           segments: const [
@@ -1193,8 +1173,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                             ButtonSegment(value: 80, label: Text('80mm')),
                           ],
                           selected: {thermalWidth},
-                          onSelectionChanged: (val) =>
-                              setState(() => thermalWidth = val.first),
+                          onSelectionChanged: (val) => setState(() => thermalWidth = val.first),
                         ),
                       ],
                     ),
@@ -1208,82 +1187,66 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               initiallyExpanded: false,
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Show Tax Breakdown',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                  if (activeTemplate.supportsTaxBreakdown) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Show Tax Breakdown', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                        Switch(value: showTaxBreakdown, onChanged: (val) => setState(() => showTaxBreakdown = val)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Tax Label', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                              const SizedBox(height: 4),
+                              TextField(
+                                decoration: const InputDecoration(border: OutlineInputBorder()),
+                                onChanged: (value) { taxLabel = value; _previewDebouncer.run(() => setState(() {})); },
+                                controller: _taxLabelController,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      Switch(
-                        value: showTaxBreakdown,
-                        onChanged: (val) =>
-                            setState(() => showTaxBreakdown = val),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Tax Label',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Tax (%)', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                              const SizedBox(height: 4),
+                              TextField(
+                                decoration: const InputDecoration(border: OutlineInputBorder()),
+                                keyboardType: TextInputType.number,
+                                onChanged: (value) { taxRate = double.tryParse(value) ?? 0; _previewDebouncer.run(() => setState(() {})); },
+                                controller: _taxRateController,
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            TextField(
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                              ),
-                              onChanged: (value) {
-                                taxLabel = value;
-                                _previewDebouncer.run(() => setState(() {}));
-                              },
-                              controller: _taxLabelController,
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Tax (%)',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            TextField(
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                              ),
-                              keyboardType: TextInputType.number,
-                              onChanged: (value) {
-                                taxRate = double.tryParse(value) ?? 0;
-                                _previewDebouncer.run(() => setState(() {}));
-                              },
-                              controller: _taxRateController,
-                            ),
-                          ],
+                      ],
+                    ),
+                  ],
+                  if (activeTemplate.supportsDiscounts) ...[
+                    const SizedBox(height: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Discount Amount', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        const SizedBox(height: 4),
+                        TextField(
+                          decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Flat amount'),
+                          keyboardType: TextInputType.number,
+                          onChanged: (value) { discountAmount = double.tryParse(value) ?? 0.0; _previewDebouncer.run(() => setState(() {})); },
+                          controller: _discountController,
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1293,114 +1256,51 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               icon: Icons.description,
               initiallyExpanded: false,
               child: TextField(
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Add warranty terms, payment notes, etc.',
-                ),
+                decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Add warranty terms, payment notes, etc.'),
                 maxLines: 5,
-                onChanged: (value) {
-                  notes = value;
-                  _previewDebouncer.run(() => setState(() {}));
-                },
+                onChanged: (value) { notes = value; _previewDebouncer.run(() => setState(() {})); },
                 controller: _notesController,
               ),
             ),
             const SizedBox(height: 8),
+            const SizedBox(height: 8),
             _buildSidebarSection(
-              title: '6. Visibility Controls',
-              icon: Icons.visibility,
+              title: '6. Bank Details',
+              icon: Icons.account_balance,
               initiallyExpanded: false,
               child: Column(
                 children: [
-                  _buildCheckboxItem(
-                    'Show Logo',
-                    showLogo,
-                    (v) => setState(() => showLogo = v),
+                  TextField(
+                    decoration: const InputDecoration(hintText: 'Bank Name', border: OutlineInputBorder()),
+                    onChanged: (value) { bankName = value; _previewDebouncer.run(() => setState(() {})); },
+                    controller: _bankNameController,
                   ),
-                  _buildCheckboxItem(
-                    'Business Address',
-                    showBusinessAddress,
-                    (v) => setState(() => showBusinessAddress = v),
+                  const SizedBox(height: 8),
+                  TextField(
+                    decoration: const InputDecoration(hintText: 'Account Number', border: OutlineInputBorder()),
+                    onChanged: (value) { bankAccountNo = value; _previewDebouncer.run(() => setState(() {})); },
+                    controller: _bankAccountNoController,
                   ),
-                  _buildCheckboxItem(
-                    'Client Contact Person',
-                    showClientContact,
-                    (v) => setState(() => showClientContact = v),
-                  ),
-                  _buildCheckboxItem(
-                    'Notes & Comments',
-                    showNotes,
-                    (v) => setState(() => showNotes = v),
+                  const SizedBox(height: 8),
+                  TextField(
+                    decoration: const InputDecoration(hintText: 'IFSC Code', border: OutlineInputBorder()),
+                    onChanged: (value) { bankIfsc = value; _previewDebouncer.run(() => setState(() {})); },
+                    controller: _bankIfscController,
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 8),
             _buildSidebarSection(
-              title: '7. Advanced Settings',
-              icon: Icons.settings,
+              title: '7. Visibility Controls',
+              icon: Icons.visibility,
               initiallyExpanded: false,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Page Setup',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: 'A4 Paper',
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'A4 Paper',
-                                  child: Text('A4 Paper'),
-                                ),
-                              ],
-                              onChanged: null,
-                              isExpanded: true,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: 'Portrait',
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'Portrait',
-                                  child: Text('Portrait'),
-                                ),
-                              ],
-                              onChanged: null,
-                              isExpanded: true,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildCheckboxItem('Show Logo', showLogo, (v) => setState(() => showLogo = v)),
+                  _buildCheckboxItem('Business Address', showBusinessAddress, (v) => setState(() => showBusinessAddress = v)),
+                  _buildCheckboxItem('Client Contact Person', showClientContact, (v) => setState(() => showClientContact = v)),
+                  _buildCheckboxItem('Notes & Comments', showNotes, (v) => setState(() => showNotes = v)),
                 ],
               ),
             ),
@@ -1410,17 +1310,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
-  Widget _buildSidebarSection({
-    required String title,
-    required IconData icon,
-    required Widget child,
-    bool initiallyExpanded = true,
-  }) {
+  Widget _buildSidebarSection({required String title, required IconData icon, required Widget child, bool initiallyExpanded = true}) {
     return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade100),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade100), borderRadius: BorderRadius.circular(12)),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
@@ -1428,10 +1320,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           childrenPadding: const EdgeInsets.all(16),
           initiallyExpanded: initiallyExpanded,
           leading: Icon(icon, size: 16, color: Colors.blue),
-          title: Text(
-            title,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-          ),
+          title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
           children: [child],
         ),
       ),
@@ -1441,32 +1330,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: TextStyle(
-        fontSize: 10,
-        fontWeight: FontWeight.bold,
-        color: Colors.grey.shade400,
-        letterSpacing: 0.5,
-      ),
+      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade400, letterSpacing: 0.5),
     );
   }
 
-  Widget _buildCheckboxItem(
-    String label,
-    bool value,
-    Function(bool) onChanged,
-  ) {
+  Widget _buildCheckboxItem(String label, bool value, Function(bool) onChanged) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-        ),
-        Checkbox(
-          value: value,
-          onChanged: (v) => onChanged(v ?? false),
-          activeColor: Colors.blue,
-        ),
+        Text(label, style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+        Checkbox(value: value, onChanged: (v) => onChanged(v ?? false), activeColor: Colors.blue),
       ],
     );
   }
@@ -1530,48 +1403,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               padding: EdgeInsets.all(isThermal ? 24 : 48),
               child: Theme(
                 data: Theme.of(context).copyWith(
-                  textTheme: Theme.of(
-                    context,
-                  ).textTheme.apply(fontFamily: _getFontFamily(fontFamily)),
+                  textTheme: Theme.of(context).textTheme.apply(fontFamily: _getFontFamily(fontFamily)),
                 ),
                 child: DefaultTextStyle.merge(
                   style: TextStyle(fontFamily: _getFontFamily(fontFamily)),
-                  child: activeTemplate.buildFlutterPreview(
-                    InvoiceData(
-                      businessName: businessName,
-                      businessEmail: businessEmail,
-                      businessPhone: businessPhone,
-                      businessAddress: businessAddress,
-                      gstin: gstin,
-                      clientName: clientName,
-                      clientAddress: clientAddress,
-                      taxLabel: taxLabel,
-                      taxRate: taxRate,
-                      themeColorArgb: themeColor.toARGB32(),
-                      fontFamily: _getFontFamily(fontFamily),
-                      items: items
-                          .map(
-                            (i) => InvoiceItem(
-                              id: i.id,
-                              desc: i.desc,
-                              details: i.details,
-                              qty: i.qty,
-                              rate: i.rate,
-                            ),
-                          )
-                          .toList(),
-                      notes: notes,
-                      isThermal: isThermal,
-                      logoPath: logoPath,
-                      logoBytes: logoBytes,
-                      thermalWidth: thermalWidth,
-                      showTaxBreakdown: showTaxBreakdown,
-                      showLogo: showLogo,
-                      showBusinessAddress: showBusinessAddress,
-                      showClientContact: showClientContact,
-                      showNotes: showNotes,
-                    ),
-                  ),
+                  child: activeTemplate.buildFlutterPreview(_buildCurrentInvoiceData()),
                 ),
               ),
             ),

@@ -18,7 +18,7 @@ class DinePlusThermalTemplate extends InvoiceTemplate {
   String get styleName => 'CAFE STYLE';
   @override
   String get previewImagePath =>
-      'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=400';
+      'assets/preview_templates/dine_plus_thermal_template.png';
   @override
   Color get badgeColor => Colors.brown;
   @override
@@ -54,8 +54,8 @@ class DinePlusThermalTemplate extends InvoiceTemplate {
                 pw.Container(width: 40, height: 40, margin: const pw.EdgeInsets.only(top: 4), child: pw.Image(logoImage)),
               pw.Divider(thickness: 1, color: themePdfColor),
               pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-                pw.Text('Date: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}', style: const pw.TextStyle(fontSize: 7)),
-                pw.Text('Time: ${DateTime.now().hour}:${DateTime.now().minute}', style: const pw.TextStyle(fontSize: 7)),
+                pw.Text('Date: ${data.invoiceDate.day}/${data.invoiceDate.month}/${data.invoiceDate.year}', style: const pw.TextStyle(fontSize: 7)),
+                pw.Text('Time: ${data.invoiceDate.hour}:${data.invoiceDate.minute.toString().padLeft(2, '0')}', style: const pw.TextStyle(fontSize: 7)),
               ]),
               pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
                 if (data.showClientContact) pw.Text(data.clientName, style: const pw.TextStyle(fontSize: 7)) else pw.SizedBox(),
@@ -86,7 +86,7 @@ class DinePlusThermalTemplate extends InvoiceTemplate {
               ],
               pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
                 pw.Text('GRAND TOTAL', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                pw.Text('₹${data.total.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                pw.Text('Rs ${data.total.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
               ]),
               pw.Divider(thickness: 1, color: PdfColors.black, height: 12),
               pw.Text('Bon Appétit!', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, fontStyle: pw.FontStyle.italic, color: themePdfColor)),
@@ -126,8 +126,8 @@ class DinePlusThermalTemplate extends InvoiceTemplate {
           Text('${data.taxLabel}: ${data.gstin}', style: const TextStyle(fontSize: 7)),
           Divider(height: 12, thickness: 1, color: data.themeColor),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text('Date: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}', style: const TextStyle(fontSize: 7)),
-            Text('Time: ${DateTime.now().hour}:${DateTime.now().minute}', style: const TextStyle(fontSize: 7)),
+            Text('Date: ${data.invoiceDate.day}/${data.invoiceDate.month}/${data.invoiceDate.year}', style: const TextStyle(fontSize: 7)),
+            Text('Time: ${data.invoiceDate.hour}:${data.invoiceDate.minute.toString().padLeft(2, '0')}', style: const TextStyle(fontSize: 7)),
           ]),
           if (data.paymentMethod != null) Text('Payment: ${data.paymentMethod!.toUpperCase()}', style: const TextStyle(fontSize: 7, fontWeight: FontWeight.bold)),
           Divider(height: 12, thickness: 1, color: data.themeColor),

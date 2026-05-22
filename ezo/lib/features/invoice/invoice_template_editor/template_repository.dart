@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -48,7 +49,8 @@ class InvoiceTemplateRepository {
     required String templateId,
     String? accentColorHex,
     String? fontFamily,
-    String? logoPath, // This should now be the server URL, not local path
+    String? logoPath,
+    String? logoLocalPath,
     Uint8List? logoBytes,
     int? thermalWidth,
     bool? showTaxBreakdown,
@@ -77,6 +79,9 @@ class InvoiceTemplateRepository {
                   : const Value('Inter'),
               logoPath: logoPath != null
                   ? Value(logoPath)
+                  : const Value.absent(),
+              logoLocalPath: logoLocalPath != null
+                  ? Value(logoLocalPath)
                   : const Value.absent(),
               thermalWidth: thermalWidth != null
                   ? Value(thermalWidth)
@@ -111,6 +116,9 @@ class InvoiceTemplateRepository {
               ? Value(fontFamily)
               : const Value.absent(),
           logoPath: logoPath != null ? Value(logoPath) : const Value.absent(),
+          logoLocalPath: logoLocalPath != null
+              ? Value(logoLocalPath)
+              : const Value.absent(),
           thermalWidth: thermalWidth != null
               ? Value(thermalWidth)
               : const Value.absent(),
@@ -135,13 +143,7 @@ class InvoiceTemplateRepository {
       );
     }
 
-    // Persist logo bytes (added by migration 43 — raw SQL since companion lacks this field)
-    if (logoBytes != null) {
-      await _db.customStatement(
-        'UPDATE invoice_settings SET logo_bytes = ? WHERE tenant_id = ?',
-        [logoBytes, existing?.tenantId ?? tenantId],
-      );
-      // Invalidate the in-memory cached logo bytes for this tenant
+    if (logoLocalPath != null || logoBytes != null) {
       invalidateLogoCache(tenantId);
     }
   }
@@ -150,15 +152,18 @@ class InvoiceTemplateRepository {
     int tenantId,
     String? templateId,
   ) async {
-    final tenant = await (_db.select(
-      _db.tenants,
-    )..where((t) => t.id.equals(tenantId))).getSingleOrNull();
+    // Fetch tenant + settings in parallel to halve the sequential DB latency.
+    final results = await Future.wait([
+      (_db.select(_db.tenants)..where((t) => t.id.equals(tenantId)))
+          .getSingleOrNull(),
+      (_db.select(_db.invoiceSettings)
+            ..where((t) => t.tenantId.equals(tenantId)))
+          .getSingleOrNull(),
+    ]);
+    final tenant = results[0] as dynamic;
+    final settings = results[1] as dynamic;
 
-    final settings = await (_db.select(
-      _db.invoiceSettings,
-    )..where((t) => t.tenantId.equals(tenantId))).getSingleOrNull();
-
-    final activeId = templateId ?? settings?.layout ?? 'default_a4';
+    final activeId = templateId ?? (settings?.layout as String?) ?? 'default_a4';
     final template = TemplateRegistry.getTemplateById(activeId);
     final defaultData = template.getDefaultData();
 
@@ -175,6 +180,7 @@ class InvoiceTemplateRepository {
         defaultData.themeColorArgb = Color(int.parse(hexColor)).toARGB32();
       }
       defaultData.fontFamily = settings.fontFamily;
+      defaultData.logoLocalPath = settings.logoLocalPath;
       defaultData.logoPath = settings.logoPath;
       defaultData.thermalWidth = settings.thermalWidth;
       defaultData.showTaxBreakdown = settings.showTaxBreakdown;
@@ -184,47 +190,54 @@ class InvoiceTemplateRepository {
       defaultData.showNotes = settings.showFooter;
 
       if (settings.showLogo) {
-        // Check in-memory cache first
         final cached = _logoBytesCache[tenantId];
         if (cached != null) {
           defaultData.logoBytes = cached;
         } else {
-          // Try DB-stored bytes first (logo_bytes column)
           Uint8List? storedBytes;
-          try {
-            final row = await _db.customSelect(
-              'SELECT logo_bytes FROM invoice_settings WHERE tenant_id = ?',
-              variables: [Variable.withInt(tenantId)],
-              readsFrom: {_db.invoiceSettings},
-            ).getSingleOrNull();
-            storedBytes = row?.read<Uint8List?>('logo_bytes');
-          } catch (_) {
-            // Column may not exist in older DB migrations — ignore
+
+          // 1. File system — fast, non-blocking local read
+          if (settings.logoLocalPath != null &&
+              settings.logoLocalPath!.isNotEmpty) {
+            try {
+              final file = File(settings.logoLocalPath!);
+              if (await file.exists()) {
+                storedBytes = await file.readAsBytes();
+              }
+            } catch (_) {
+              // File read failed — fall through to HTTP
+            }
+          }
+
+          // 2. HTTP fallback — 500 ms cap for remote URL
+          if (storedBytes == null &&
+              settings.logoPath != null &&
+              settings.logoPath!.isNotEmpty) {
+            try {
+              final response = await http
+                  .get(Uri.parse(settings.logoPath!))
+                  .timeout(const Duration(milliseconds: 500));
+              if (response.statusCode == 200) {
+                storedBytes = response.bodyBytes;
+              }
+            } catch (_) {
+              // Logo fetch failed — PDF will be generated without logo
+            }
           }
 
           if (storedBytes != null) {
             _logoBytesCache[tenantId] = storedBytes;
             defaultData.logoBytes = storedBytes;
-          } else if (settings.logoPath != null &&
-              settings.logoPath!.isNotEmpty) {
-            // Fall back to HTTP only when no bytes are stored locally
-            try {
-              final response = await http
-                  .get(Uri.parse(settings.logoPath!))
-                  .timeout(const Duration(seconds: 3));
-              if (response.statusCode == 200) {
-                _logoBytesCache[tenantId] = response.bodyBytes;
-                defaultData.logoBytes = response.bodyBytes;
-              }
-            } catch (_) {
-              // Logo fetch failed — PDF will be generated without logo
-            }
           }
         }
       }
     }
 
     return (data: defaultData, templateId: activeId);
+  }
+
+  void seedLogoCache(int tenantId, Uint8List bytes) {
+    _logoBytesCache[tenantId] = bytes;
   }
 
 }

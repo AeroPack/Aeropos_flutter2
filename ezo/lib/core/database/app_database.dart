@@ -72,7 +72,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? e]) : super(e ?? impl.connect());
 
   @override
-  int get schemaVersion => 45;
+  int get schemaVersion => 47;
 
   Future<void> _addColumnIfNotExists(
     String table,
@@ -119,6 +119,10 @@ class AppDatabase extends _$AppDatabase {
           'CREATE INDEX IF NOT EXISTS idx_purchase_receipts_tenant ON purchase_receipts(tenant_id)',
           'CREATE INDEX IF NOT EXISTS idx_invoice_audit_logs_tenant ON invoice_audit_logs(tenant_id)',
           'CREATE INDEX IF NOT EXISTS idx_reserved_skus_tenant ON reserved_skus(tenant_id)',
+          'CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON invoice_items(invoice_id)',
+          'CREATE INDEX IF NOT EXISTS idx_invoice_items_product_id ON invoice_items(product_id)',
+          'CREATE INDEX IF NOT EXISTS idx_invoice_items_deleted ON invoice_items(is_deleted)',
+          'CREATE INDEX IF NOT EXISTS idx_invoices_tenant_deleted_date ON invoices(tenant_id, is_deleted, date DESC)',
         ];
         for (final stmt in indexes) {
           try {
@@ -537,6 +541,28 @@ class AppDatabase extends _$AppDatabase {
               await customStatement(stmt);
             } catch (e) {
               // print('DRIFT: Index creation warning: $e');
+            }
+          }
+        }
+
+        // Migration 47: Add logo_local_path column for file-system based logo storage
+        if (from < 47) {
+          await m.addColumn(invoiceSettings, invoiceSettings.logoLocalPath);
+        }
+
+        // Migration 46: Add join-columns and composite indexes for invoice queries
+        if (from < 46) {
+          final indexes = [
+            'CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON invoice_items(invoice_id)',
+            'CREATE INDEX IF NOT EXISTS idx_invoice_items_product_id ON invoice_items(product_id)',
+            'CREATE INDEX IF NOT EXISTS idx_invoice_items_deleted ON invoice_items(is_deleted)',
+            'CREATE INDEX IF NOT EXISTS idx_invoices_tenant_deleted_date ON invoices(tenant_id, is_deleted, date DESC)',
+          ];
+          for (final stmt in indexes) {
+            try {
+              await customStatement(stmt);
+            } catch (e) {
+              // print('DRIFT: Migration 46 index creation warning: $e');
             }
           }
         }

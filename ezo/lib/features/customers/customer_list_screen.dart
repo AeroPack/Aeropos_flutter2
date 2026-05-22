@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aeropos/core/di/service_locator.dart';
 import 'package:aeropos/core/layout/pos_design_system.dart';
 import 'package:aeropos/core/widgets/customer_form_dialog.dart';
+import 'package:aeropos/core/widgets/table_export_actions.dart';
 import 'package:aeropos/core/database/app_database.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:aeropos/features/customers/widgets/bulk_import_dialog.dart';
@@ -73,7 +75,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildTopHeader(isMobile, showAddButton: !isTotallyEmpty),
+                _buildTopHeader(isMobile, customers: filteredData, showAddButton: !isTotallyEmpty),
                 const SizedBox(height: 24),
 
                 Container(
@@ -181,10 +183,32 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     );
   }
 
-  Widget _buildTopHeader(bool isMobile, {bool showAddButton = true}) {
+  Widget _buildTopHeader(bool isMobile, {List<CustomerEntity> customers = const [], bool showAddButton = true}) {
+    final exportActions = customers.isNotEmpty
+        ? Consumer(
+            builder: (context, ref, _) {
+              return TableExportActions(
+                title: 'Customer List',
+                headers: const ['ID', 'Name', 'Phone', 'Email', 'Address', 'Balance', 'Credit Limit'],
+                dataRows: customers.map((c) => [
+                  '#${c.id}',
+                  c.name,
+                  c.phone ?? '-',
+                  c.email ?? '-',
+                  c.address ?? '-',
+                  c.currentBalance.toStringAsFixed(2),
+                  c.creditLimit.toStringAsFixed(0),
+                ]).toList(),
+              );
+            },
+          )
+        : const SizedBox.shrink();
+
     final actions = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        exportActions,
+        const SizedBox(width: 8),
         _headerIconButton(
           _isSyncing ? Icons.sync : Icons.sync,
           Colors.blue.shade50,

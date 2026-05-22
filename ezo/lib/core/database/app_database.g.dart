@@ -6525,6 +6525,28 @@ class $InvoiceSettingsTable extends InvoiceSettings
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _logoLocalPathMeta = const VerificationMeta(
+    'logoLocalPath',
+  );
+  @override
+  late final GeneratedColumn<String> logoLocalPath = GeneratedColumn<String>(
+    'logo_local_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _logoBytesMeta = const VerificationMeta(
+    'logoBytes',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> logoBytes = GeneratedColumn<Uint8List>(
+    'logo_bytes',
+    aliasedName,
+    true,
+    type: DriftSqlType.blob,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _thermalWidthMeta = const VerificationMeta(
     'thermalWidth',
   );
@@ -6666,6 +6688,8 @@ class $InvoiceSettingsTable extends InvoiceSettings
     fontFamily,
     fontSizeMultiplier,
     logoPath,
+    logoLocalPath,
+    logoBytes,
     thermalWidth,
     showLogo,
     showTaxBreakdown,
@@ -6737,6 +6761,21 @@ class $InvoiceSettingsTable extends InvoiceSettings
       context.handle(
         _logoPathMeta,
         logoPath.isAcceptableOrUnknown(data['logo_path']!, _logoPathMeta),
+      );
+    }
+    if (data.containsKey('logo_local_path')) {
+      context.handle(
+        _logoLocalPathMeta,
+        logoLocalPath.isAcceptableOrUnknown(
+          data['logo_local_path']!,
+          _logoLocalPathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('logo_bytes')) {
+      context.handle(
+        _logoBytesMeta,
+        logoBytes.isAcceptableOrUnknown(data['logo_bytes']!, _logoBytesMeta),
       );
     }
     if (data.containsKey('thermal_width')) {
@@ -6854,6 +6893,14 @@ class $InvoiceSettingsTable extends InvoiceSettings
         DriftSqlType.string,
         data['${effectivePrefix}logo_path'],
       ),
+      logoLocalPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}logo_local_path'],
+      ),
+      logoBytes: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}logo_bytes'],
+      ),
       thermalWidth: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}thermal_width'],
@@ -6912,6 +6959,8 @@ class InvoiceSettingEntity extends DataClass
   final String fontFamily;
   final double fontSizeMultiplier;
   final String? logoPath;
+  final String? logoLocalPath;
+  final Uint8List? logoBytes;
   final int thermalWidth;
   final bool showLogo;
   final bool showTaxBreakdown;
@@ -6930,6 +6979,8 @@ class InvoiceSettingEntity extends DataClass
     required this.fontFamily,
     required this.fontSizeMultiplier,
     this.logoPath,
+    this.logoLocalPath,
+    this.logoBytes,
     required this.thermalWidth,
     required this.showLogo,
     required this.showTaxBreakdown,
@@ -6952,6 +7003,12 @@ class InvoiceSettingEntity extends DataClass
     map['font_size_multiplier'] = Variable<double>(fontSizeMultiplier);
     if (!nullToAbsent || logoPath != null) {
       map['logo_path'] = Variable<String>(logoPath);
+    }
+    if (!nullToAbsent || logoLocalPath != null) {
+      map['logo_local_path'] = Variable<String>(logoLocalPath);
+    }
+    if (!nullToAbsent || logoBytes != null) {
+      map['logo_bytes'] = Variable<Uint8List>(logoBytes);
     }
     map['thermal_width'] = Variable<int>(thermalWidth);
     map['show_logo'] = Variable<bool>(showLogo);
@@ -6981,6 +7038,12 @@ class InvoiceSettingEntity extends DataClass
       logoPath: logoPath == null && nullToAbsent
           ? const Value.absent()
           : Value(logoPath),
+      logoLocalPath: logoLocalPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(logoLocalPath),
+      logoBytes: logoBytes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(logoBytes),
       thermalWidth: Value(thermalWidth),
       showLogo: Value(showLogo),
       showTaxBreakdown: Value(showTaxBreakdown),
@@ -7013,6 +7076,8 @@ class InvoiceSettingEntity extends DataClass
         json['fontSizeMultiplier'],
       ),
       logoPath: serializer.fromJson<String?>(json['logoPath']),
+      logoLocalPath: serializer.fromJson<String?>(json['logoLocalPath']),
+      logoBytes: serializer.fromJson<Uint8List?>(json['logoBytes']),
       thermalWidth: serializer.fromJson<int>(json['thermalWidth']),
       showLogo: serializer.fromJson<bool>(json['showLogo']),
       showTaxBreakdown: serializer.fromJson<bool>(json['showTaxBreakdown']),
@@ -7038,6 +7103,8 @@ class InvoiceSettingEntity extends DataClass
       'fontFamily': serializer.toJson<String>(fontFamily),
       'fontSizeMultiplier': serializer.toJson<double>(fontSizeMultiplier),
       'logoPath': serializer.toJson<String?>(logoPath),
+      'logoLocalPath': serializer.toJson<String?>(logoLocalPath),
+      'logoBytes': serializer.toJson<Uint8List?>(logoBytes),
       'thermalWidth': serializer.toJson<int>(thermalWidth),
       'showLogo': serializer.toJson<bool>(showLogo),
       'showTaxBreakdown': serializer.toJson<bool>(showTaxBreakdown),
@@ -7059,6 +7126,8 @@ class InvoiceSettingEntity extends DataClass
     String? fontFamily,
     double? fontSizeMultiplier,
     Value<String?> logoPath = const Value.absent(),
+    Value<String?> logoLocalPath = const Value.absent(),
+    Value<Uint8List?> logoBytes = const Value.absent(),
     int? thermalWidth,
     bool? showLogo,
     bool? showTaxBreakdown,
@@ -7077,6 +7146,10 @@ class InvoiceSettingEntity extends DataClass
     fontFamily: fontFamily ?? this.fontFamily,
     fontSizeMultiplier: fontSizeMultiplier ?? this.fontSizeMultiplier,
     logoPath: logoPath.present ? logoPath.value : this.logoPath,
+    logoLocalPath: logoLocalPath.present
+        ? logoLocalPath.value
+        : this.logoLocalPath,
+    logoBytes: logoBytes.present ? logoBytes.value : this.logoBytes,
     thermalWidth: thermalWidth ?? this.thermalWidth,
     showLogo: showLogo ?? this.showLogo,
     showTaxBreakdown: showTaxBreakdown ?? this.showTaxBreakdown,
@@ -7105,6 +7178,10 @@ class InvoiceSettingEntity extends DataClass
           ? data.fontSizeMultiplier.value
           : this.fontSizeMultiplier,
       logoPath: data.logoPath.present ? data.logoPath.value : this.logoPath,
+      logoLocalPath: data.logoLocalPath.present
+          ? data.logoLocalPath.value
+          : this.logoLocalPath,
+      logoBytes: data.logoBytes.present ? data.logoBytes.value : this.logoBytes,
       thermalWidth: data.thermalWidth.present
           ? data.thermalWidth.value
           : this.thermalWidth,
@@ -7142,6 +7219,8 @@ class InvoiceSettingEntity extends DataClass
           ..write('fontFamily: $fontFamily, ')
           ..write('fontSizeMultiplier: $fontSizeMultiplier, ')
           ..write('logoPath: $logoPath, ')
+          ..write('logoLocalPath: $logoLocalPath, ')
+          ..write('logoBytes: $logoBytes, ')
           ..write('thermalWidth: $thermalWidth, ')
           ..write('showLogo: $showLogo, ')
           ..write('showTaxBreakdown: $showTaxBreakdown, ')
@@ -7165,6 +7244,8 @@ class InvoiceSettingEntity extends DataClass
     fontFamily,
     fontSizeMultiplier,
     logoPath,
+    logoLocalPath,
+    $driftBlobEquality.hash(logoBytes),
     thermalWidth,
     showLogo,
     showTaxBreakdown,
@@ -7187,6 +7268,8 @@ class InvoiceSettingEntity extends DataClass
           other.fontFamily == this.fontFamily &&
           other.fontSizeMultiplier == this.fontSizeMultiplier &&
           other.logoPath == this.logoPath &&
+          other.logoLocalPath == this.logoLocalPath &&
+          $driftBlobEquality.equals(other.logoBytes, this.logoBytes) &&
           other.thermalWidth == this.thermalWidth &&
           other.showLogo == this.showLogo &&
           other.showTaxBreakdown == this.showTaxBreakdown &&
@@ -7207,6 +7290,8 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
   final Value<String> fontFamily;
   final Value<double> fontSizeMultiplier;
   final Value<String?> logoPath;
+  final Value<String?> logoLocalPath;
+  final Value<Uint8List?> logoBytes;
   final Value<int> thermalWidth;
   final Value<bool> showLogo;
   final Value<bool> showTaxBreakdown;
@@ -7225,6 +7310,8 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
     this.fontFamily = const Value.absent(),
     this.fontSizeMultiplier = const Value.absent(),
     this.logoPath = const Value.absent(),
+    this.logoLocalPath = const Value.absent(),
+    this.logoBytes = const Value.absent(),
     this.thermalWidth = const Value.absent(),
     this.showLogo = const Value.absent(),
     this.showTaxBreakdown = const Value.absent(),
@@ -7244,6 +7331,8 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
     this.fontFamily = const Value.absent(),
     this.fontSizeMultiplier = const Value.absent(),
     this.logoPath = const Value.absent(),
+    this.logoLocalPath = const Value.absent(),
+    this.logoBytes = const Value.absent(),
     this.thermalWidth = const Value.absent(),
     this.showLogo = const Value.absent(),
     this.showTaxBreakdown = const Value.absent(),
@@ -7263,6 +7352,8 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
     Expression<String>? fontFamily,
     Expression<double>? fontSizeMultiplier,
     Expression<String>? logoPath,
+    Expression<String>? logoLocalPath,
+    Expression<Uint8List>? logoBytes,
     Expression<int>? thermalWidth,
     Expression<bool>? showLogo,
     Expression<bool>? showTaxBreakdown,
@@ -7283,6 +7374,8 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
       if (fontSizeMultiplier != null)
         'font_size_multiplier': fontSizeMultiplier,
       if (logoPath != null) 'logo_path': logoPath,
+      if (logoLocalPath != null) 'logo_local_path': logoLocalPath,
+      if (logoBytes != null) 'logo_bytes': logoBytes,
       if (thermalWidth != null) 'thermal_width': thermalWidth,
       if (showLogo != null) 'show_logo': showLogo,
       if (showTaxBreakdown != null) 'show_tax_breakdown': showTaxBreakdown,
@@ -7305,6 +7398,8 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
     Value<String>? fontFamily,
     Value<double>? fontSizeMultiplier,
     Value<String?>? logoPath,
+    Value<String?>? logoLocalPath,
+    Value<Uint8List?>? logoBytes,
     Value<int>? thermalWidth,
     Value<bool>? showLogo,
     Value<bool>? showTaxBreakdown,
@@ -7324,6 +7419,8 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
       fontFamily: fontFamily ?? this.fontFamily,
       fontSizeMultiplier: fontSizeMultiplier ?? this.fontSizeMultiplier,
       logoPath: logoPath ?? this.logoPath,
+      logoLocalPath: logoLocalPath ?? this.logoLocalPath,
+      logoBytes: logoBytes ?? this.logoBytes,
       thermalWidth: thermalWidth ?? this.thermalWidth,
       showLogo: showLogo ?? this.showLogo,
       showTaxBreakdown: showTaxBreakdown ?? this.showTaxBreakdown,
@@ -7360,6 +7457,12 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
     }
     if (logoPath.present) {
       map['logo_path'] = Variable<String>(logoPath.value);
+    }
+    if (logoLocalPath.present) {
+      map['logo_local_path'] = Variable<String>(logoLocalPath.value);
+    }
+    if (logoBytes.present) {
+      map['logo_bytes'] = Variable<Uint8List>(logoBytes.value);
     }
     if (thermalWidth.present) {
       map['thermal_width'] = Variable<int>(thermalWidth.value);
@@ -7404,6 +7507,8 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
           ..write('fontFamily: $fontFamily, ')
           ..write('fontSizeMultiplier: $fontSizeMultiplier, ')
           ..write('logoPath: $logoPath, ')
+          ..write('logoLocalPath: $logoLocalPath, ')
+          ..write('logoBytes: $logoBytes, ')
           ..write('thermalWidth: $thermalWidth, ')
           ..write('showLogo: $showLogo, ')
           ..write('showTaxBreakdown: $showTaxBreakdown, ')
@@ -24163,6 +24268,8 @@ typedef $$InvoiceSettingsTableCreateCompanionBuilder =
       Value<String> fontFamily,
       Value<double> fontSizeMultiplier,
       Value<String?> logoPath,
+      Value<String?> logoLocalPath,
+      Value<Uint8List?> logoBytes,
       Value<int> thermalWidth,
       Value<bool> showLogo,
       Value<bool> showTaxBreakdown,
@@ -24183,6 +24290,8 @@ typedef $$InvoiceSettingsTableUpdateCompanionBuilder =
       Value<String> fontFamily,
       Value<double> fontSizeMultiplier,
       Value<String?> logoPath,
+      Value<String?> logoLocalPath,
+      Value<Uint8List?> logoBytes,
       Value<int> thermalWidth,
       Value<bool> showLogo,
       Value<bool> showTaxBreakdown,
@@ -24236,6 +24345,16 @@ class $$InvoiceSettingsTableFilterComposer
 
   ColumnFilters<String> get logoPath => $composableBuilder(
     column: $table.logoPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get logoLocalPath => $composableBuilder(
+    column: $table.logoLocalPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get logoBytes => $composableBuilder(
+    column: $table.logoBytes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -24334,6 +24453,16 @@ class $$InvoiceSettingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get logoLocalPath => $composableBuilder(
+    column: $table.logoLocalPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<Uint8List> get logoBytes => $composableBuilder(
+    column: $table.logoBytes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get thermalWidth => $composableBuilder(
     column: $table.thermalWidth,
     builder: (column) => ColumnOrderings(column),
@@ -24422,6 +24551,14 @@ class $$InvoiceSettingsTableAnnotationComposer
 
   GeneratedColumn<String> get logoPath =>
       $composableBuilder(column: $table.logoPath, builder: (column) => column);
+
+  GeneratedColumn<String> get logoLocalPath => $composableBuilder(
+    column: $table.logoLocalPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<Uint8List> get logoBytes =>
+      $composableBuilder(column: $table.logoBytes, builder: (column) => column);
 
   GeneratedColumn<int> get thermalWidth => $composableBuilder(
     column: $table.thermalWidth,
@@ -24512,6 +24649,8 @@ class $$InvoiceSettingsTableTableManager
                 Value<String> fontFamily = const Value.absent(),
                 Value<double> fontSizeMultiplier = const Value.absent(),
                 Value<String?> logoPath = const Value.absent(),
+                Value<String?> logoLocalPath = const Value.absent(),
+                Value<Uint8List?> logoBytes = const Value.absent(),
                 Value<int> thermalWidth = const Value.absent(),
                 Value<bool> showLogo = const Value.absent(),
                 Value<bool> showTaxBreakdown = const Value.absent(),
@@ -24530,6 +24669,8 @@ class $$InvoiceSettingsTableTableManager
                 fontFamily: fontFamily,
                 fontSizeMultiplier: fontSizeMultiplier,
                 logoPath: logoPath,
+                logoLocalPath: logoLocalPath,
+                logoBytes: logoBytes,
                 thermalWidth: thermalWidth,
                 showLogo: showLogo,
                 showTaxBreakdown: showTaxBreakdown,
@@ -24550,6 +24691,8 @@ class $$InvoiceSettingsTableTableManager
                 Value<String> fontFamily = const Value.absent(),
                 Value<double> fontSizeMultiplier = const Value.absent(),
                 Value<String?> logoPath = const Value.absent(),
+                Value<String?> logoLocalPath = const Value.absent(),
+                Value<Uint8List?> logoBytes = const Value.absent(),
                 Value<int> thermalWidth = const Value.absent(),
                 Value<bool> showLogo = const Value.absent(),
                 Value<bool> showTaxBreakdown = const Value.absent(),
@@ -24568,6 +24711,8 @@ class $$InvoiceSettingsTableTableManager
                 fontFamily: fontFamily,
                 fontSizeMultiplier: fontSizeMultiplier,
                 logoPath: logoPath,
+                logoLocalPath: logoLocalPath,
+                logoBytes: logoBytes,
                 thermalWidth: thermalWidth,
                 showLogo: showLogo,
                 showTaxBreakdown: showTaxBreakdown,

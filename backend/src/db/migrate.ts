@@ -20,6 +20,9 @@ export async function runMigrations() {
       "007_backfill_sync_operations.sql",
       "008_sync_notify_trigger.sql",
       "009_ops_log_archive.sql",
+      "010_products_sync.sql",
+      "011_add_missing_sync_tables.sql",
+      "012_add_payment_method_to_invoices.sql",
     ];
 
     for (const file of migrationFiles) {

@@ -38,9 +38,9 @@ class ProductViewModel {
   Stream<List<drift.TypedResult>> get allProductsWithCategory =>
       _database.watchProductsWithCategory();
 
-  Stream<List<Category>> get allCategories => _categoryRepository.watchAllCategories();
-  Stream<List<Unit>> get allUnits => _unitRepository.watchAllUnits();
-  Stream<List<Brand>> get allBrands => _brandRepository.watchAllBrands();
+  late final Stream<List<Category>> allCategories = _categoryRepository.watchAllCategories();
+  late final Stream<List<Unit>> allUnits = _unitRepository.watchAllUnits();
+  late final Stream<List<Brand>> allBrands = _brandRepository.watchAllBrands();
 
   Future<void> addProduct({
     required String name,

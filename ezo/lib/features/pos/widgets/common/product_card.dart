@@ -92,7 +92,7 @@ class _PosProductCardState extends State<PosProductCard> {
   double get _imageSize {
     switch (widget.size) {
       case PosCardSize.small:
-        return 60;
+        return 80;
       case PosCardSize.medium:
         return 100;
       case PosCardSize.large:
@@ -126,32 +126,42 @@ class _PosProductCardState extends State<PosProductCard> {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: widget.onTap,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 6,
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 8,
               offset: const Offset(0, 2),
             ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
           ],
-          border: Border.all(color: AppColors.grey200, width: 0.8),
+          border: Border(
+            top: BorderSide(color: const Color(0xFF1976D2).withValues(alpha: 0.3), width: 2),
+            left: BorderSide(color: AppColors.grey200, width: 0.5),
+            right: BorderSide(color: AppColors.grey200, width: 0.5),
+            bottom: BorderSide(color: AppColors.grey300, width: 0.5),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (widget.showImage)
               Expanded(
-                flex: 4,
+                flex: 2,
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: AppColors.grey50,
                     borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(10),
+                      top: Radius.circular(12),
                     ),
                   ),
                   child: Center(
@@ -167,7 +177,7 @@ class _PosProductCardState extends State<PosProductCard> {
                 ),
               ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 6),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -178,6 +188,7 @@ class _PosProductCardState extends State<PosProductCard> {
                       fontWeight: FontWeight.w600,
                       fontSize: _titleSize,
                       color: AppColors.text,
+                      height: 1.2,
                     ),
                     maxLines: widget.size == PosCardSize.small ? 1 : 2,
                     overflow: TextOverflow.ellipsis,
@@ -241,7 +252,7 @@ class _PosProductCardState extends State<PosProductCard> {
                       child: Text(
                         'Rs ${widget.product.price.toInt()}',
                         style: TextStyle(
-                          color: AppColors.accent,
+                          color: const Color(0xFF1976D2),
                           fontWeight: FontWeight.w800,
                           fontSize: _priceSize,
                         ),

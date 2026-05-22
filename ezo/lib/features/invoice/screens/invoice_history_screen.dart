@@ -9,7 +9,6 @@ import 'package:aeropos/core/widgets/table_export_actions.dart';
 import 'package:aeropos/features/pos/widgets/return_dialog.dart';
 import 'package:aeropos/features/pos/widgets/delete_invoice_dialog.dart';
 import 'package:aeropos/features/pos/widgets/invoice_audit_history_dialog.dart';
-
 class InvoiceHistoryScreen extends ConsumerStatefulWidget {
   const InvoiceHistoryScreen({super.key});
 
@@ -22,19 +21,6 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
   final _searchController = TextEditingController();
   DateTimeRange? _selectedDateRange;
   String _searchQuery = '';
-
-  // TODO: Uncomment when needed
-  // String _calculateInvoiceStatus(List<InvoiceItemEntity> items) {
-  //   double soldQty = 0;
-  //   double returnedQty = 0;
-  //   for (final item in items) {
-  //     soldQty += item.quantity.toDouble();
-  //     returnedQty += item.returnedQuantity;
-  //   }
-  //   if (returnedQty == 0) return 'active';
-  //   if (returnedQty < soldQty) return 'partially_returned';
-  //   return 'fully_returned';
-  // }
 
   @override
   void initState() {
@@ -52,37 +38,65 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final isDesktop = width > 900;
-    final isTablet = width > 600;
-    final isMobile = width <= 600;
-
     final state = ref.watch(salesHistoryProvider);
     final notifier = ref.read(salesHistoryProvider.notifier);
 
     return Container(
       color: const Color(0xFFF8F9FF),
+      // LayoutBuilder ensures responsiveness relative to parent container,
+      // crucial if this screen is placed next to a side navigation menu.
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final width = constraints.maxWidth;
+
+          final isMobile = width < 640;
+          final isSmallTablet = width >= 640 && width < 900;
+          final isTablet = width >= 640 && width < 1200;
+          final isDesktop = width >= 1200;
+
+          // Gracefully hide columns on smaller screens
+          final showCustomer = width >= 900;
+          final showSerialNo = width >= 900;
+
           return SingleChildScrollView(
-            padding: EdgeInsets.all(isDesktop ? 32 : (isTablet ? 20 : 16)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(isMobile),
-                SizedBox(height: isMobile ? 16 : 24),
-                _buildSearchBar(isTablet, isMobile, notifier),
-                const SizedBox(height: 20),
-                _buildTableContainer(
-                  state,
-                  notifier,
-                  isDesktop,
-                  isTablet,
-                  isMobile,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1400),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isDesktop ? 40 : (isTablet ? 24 : 16),
+                    vertical: isDesktop ? 32 : (isTablet ? 20 : 16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildHeader(isMobile),
+                      SizedBox(height: isMobile ? 16 : 24),
+                      _buildSearchBar(
+                        width, // Pass available width for fluid scaling
+                        isDesktop,
+                        isTablet,
+                        isSmallTablet,
+                        isMobile,
+                        notifier,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildTableContainer(
+                        state,
+                        notifier,
+                        isDesktop,
+                        isSmallTablet,
+                        isMobile,
+                        showCustomer: showCustomer,
+                        showSerialNo: showSerialNo,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildFooter(isDesktop),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-                _buildFooter(isDesktop),
-              ],
+              ),
             ),
           );
         },
@@ -117,7 +131,10 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
   }
 
   Widget _buildSearchBar(
+    double maxWidth,
+    bool isDesktop,
     bool isTablet,
+    bool isSmallTablet,
     bool isMobile,
     SalesHistoryNotifier notifier,
   ) {
@@ -153,16 +170,18 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
       );
     }
 
+    // Fluid search field width for tablets and desktops
+    final searchFieldWidth = isDesktop
+        ? 400.0
+        : (maxWidth * 0.45).clamp(260.0, 350.0);
+
     return Wrap(
       spacing: 12,
       runSpacing: 12,
       alignment: WrapAlignment.start,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        SizedBox(
-          width: isTablet ? 350 : 280,
-          child: _buildSearchField(notifier),
-        ),
+        SizedBox(width: searchFieldWidth, child: _buildSearchField(notifier)),
         _filterButton(icon: Icons.filter_list, label: 'Filters', onTap: () {}),
         _filterButton(
           icon: Icons.calendar_today,
@@ -317,7 +336,8 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
   }
 
   Future<void> _showDateRangePicker() async {
-    final width = MediaQuery.of(context).size.width;
+    // Used sizeOf to prevent keyboard-related layout rebuilds
+    final width = MediaQuery.sizeOf(context).width;
     final isMobile = width <= 600;
 
     final result = await showDialog<DateTimeRange>(
@@ -339,9 +359,11 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
     SalesHistoryState state,
     SalesHistoryNotifier notifier,
     bool isDesktop,
-    bool isTablet,
-    bool isMobile,
-  ) {
+    bool isSmallTablet,
+    bool isMobile, {
+    required bool showCustomer,
+    required bool showSerialNo,
+  }) {
     if (state.isLoading) {
       return Container(
         height: 400,
@@ -361,14 +383,22 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
       return _buildMobileList(state, notifier);
     }
 
-    return _buildDesktopTable(state, notifier, isTablet);
+    return _buildDesktopTable(
+      state,
+      notifier,
+      isSmallTablet: isSmallTablet,
+      showCustomer: showCustomer,
+      showSerialNo: showSerialNo,
+    );
   }
 
   Widget _buildDesktopTable(
     SalesHistoryState state,
-    SalesHistoryNotifier notifier,
-    bool isTablet,
-  ) {
+    SalesHistoryNotifier notifier, {
+    required bool isSmallTablet,
+    required bool showCustomer,
+    required bool showSerialNo,
+  }) {
     return Container(
       constraints: const BoxConstraints(minHeight: 400),
       decoration: BoxDecoration(
@@ -384,23 +414,34 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
       ),
       child: Column(
         children: [
-          _buildTableHeader(isTablet),
+          _buildTableHeader(
+            showCustomer: showCustomer,
+            showSerialNo: showSerialNo,
+          ),
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: state.items.length,
             separatorBuilder: (context, index) =>
                 const Divider(height: 1, color: Color(0xFFE2E8F0)),
-            itemBuilder: (context, index) =>
-                _buildTableRow(state, index, isTablet),
+            itemBuilder: (context, index) => _buildTableRow(
+              state,
+              index,
+              showCustomer: showCustomer,
+              showSerialNo: showSerialNo,
+              showViewLabel: !isSmallTablet,
+            ),
           ),
-          _buildPaginationFooter(state, notifier),
+          _buildPaginationFooter(state, notifier, isCompact: isSmallTablet),
         ],
       ),
     );
   }
 
-  Widget _buildTableHeader(bool isTablet) {
+  Widget _buildTableHeader({
+    required bool showCustomer,
+    required bool showSerialNo,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: const BoxDecoration(
@@ -409,12 +450,12 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
       ),
       child: Row(
         children: [
-          _headerCell('S.No', flex: 1),
+          if (showSerialNo) _headerCell('S.No', flex: 1),
           _headerCell('Invoice #', flex: 2),
           _headerCell('Date & Time', flex: 2),
           _headerCell('Product', flex: 3),
-          if (isTablet) _headerCell('Customer', flex: 2),
-          _headerCell('Amount', flex: 2, align: TextAlign.right),
+          if (showCustomer) _headerCell('Customer', flex: 2),
+          _headerCell('Amount', flex: 2, align: TextAlign.center),
           _headerCell('Action', flex: 1, align: TextAlign.center),
         ],
       ),
@@ -441,7 +482,13 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
     );
   }
 
-  Widget _buildTableRow(SalesHistoryState state, int index, bool isTablet) {
+  Widget _buildTableRow(
+    SalesHistoryState state,
+    int index, {
+    required bool showCustomer,
+    required bool showSerialNo,
+    required bool showViewLabel,
+  }) {
     try {
       final res = state.items[index];
       final invoice = res.readTable(ServiceLocator.instance.database.invoices);
@@ -465,17 +512,18 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Row(
               children: [
-                Expanded(
-                  flex: 1,
-                  child: Text(
-                    serialNumber.toString().padLeft(2, '0'),
-                    style: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 12,
-                      color: Color(0xFF717786),
+                if (showSerialNo)
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      serialNumber.toString().padLeft(2, '0'),
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        color: Color(0xFF717786),
+                      ),
                     ),
                   ),
-                ),
                 Expanded(
                   flex: 2,
                   child: Text(
@@ -544,7 +592,7 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
                     ],
                   ),
                 ),
-                if (isTablet)
+                if (showCustomer)
                   Expanded(
                     flex: 2,
                     child: Row(
@@ -587,7 +635,7 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
                 Expanded(
                   flex: 2,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
                         'Rs ${invoice.total.toStringAsFixed(2)}',
@@ -623,13 +671,24 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
                 ),
                 Expanded(
                   flex: 1,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _viewPdfButton(invoice, cust, item),
-                      const SizedBox(width: 4),
-                      _invoiceActions(invoice, item),
-                    ],
+                  // FittedBox prevents overflow by gracefully scaling down the buttons
+                  // if the column gets too narrow on intermediate window sizes.
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _viewPdfButton(
+                          invoice,
+                          cust,
+                          item,
+                          showLabel: showViewLabel,
+                        ),
+                        const SizedBox(width: 4),
+                        _invoiceActions(invoice, item),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -645,8 +704,9 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
   Widget _viewPdfButton(
     InvoiceEntity invoice,
     CustomerEntity? customer,
-    InvoiceItemEntity item,
-  ) {
+    InvoiceItemEntity item, {
+    bool showLabel = true,
+  }) {
     return Material(
       color: const Color(0xFF0058BC).withValues(alpha: 0.08),
       borderRadius: BorderRadius.circular(8),
@@ -654,21 +714,30 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
         onTap: () => _viewInvoice(invoice, customer, item),
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          child: const Row(
+          padding: EdgeInsets.symmetric(
+            horizontal: showLabel ? 10 : 8,
+            vertical: 6,
+          ),
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.picture_as_pdf, size: 16, color: Color(0xFF0058BC)),
-              SizedBox(width: 4),
-              Text(
-                'VIEW',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0058BC),
-                  letterSpacing: 0.5,
-                ),
+              const Icon(
+                Icons.picture_as_pdf,
+                size: 16,
+                color: Color(0xFF0058BC),
               ),
+              if (showLabel) ...[
+                const SizedBox(width: 4),
+                const Text(
+                  'VIEW',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0058BC),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -676,82 +745,134 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
     );
   }
 
-  Widget _invoiceActions(InvoiceEntity invoice, InvoiceItemEntity invoiceItem) {
-    final isDeleted = invoice.isDeleted;
+Widget _invoiceActions(InvoiceEntity invoice, InvoiceItemEntity invoiceItem) {
+  final isDeleted = invoice.isDeleted;
 
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, size: 18),
-      tooltip: 'More actions',
-      onSelected: (value) async {
-        switch (value) {
-          case 'return':
-            await showDialog(
-              context: context,
-              builder: (_) =>
-                  ReturnDialog(invoice: invoice, items: [invoiceItem]),
-            );
-            ref.read(salesHistoryProvider.notifier).refresh();
-            break;
-          case 'delete':
-            await showDialog(
-              context: context,
-              builder: (_) => DeleteInvoiceDialog(
-                invoiceId: invoice.id,
-                tenantId: invoice.tenantId,
-              ),
-            );
-            ref.read(salesHistoryProvider.notifier).refresh();
-            break;
-          case 'history':
-            showDialog(
-              context: context,
-              builder: (_) => InvoiceAuditHistoryDialog(invoiceId: invoice.id),
-            );
-            break;
+  return PopupMenuButton<String>(
+    icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF545F73)),
+    tooltip: 'More actions',
+    offset: const Offset(0, 40), // Spawns the menu cleanly right below the button
+    elevation: 4,
+    // Modern, crisp styling to match your table container
+    shadowColor: Colors.black.withValues(alpha: 0.2),
+    surfaceTintColor: Colors.white,
+    color: Colors.white,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+      side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
+    ),
+    onSelected: (value) async {
+switch (value) {
+    case 'return':
+      // 1. Fetch all items for this specific invoice so the dialog can list them all
+      final db = ServiceLocator.instance.database;
+      
+      final results = await db.getInvoiceItemsWithProduct(invoice.id);
+      final allItems = results.map((e) => e.readTable(db.invoiceItems)).toList();
+      final productNames = Map.fromEntries(
+        results.map((e) {
+          final item = e.readTable(db.invoiceItems);
+          final product = e.readTable(db.products);
+          return MapEntry(item.id, product.name);
+        }),
+      );
+
+      // 2. Ensure the widget is still mounted before showing the dialog
+      if (mounted) {
+        final result = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => ReturnDialog(
+            invoice: invoice,
+            items: allItems,
+            productNames: productNames,
+          ),
+        );
+
+        // 3. If the dialog returns true (meaning a return was successfully processed),
+        // refresh the sales history table to show updated totals/status.
+        if (result == true) {
+          ref.read(salesHistoryProvider.notifier).refresh(silent: true);
         }
-      },
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'return',
-          enabled: !isDeleted,
-          child: const Row(
-            children: [
-              Icon(Icons.assignment_return, size: 18),
-              SizedBox(width: 8),
-              Text('Return/Exchange'),
-            ],
-          ),
+      }
+      break;
+    }
+  },
+    itemBuilder: (context) => [
+      PopupMenuItem<String>(
+        value: 'return',
+        enabled: !isDeleted,
+        height: 38,
+        child: Row(
+          children: [
+            Icon(
+              Icons.assignment_return_outlined, 
+              size: 16, 
+              color: isDeleted ? const Color(0xFFC1C6D7) : const Color(0xFF545F73),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Return / Exchange',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: isDeleted ? const Color(0xFFC1C6D7) : const Color(0xFF0B1C30),
+              ),
+            ),
+          ],
         ),
-        PopupMenuItem(
-          value: 'delete',
-          enabled: !isDeleted,
-          child: const Row(
-            children: [
-              Icon(Icons.delete_forever, size: 18, color: Colors.red),
-              SizedBox(width: 8),
-              Text('Delete', style: TextStyle(color: Colors.red)),
-            ],
-          ),
+      ),
+      PopupMenuItem<String>(
+        value: 'history',
+        height: 38,
+        child: Row(
+          children: [
+            const Icon(Icons.history_toggle_off_rounded, size: 16, color: Color(0xFF545F73)),
+            const SizedBox(width: 10),
+            const Text(
+              'View Audit History',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF0B1C30),
+              ),
+            ),
+          ],
         ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: 'history',
-          child: Row(
-            children: [
-              Icon(Icons.history, size: 18),
-              SizedBox(width: 8),
-              Text('View History'),
-            ],
-          ),
+      ),
+      const PopupMenuDivider(height: 1),
+      PopupMenuItem<String>(
+        value: 'delete',
+        enabled: !isDeleted,
+        height: 38,
+        child: Row(
+          children: [
+            Icon(
+              Icons.delete_outline_rounded, 
+              size: 16, 
+              color: isDeleted ? const Color(0xFFC1C6D7) : const Color(0xFFD32F2F),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Delete Transaction',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isDeleted ? const Color(0xFFC1C6D7) : const Color(0xFFD32F2F),
+              ),
+            ),
+          ],
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 
   Widget _buildPaginationFooter(
     SalesHistoryState state,
-    SalesHistoryNotifier notifier,
-  ) {
+    SalesHistoryNotifier notifier, {
+    bool isCompact = false,
+  }) {
     final totalPages = (state.totalItems / state.limit).ceil();
     final currentPage = state.page + 1;
     final startItem = (state.page * state.limit) + 1;
@@ -769,8 +890,10 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
       child: Row(
         children: [
           Text(
-            'Showing $startItem - $endItem of ${state.totalItems} entries',
-            style: const TextStyle(fontSize: 13, color: Color(0xFF545F73)),
+            isCompact
+                ? '$startItem-$endItem / ${state.totalItems}'
+                : 'Showing $startItem - $endItem of ${state.totalItems} entries',
+            style: const TextStyle(fontSize: 12, color: Color(0xFF545F73)),
           ),
           const Spacer(),
           _buildPaginationButtons(currentPage, totalPages, notifier),
@@ -1270,9 +1393,9 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final dialogWidth = widget.isMobile
-        ? MediaQuery.of(context).size.width * 0.92
-        : 420.0;
+
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final dialogWidth = widget.isMobile ? screenWidth * 0.92 : 420.0;
 
     final presets = [
       ('Today', today, now),
@@ -1295,7 +1418,6 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Row(
               children: [
                 Container(
@@ -1337,8 +1459,6 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
               ],
             ),
             const SizedBox(height: 20),
-
-            // Quick Presets
             const Text(
               'QUICK SELECT',
               style: TextStyle(
@@ -1360,8 +1480,7 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
+                      horizontal: 14, vertical: 8,
                     ),
                     decoration: BoxDecoration(
                       color: isActive
@@ -1389,8 +1508,6 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
               }).toList(),
             ),
             const SizedBox(height: 20),
-
-            // Divider with label
             Row(
               children: [
                 const Expanded(child: Divider(color: Color(0xFFE2E8F0))),
@@ -1409,8 +1526,6 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
               ],
             ),
             const SizedBox(height: 16),
-
-            // Custom Date Fields
             Row(
               children: [
                 Expanded(
@@ -1437,8 +1552,6 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
               ],
             ),
             const SizedBox(height: 24),
-
-            // Action Buttons
             Row(
               children: [
                 Expanded(

@@ -18,6 +18,7 @@ class InvoiceSettings extends Table {
 
   // Personalization
   TextColumn get logoPath => text().nullable()();
+  TextColumn get logoLocalPath => text().nullable()();
   BlobColumn get logoBytes => blob().nullable()();
   
   // Thermal Options
