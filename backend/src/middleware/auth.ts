@@ -68,6 +68,12 @@ export const auth = async (
     req.deviceId = req.header("X-Device-Id") || req.header("x-device-id");
     next();
   } catch (e) {
+    if (e instanceof jwt.JsonWebTokenError ||
+        e instanceof jwt.TokenExpiredError) {
+      res.status(401).json({ error: "Invalid or expired token" });
+      return;
+    }
+    console.error("Auth middleware error:", e);
     res.status(500).json({ error: "INTERNAL_ERROR", message: String(e) });
   }
 };

@@ -1,15 +1,19 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aeropos/features/pos/state/cart_state.dart';
 import 'package:aeropos/core/database/app_database.dart';
+import 'package:aeropos/features/pos/widgets/barcode_camera_overlay.dart';
 
 class ProductSearchBar extends ConsumerStatefulWidget {
   final void Function(ProductEntity product) onProductSelected;
+  final void Function(String)? onBarcodeInput;
 
   const ProductSearchBar({
     super.key,
     required this.onProductSelected,
+    this.onBarcodeInput,
   });
 
   @override
@@ -44,7 +48,14 @@ class _ProductSearchBarState extends ConsumerState<ProductSearchBar> {
     super.dispose();
   }
 
+  static final _barcodePattern = RegExp(r'^\d{4,}$');
+
   void _onSearchChanged(String query) {
+    if (_barcodePattern.hasMatch(query)) {
+      widget.onBarcodeInput?.call(query);
+      _controller.clear();
+      return;
+    }
     ref.read(productSearchProvider.notifier).state = query;
     setState(() {
       _showSuggestions = query.isNotEmpty;
@@ -159,15 +170,29 @@ class _ProductSearchBarState extends ConsumerState<ProductSearchBar> {
             decoration: InputDecoration(
               hintText: "Search products by name...",
               prefixIcon: const Icon(Icons.search, size: 20),
-              suffixIcon: _controller.text.isNotEmpty
-                  ? IconButton(
+              suffixIcon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (Platform.isIOS || Platform.isMacOS)
+                    IconButton(
+                      icon: const Icon(Icons.qr_code_scanner, size: 20),
+                      onPressed: () => showModalBottomSheet(
+                        context: context,
+                        builder: (_) => BarcodeCameraOverlay(
+                          onScanned: widget.onBarcodeInput,
+                        ),
+                      ),
+                    ),
+                  if (_controller.text.isNotEmpty)
+                    IconButton(
                       icon: const Icon(Icons.clear, size: 18),
                       onPressed: () {
                         _controller.clear();
                         _onSearchChanged('');
                       },
-                    )
-                  : null,
+                    ),
+                ],
+              ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),

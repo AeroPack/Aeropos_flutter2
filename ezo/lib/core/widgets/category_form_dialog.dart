@@ -85,7 +85,14 @@ class _CategoryFormDialogState extends State<CategoryFormDialog> {
                     style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: PosColors.textMain),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: PosColors.textLight),
+                    icon: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close, color: Colors.white, size: 16),
+                    ),
                     onPressed: () => context.pop(),
                   ),
                 ],
@@ -99,6 +106,7 @@ class _CategoryFormDialogState extends State<CategoryFormDialog> {
                 isRequired: true,
                 controller: _nameController,
                 placeholder: "e.g. Beverages",
+                autofocus: true,
               ),
               
               PosTextInput(

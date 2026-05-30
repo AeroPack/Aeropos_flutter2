@@ -12,6 +12,7 @@ class CartItem {
   final ProductUnit? selectedUnit;
   final double manualDiscount;
   final bool isPercentDiscount;
+  final double? manualUnitPrice;
   final List<String>? modifiers;
   final String? course;
 
@@ -21,6 +22,7 @@ class CartItem {
     this.selectedUnit,
     this.manualDiscount = 0.0,
     this.isPercentDiscount = false,
+    this.manualUnitPrice,
     this.modifiers,
     this.course,
   });
@@ -28,6 +30,7 @@ class CartItem {
   double get unitPrice => quantity > 0 ? calculatedPrice / quantity : 0;
 
   double get calculatedPrice {
+    if (manualUnitPrice != null) return manualUnitPrice! * quantity;
     if (selectedUnit == null) {
       return product.price * quantity;
     }
@@ -100,6 +103,7 @@ class CartItem {
     double? basePrice,
     double? manualDiscount,
     bool? isPercentDiscount,
+    double? manualUnitPrice,
     List<String>? modifiers,
     String? course,
   }) {
@@ -109,6 +113,7 @@ class CartItem {
       selectedUnit: selectedUnit ?? this.selectedUnit,
       manualDiscount: manualDiscount ?? this.manualDiscount,
       isPercentDiscount: isPercentDiscount ?? this.isPercentDiscount,
+      manualUnitPrice: manualUnitPrice ?? this.manualUnitPrice,
       modifiers: modifiers ?? this.modifiers,
       course: course ?? this.course,
     );
@@ -265,6 +270,7 @@ class CartNotifier extends StateNotifier<CartState> {
     ProductEntity product, {
     double quantity = 1.0,
     ProductUnit? selectedUnit,
+    double? manualUnitPrice,
     List<String>? modifiers,
     String? course,
   }) {
@@ -302,6 +308,7 @@ class CartNotifier extends StateNotifier<CartState> {
             selectedUnit: selectedUnit,
             manualDiscount: validDiscount,
             isPercentDiscount: product.isPercentDiscount,
+            manualUnitPrice: manualUnitPrice,
             modifiers: modifiers,
             course: course,
           ),

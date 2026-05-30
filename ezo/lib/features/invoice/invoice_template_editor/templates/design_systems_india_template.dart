@@ -3,6 +3,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../template_engine/invoice_template.dart';
 import '../models.dart';
+import '../../../../core/utils/upi_qr.dart';
 
 class DesignSystemsIndiaTemplate extends InvoiceTemplate {
   @override
@@ -214,23 +215,69 @@ class DesignSystemsIndiaTemplate extends InvoiceTemplate {
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.end,
                         children: [
-                          pw.Container(
-                            width: 220,
-                            color: accentColor,
-                            padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            child: pw.Row(
-                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                              children: [
-                                pw.Text(
-                                  'Sub Total',
-                                  style: pw.TextStyle(color: PdfColors.white, fontSize: 10, fontWeight: pw.FontWeight.bold),
+                          pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.end,
+                            children: [
+                              pw.Container(
+                                width: 220,
+                                padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+                                child: pw.Row(
+                                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    pw.Text('Sub Total', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+                                    pw.Text('Rs ${data.subtotal.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 9)),
+                                  ],
                                 ),
-                                pw.Text(
-                                  'Rs ${data.total.toStringAsFixed(2)}',
-                                  style: pw.TextStyle(color: PdfColors.white, fontSize: 10),
+                              ),
+                              if (data.showTaxBreakdown && data.cgstTotal > 0) ...[
+                                pw.Container(
+                                  width: 220,
+                                  padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+                                  child: pw.Row(
+                                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      pw.Text('CGST', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+                                      pw.Text('Rs ${data.cgstTotal.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 9)),
+                                    ],
+                                  ),
+                                ),
+                                pw.Container(
+                                  width: 220,
+                                  padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+                                  child: pw.Row(
+                                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      pw.Text('SGST', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+                                      pw.Text('Rs ${data.sgstTotal.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 9)),
+                                    ],
+                                  ),
+                                ),
+                              ] else if (data.showTaxBreakdown && data.taxAmount > 0) ...[
+                                pw.Container(
+                                  width: 220,
+                                  padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+                                  child: pw.Row(
+                                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      pw.Text(data.taxLabel.isNotEmpty ? data.taxLabel : 'Tax', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+                                      pw.Text('Rs ${data.taxAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 9)),
+                                    ],
+                                  ),
                                 ),
                               ],
-                            ),
+                              pw.Container(
+                                width: 220,
+                                color: accentColor,
+                                padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                child: pw.Row(
+                                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    pw.Text('Total', style: pw.TextStyle(color: PdfColors.white, fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                                    pw.Text('Rs ${data.total.toStringAsFixed(2)}', style: pw.TextStyle(color: PdfColors.white, fontSize: 10)),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -253,11 +300,25 @@ class DesignSystemsIndiaTemplate extends InvoiceTemplate {
                               pw.Container(width: 150, height: 1, color: PdfColors.grey400, margin: const pw.EdgeInsets.only(bottom: 24)),
 
                               // Payment Info
-                              pw.Text('Payment Information:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
-                              pw.SizedBox(height: 6),
-                              _pdfPaymentRow('Bank:', data.bankName.isNotEmpty ? data.bankName : 'Bank Name'),
-                              _pdfPaymentRow('A/C No:', data.bankAccountNo.isNotEmpty ? data.bankAccountNo : 'Account No'),
-                              _pdfPaymentRow('IFSC:', data.bankIfsc.isNotEmpty ? data.bankIfsc : 'IFSC Code'),
+                              if (data.showBankDetails && data.bankName.isNotEmpty) ...[
+                                pw.Text('Payment Information:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                                pw.SizedBox(height: 6),
+                                _pdfPaymentRow('Bank:', data.bankName),
+                                _pdfPaymentRow('A/C No:', data.bankAccountNo),
+                                _pdfPaymentRow('IFSC:', data.bankIfsc),
+                              ],
+                              if (data.showUpiQr && data.upiId.isNotEmpty) ...[
+                                pw.SizedBox(height: 8),
+                                pw.Text('UPI QR:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                                pw.SizedBox(height: 4),
+                                pw.Container(
+                                  width: 80, height: 80,
+                                  child: pw.BarcodeWidget(
+                                    barcode: pw.Barcode.qrCode(),
+                                    data: buildUpiUri(upiId: data.upiId, amount: data.grandTotal, invoiceNo: data.invoiceNumber),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                           
@@ -446,21 +507,81 @@ class DesignSystemsIndiaTemplate extends InvoiceTemplate {
 
               const SizedBox(height: 16),
 
-              // Sub Total Box
+              // Totals breakdown
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Container(
-                    width: 220,
-                    color: accentColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Sub Total', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                        Text('Rs ${data.total.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      SizedBox(
+                        width: 220,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Sub Total', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                              Text('Rs ${data.subtotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (data.showTaxBreakdown && data.cgstTotal > 0) ...[
+                        SizedBox(
+                          width: 220,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('CGST', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                Text('Rs ${data.cgstTotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 220,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('SGST', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                Text('Rs ${data.sgstTotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ] else if (data.showTaxBreakdown && data.taxAmount > 0) ...[
+                        SizedBox(
+                          width: 220,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(data.taxLabel.isNotEmpty ? data.taxLabel : 'Tax', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                Text('Rs ${data.taxAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                        ),
                       ],
-                    ),
+                      Container(
+                        width: 220,
+                        color: accentColor,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Total', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                            Text('Rs ${data.total.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -480,11 +601,19 @@ class DesignSystemsIndiaTemplate extends InvoiceTemplate {
                       Container(width: 150, height: 1, color: Colors.grey.shade400, margin: const EdgeInsets.only(bottom: 6)),
                       Container(width: 150, height: 1, color: Colors.grey.shade400, margin: const EdgeInsets.only(bottom: 24)),
 
-                      const Text('Payment Information:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                      const SizedBox(height: 6),
-                      _flutterPaymentRow('Bank:', data.bankName.isNotEmpty ? data.bankName : 'Bank Name'),
-                      _flutterPaymentRow('A/C No:', data.bankAccountNo.isNotEmpty ? data.bankAccountNo : 'Account No'),
-                      _flutterPaymentRow('IFSC:', data.bankIfsc.isNotEmpty ? data.bankIfsc : 'IFSC Code'),
+                      if (data.showBankDetails && data.bankName.isNotEmpty) ...[
+                        const Text('Payment Information:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        const SizedBox(height: 6),
+                        _flutterPaymentRow('Bank:', data.bankName),
+                        _flutterPaymentRow('A/C No:', data.bankAccountNo),
+                        _flutterPaymentRow('IFSC:', data.bankIfsc),
+                      ],
+                      if (data.showUpiQr && data.upiId.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        const Text('UPI QR:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
+                        const SizedBox(height: 4),
+                        const Icon(Icons.qr_code_2, size: 48),
+                      ],
                     ],
                   ),
                   

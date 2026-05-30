@@ -3,6 +3,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../template_engine/invoice_template.dart';
 import '../models.dart';
+import '../../../../core/utils/upi_qr.dart';
 
 class HardwareShopA4Template extends InvoiceTemplate {
   @override
@@ -159,10 +160,10 @@ class HardwareShopA4Template extends InvoiceTemplate {
                             _pdfCell(item.desc),
                             _pdfCell(''),
                             _pdfCell('${item.qty} Bora'),
-                            _pdfCell('₹${item.rate.toStringAsFixed(0)}'),
-                            _pdfCell('₹${item.rate.toStringAsFixed(2)}'),
-                            _pdfCell('₹${(item.rate * 0.03).toStringAsFixed(2)} (3)'), // Example fixed tax logic for template
-                            _pdfCell('₹${item.amount.toStringAsFixed(2)}'),
+                            _pdfCell('Rs${item.rate.toStringAsFixed(0)}'),
+                            _pdfCell('Rs${item.rate.toStringAsFixed(2)}'),
+                            _pdfCell('Rs${(item.rate * 0.03).toStringAsFixed(2)} (3)'), // Example fixed tax logic for template
+                            _pdfCell('Rs${item.amount.toStringAsFixed(2)}'),
                           ],
                         );
                       }),
@@ -179,7 +180,7 @@ class HardwareShopA4Template extends InvoiceTemplate {
                           _pdfCell(''),
                           _pdfCell(''),
                           _pdfCell(''),
-                          _pdfCell('₹${data.total.toStringAsFixed(2)}', isBold: true),
+                          _pdfCell('Rs${data.total.toStringAsFixed(2)}', isBold: true),
                         ],
                       ),
                     ],
@@ -202,13 +203,13 @@ class HardwareShopA4Template extends InvoiceTemplate {
                             decoration: pw.BoxDecoration(
                               border: pw.Border(right: pw.BorderSide(color: _borderColor, width: 1)),
                             ),
-                            child: pw.Text('Received Amount: ₹${data.total.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 10)),
+                            child: pw.Text('Received Amount: Rs${data.total.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 10)),
                           ),
                         ),
                         pw.Expanded(
                           child: pw.Container(
                             padding: const pw.EdgeInsets.all(8),
-                            child: pw.Text('Balance: ₹0.00', style: const pw.TextStyle(fontSize: 10)),
+                            child: pw.Text('Balance: Rs0.00', style: const pw.TextStyle(fontSize: 10)),
                           ),
                         ),
                       ],
@@ -243,30 +244,32 @@ class HardwareShopA4Template extends InvoiceTemplate {
                             child: pw.Column(
                               crossAxisAlignment: pw.CrossAxisAlignment.start,
                               children: [
-                                pw.Text('Bank Details', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                                pw.SizedBox(height: 12),
-                                _pdfBankRow('Account holder:', 'Rahul'),
-                                _pdfBankRow('Account number:', data.bankAccountNo.isNotEmpty ? data.bankAccountNo : 'Account No'),
-                                _pdfBankRow('Bank:', data.bankName.isNotEmpty ? data.bankName : 'Bank Name'),
-                                _pdfBankRow('Branch:', 'Delhi'),
-                                _pdfBankRow('IFSC code:', data.bankIfsc.isNotEmpty ? data.bankIfsc : 'IFSC Code'),
-                                _pdfBankRow('UPI ID:', '1234567890'),
-                                pw.SizedBox(height: 12),
-                                pw.Row(
-                                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: pw.CrossAxisAlignment.end,
-                                  children: [
-                                    pw.Text('UPI QR:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                                    pw.Container(
-                                      height: 60,
-                                      width: 60,
-                                      child: pw.BarcodeWidget(
-                                        barcode: pw.Barcode.qrCode(),
-                                        data: 'upi://pay?pa=1234567890@upi&pn=Rahul',
+                                if (data.showBankDetails && data.bankName.isNotEmpty) ...[
+                                  pw.Text('Bank Details', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                                  pw.SizedBox(height: 12),
+                                  _pdfBankRow('Account holder:', data.bankName),
+                                  _pdfBankRow('Account number:', data.bankAccountNo),
+                                  _pdfBankRow('Bank:', data.bankName),
+                                  _pdfBankRow('IFSC code:', data.bankIfsc),
+                                ],
+                                if (data.showUpiQr && data.upiId.isNotEmpty) ...[
+                                  pw.SizedBox(height: 8),
+                                  pw.Row(
+                                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                                    children: [
+                                      pw.Text('UPI QR:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                                      pw.Container(
+                                        height: 60,
+                                        width: 60,
+                                        child: pw.BarcodeWidget(
+                                          barcode: pw.Barcode.qrCode(),
+                                          data: buildUpiUri(upiId: data.upiId, amount: data.grandTotal, invoiceNo: data.invoiceNumber),
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                    ],
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -448,10 +451,10 @@ class HardwareShopA4Template extends InvoiceTemplate {
                     _flutterCell(item.desc),
                     _flutterCell(''),
                     _flutterCell('${item.qty} Bora'),
-                    _flutterCell('₹${item.rate.toStringAsFixed(0)}'),
-                    _flutterCell('₹${item.rate.toStringAsFixed(2)}'),
-                    _flutterCell('₹${(item.rate * 0.03).toStringAsFixed(2)} (3)'),
-                    _flutterCell('₹${item.amount.toStringAsFixed(2)}'),
+                    _flutterCell('Rs${item.rate.toStringAsFixed(0)}'),
+                    _flutterCell('Rs${item.rate.toStringAsFixed(2)}'),
+                    _flutterCell('Rs${(item.rate * 0.03).toStringAsFixed(2)} (3)'),
+                    _flutterCell('Rs${item.amount.toStringAsFixed(2)}'),
                   ],
                 );
               }),
@@ -467,7 +470,7 @@ class HardwareShopA4Template extends InvoiceTemplate {
                   _flutterCell(''),
                   _flutterCell(''),
                   _flutterCell(''),
-                  _flutterCell('₹${data.total.toStringAsFixed(2)}', isBold: true),
+                  _flutterCell('Rs${data.total.toStringAsFixed(2)}', isBold: true),
                 ],
               ),
             ],
@@ -491,13 +494,13 @@ class HardwareShopA4Template extends InvoiceTemplate {
                       decoration: BoxDecoration(
                         border: Border(right: BorderSide(color: borderColor, width: 1)),
                       ),
-                      child: Text('Received Amount: ₹${data.total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 10)),
+                      child: Text('Received Amount: Rs${data.total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 10)),
                     ),
                   ),
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.all(8),
-                      child: const Text('Balance: ₹0.00', style: TextStyle(fontSize: 10)),
+                      child: const Text('Balance: Rs0.00', style: TextStyle(fontSize: 10)),
                     ),
                   ),
                 ],

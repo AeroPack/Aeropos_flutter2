@@ -275,6 +275,33 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
           _summaryRow("Subtotal", state.subtotal),
           _summaryRow("VAT (15%)", state.taxAmount),
           const Divider(color: Colors.white24, height: 32),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              const Text(
+                "Payment Status",
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              const Spacer(),
+              DropdownButton<String>(
+                value: state.paymentStatus,
+                dropdownColor: PosColors.navy,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                underline: const SizedBox(),
+                items: const [
+                  DropdownMenuItem(value: 'PENDING', child: Text('Pending')),
+                  DropdownMenuItem(value: 'COMPLETED', child: Text('Completed')),
+                  DropdownMenuItem(value: 'REJECTED', child: Text('Rejected')),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    ref.read(invoiceProvider.notifier).setPaymentStatus(val);
+                  }
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           _summaryRow("Total Payable", state.total, isTotal: true),
           const SizedBox(height: 40),
           SizedBox(

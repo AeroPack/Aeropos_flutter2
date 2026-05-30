@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aeropos/features/pos/layouts/base_pos_layout.dart';
 // import 'package:aeropos/features/pos/widgets/common/product_card.dart';
 import 'package:aeropos/features/pos/widgets/common/totals_display.dart';
 import 'package:aeropos/features/pos/widgets/quantity_with_unit_dialog.dart';
+import 'package:aeropos/features/pos/widgets/barcode_camera_overlay.dart';
 import 'package:aeropos/features/pos/state/cart_state.dart';
 import 'package:aeropos/core/database/app_database.dart';
 
@@ -31,12 +33,14 @@ class CompactLayout extends BasePosLayout {
     this.onPrintReceipt,
     this.onOrderHold,
     this.onRecallOrder,
+    this.onBarcodeScanned,
   });
 
   final VoidCallback? onSplitBill;
   final VoidCallback? onPrintReceipt;
   final VoidCallback? onOrderHold;
   final VoidCallback? onRecallOrder;
+  final Future<void> Function(String)? onBarcodeScanned;
 
   @override
   ConsumerState<CompactLayout> createState() => _CompactLayoutState();
@@ -245,10 +249,6 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
                   _buildQuickActionsBar(),
                   PosTotalsDisplay(
                     cartState: widget.cartState,
-                    onCheckout: () => widget.onCheckout(
-                      shouldSave: true,
-                      paymentMethod: _selectedPaymentMethod,
-                    ),
                     compact: true,
                   ),
                   SafeArea(top: false, child: _buildPaymentSection()),
@@ -352,18 +352,26 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
           Icon(Icons.search, color: Colors.grey[400], size: 20),
           const SizedBox(width: 8),
           Expanded(
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: _showBarcodeScan ? 'Scan or enter barcode...' : 'Search products...',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: height > 40 ? 10 : 8),
-                isDense: true,
-                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-              ),
-              style: const TextStyle(fontSize: 14),
-              onChanged: widget.onSearch,
-            ),
+              child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: _showBarcodeScan ? 'Scan or enter barcode...' : 'Search products...',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: height > 40 ? 10 : 8),
+                    isDense: true,
+                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                  ),
+                  style: const TextStyle(fontSize: 14),
+                  onChanged: (query) {
+                    final barcodePattern = RegExp(r'^\d{4,}$');
+                    if (barcodePattern.hasMatch(query)) {
+                      widget.onBarcodeScanned?.call(query);
+                      _searchController.clear();
+                      return;
+                    }
+                    widget.onSearch(query);
+                  },
+                ),
           ),
           if (_searchController.text.isNotEmpty)
             IconButton(
@@ -379,7 +387,18 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
               size: 20,
               color: _showBarcodeScan ? _accentBlue : Colors.grey[400],
             ),
-            onPressed: () => setState(() => _showBarcodeScan = !_showBarcodeScan),
+            onPressed: () {
+              if (Platform.isIOS || Platform.isMacOS) {
+                showModalBottomSheet(
+                  context: context,
+                  builder: (_) => BarcodeCameraOverlay(
+                    onScanned: widget.onBarcodeScanned,
+                  ),
+                );
+              } else {
+                setState(() => _showBarcodeScan = !_showBarcodeScan);
+              }
+            },
             tooltip: 'Scan Barcode',
           ),
         ],
@@ -434,10 +453,6 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
               _buildQuickActionsBar(),
               PosTotalsDisplay(
                 cartState: widget.cartState,
-                onCheckout: () => widget.onCheckout(
-                  shouldSave: true,
-                  paymentMethod: _selectedPaymentMethod,
-                ),
                 compact: true,
               ),
               _buildPaymentSection(),

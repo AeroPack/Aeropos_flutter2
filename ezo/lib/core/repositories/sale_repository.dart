@@ -124,13 +124,32 @@ class SaleRepository {
         );
       }
 
-      // 4. Log sale operation to sync_outbox (LAST step)
+      // 4. Log sale operation to sync_outbox
       await syncRepo.logOperation(
         entity: 'invoices',
         entityId: sale.uuid,
         opType: SyncOpType.insert,
         data: sale.toJson(),
       );
+
+      // 5. Log each invoice item to sync_outbox (LAST step)
+      for (final item in sale.items) {
+        await syncRepo.logOperation(
+          entity: 'invoice_items',
+          entityId: item.uuid,
+          opType: SyncOpType.insert,
+          data: {
+            'uuid': item.uuid,
+            'invoice_uuid': sale.uuid,
+            'product_uuid': item.product.uuid,
+            'quantity': item.quantity,
+            'unit_price': item.unitPrice,
+            'discount': item.discount,
+            'total_price': item.total,
+            'is_deleted': false,
+          },
+        );
+      }
 
       return invoiceId;
     });

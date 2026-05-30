@@ -8,6 +8,7 @@ export const customers = pgTable("customers", {
     phone: text("phone"),
     email: text("email"),
     address: text("address"),
+    gstin: text("gstin"),
     creditLimit: doublePrecision("credit_limit").default(0.0).notNull(),
     currentBalance: doublePrecision("current_balance").default(0.0).notNull(),
     companyId: integer("company_id")

@@ -3,7 +3,7 @@ import { withTransaction } from '../db/transaction';
 import { ValidatedOperation } from '../validators/sync.validator';
 import { AcknowledgedOp, SyncErrorCode, SyncContext } from '../types/sync.types';
 import { resolveUuidRefs } from '../utils/uuidResolver';
-import { applyToEntityTable } from './entityApplier';
+import { applyToEntityTable, camelToSnakeKeys } from './entityApplier';
 import { writeOperationLog } from '../utils/operationLog';
 
 // ============================================================
@@ -101,11 +101,14 @@ async function processSingleOperationInTx(
     const rawData = op.data ?? {};
     const incomingTimestamp = new Date(op.timestamp);
 
-    // ── Step 3: Resolve UUID references ──────────────────────
+    // ── Step 3: Normalize camelCase keys to snake_case SQL columns ──
+    const normalizedData = camelToSnakeKeys(rawData);
+
+    // ── Step 4: Resolve UUID references ──────────────────────
     const { resolved, missingRef } = await resolveUuidRefs(
       client,
       op.table,
-      rawData,
+      normalizedData,
       ctx.companyId,
     );
 

@@ -4,6 +4,7 @@ import 'package:pdf/widgets.dart' as pw;
 import '../template_engine/invoice_template.dart';
 import '../helpers/thermal_utils.dart';
 import '../models.dart';
+import '../../../../core/utils/upi_qr.dart';
 
 class DinePlusThermalTemplate extends InvoiceTemplate {
   @override
@@ -91,6 +92,17 @@ class DinePlusThermalTemplate extends InvoiceTemplate {
               pw.Divider(thickness: 1, color: PdfColors.black, height: 12),
               pw.Text('Bon Appétit!', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, fontStyle: pw.FontStyle.italic, color: themePdfColor)),
               if (data.showNotes && data.notes.isNotEmpty) pw.Text(data.notes, style: const pw.TextStyle(fontSize: 7)),
+              if (data.showUpiQr && data.upiId.isNotEmpty) ...[
+                pw.SizedBox(height: 6),
+                pw.Text('UPI QR:', style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold)),
+                pw.Container(
+                  width: 50, height: 50,
+                  child: pw.BarcodeWidget(
+                    barcode: pw.Barcode.qrCode(),
+                    data: buildUpiUri(upiId: data.upiId, amount: data.total, invoiceNo: data.invoiceNumber),
+                  ),
+                ),
+              ],
               pw.SizedBox(height: 8),
               pw.Text('~~~ Powered by AeroPOS ~~~', style: pw.TextStyle(fontSize: 6, color: PdfColors.grey600)),
             ],
@@ -159,6 +171,12 @@ class DinePlusThermalTemplate extends InvoiceTemplate {
           Divider(height: 12, thickness: 1, color: data.themeColor),
           const Text('Bon Appétit!', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic)),
           if (data.showNotes && data.notes.isNotEmpty) Text(data.notes, style: const TextStyle(fontSize: 7), textAlign: TextAlign.center),
+          if (data.showUpiQr && data.upiId.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            const Text('UPI QR:', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            const Icon(Icons.qr_code_2, size: 48),
+          ],
           const SizedBox(height: 16),
         ]),
       ),

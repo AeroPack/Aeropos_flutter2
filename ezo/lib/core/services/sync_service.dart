@@ -1203,7 +1203,7 @@ class SyncService {
       for (final r in records) {
         final uuid = (r as dynamic).uuid as String?;
         final localId = (r as dynamic).id as int;
-        if (uuid == null || uuid.isEmpty) continue;
+        if (uuid == null || uuid.isEmpty || !isValidUUID(uuid)) continue;
 
         Map<String, dynamic> dataMap = toMap(r);
 

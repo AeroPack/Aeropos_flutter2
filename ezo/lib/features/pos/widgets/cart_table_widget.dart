@@ -159,7 +159,7 @@ class _CartTableWidgetState extends State<CartTableWidget> {
                   Text(
                     item.isPercentDiscount
                         ? "-${item.manualDiscount.toStringAsFixed(0)}%"
-                        : "-\u20b9${item.manualDiscount.toStringAsFixed(2)}",
+                        : "-Rs${item.manualDiscount.toStringAsFixed(2)}",
                     style: const TextStyle(fontSize: 10, color: Colors.orange),
                   ),
               ],
@@ -175,14 +175,14 @@ class _CartTableWidgetState extends State<CartTableWidget> {
           Expanded(
             flex: 2,
             child: Text(
-              "\u20b9${item.calculatedPrice.toStringAsFixed(2)}",
+              "Rs${item.calculatedPrice.toStringAsFixed(2)}",
               style: const TextStyle(fontSize: 12, fontFamily: 'monospace', fontWeight: FontWeight.w500),
             ),
           ),
           Expanded(
             flex: 2,
             child: Text(
-              "\u20b9${item.subtotal.toStringAsFixed(2)}",
+              "Rs${item.subtotal.toStringAsFixed(2)}",
               style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
             ),
           ),

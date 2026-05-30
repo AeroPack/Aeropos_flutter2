@@ -278,9 +278,12 @@ class FashionShopA4Template extends InvoiceTemplate {
                                     style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
                                   ),
                                   pw.SizedBox(height: 8),
-                                  _pdfInfoRow('Account No', ': 123 456 789'),
-                                  _pdfInfoRow('Account Name', ': ${data.businessName}'),
-                                  _pdfInfoRow('Bank Details', '${data.bankName.isNotEmpty ? data.bankName : ""}${data.bankAccountNo.isNotEmpty ? " | A/C: ${data.bankAccountNo}" : ""}${data.bankIfsc.isNotEmpty ? " | IFSC: ${data.bankIfsc}" : ""}'),
+                                  if (data.showBankDetails && data.bankName.isNotEmpty) ...[
+                                    _pdfInfoRow('Account Name', ': ${data.businessName}'),
+                                    _pdfInfoRow('Bank', ': ${data.bankName}'),
+                                    _pdfInfoRow('A/C No', ': ${data.bankAccountNo}'),
+                                    _pdfInfoRow('IFSC', ': ${data.bankIfsc}'),
+                                  ],
                                   
                                   pw.SizedBox(height: 30),
                                   

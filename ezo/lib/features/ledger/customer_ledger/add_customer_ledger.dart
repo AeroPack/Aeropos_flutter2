@@ -256,7 +256,7 @@ class _AddCustomerLedgerScreenState extends State<AddCustomerLedgerScreen> {
                   "Current Balance",
                   _readOnlyField(
                     _selectedCustomer != null
-                        ? "₹${NumberFormat('#,###.00').format(_selectedCustomer!.currentBalance)}"
+                        ? "Rs${NumberFormat('#,###.00').format(_selectedCustomer!.currentBalance)}"
                         : "-",
                   ),
                 ),

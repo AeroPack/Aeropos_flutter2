@@ -121,7 +121,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
                         child: pw.Text(
-                          '₹${NumberFormat('#,###.00').format(t.amount)}',
+                          'Rs${NumberFormat('#,###.00').format(t.amount)}',
                         ),
                       ),
                       pw.Padding(
@@ -179,7 +179,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
     for (final t in transactions) {
       sheet.appendRow([
         excel.TextCellValue(t.supplierName),
-        excel.TextCellValue('₹${NumberFormat('#,###.00').format(t.amount)}'),
+        excel.TextCellValue('Rs${NumberFormat('#,###.00').format(t.amount)}'),
         excel.TextCellValue(t.type.displayName),
         excel.TextCellValue(dateFormat.format(t.createdAt)),
         excel.TextCellValue(t.remarks ?? '-'),
@@ -659,7 +659,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
           Expanded(
             flex: 2,
             child: Text(
-              '₹${NumberFormat('#,###.00').format(t.amount)}',
+              'Rs${NumberFormat('#,###.00').format(t.amount)}',
               style: TextStyle(
                 fontWeight: FontWeight.w500,
                 color: isDebit ? Colors.red[600] : Colors.green[600],

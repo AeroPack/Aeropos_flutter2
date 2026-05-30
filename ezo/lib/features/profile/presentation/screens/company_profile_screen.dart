@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../providers/profile_controller.dart';
 import '../../../auth/presentation/providers/auth_controller.dart';
+import '../../../invoice/invoice_template_editor/template_repository.dart';
+import '../../../../core/providers/tenant_provider.dart';
 
 class CompanyProfileScreen extends ConsumerStatefulWidget {
   const CompanyProfileScreen({super.key});
@@ -32,13 +34,94 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
   String? _profileImageUrl;
   final ImagePicker _picker = ImagePicker();
 
+  // ── Invoice settings ──────────────────────────────────────────────────────
+  final _taxLabelController = TextEditingController();
+  final _taxRateController = TextEditingController();
+  final _termsController = TextEditingController();
+  final _signatoryController = TextEditingController();
+  final _bankNameController = TextEditingController();
+  final _bankAccountNoController = TextEditingController();
+  final _bankIfscController = TextEditingController();
+  final _upiIdController = TextEditingController();
+
+  bool _showTaxBreakdown = true;
+  bool _showFooter = true;
+  bool _showBankDetails = false;
+  bool _showUpiQr = false;
+  String _activeTemplateId = 'default_a4';
+  bool _isSavingInvoiceSettings = false;
+
   @override
   void initState() {
     super.initState();
-    // Load profile data when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(profileControllerProvider.notifier).loadProfile();
+      _loadInvoiceSettings();
     });
+  }
+
+  Future<void> _loadInvoiceSettings() async {
+    try {
+      final tenantId = ref.read(tenantIdProvider);
+      final repo = ref.read(invoiceTemplateRepositoryProvider);
+      final result = await repo.getHydratedInvoiceData(tenantId, null);
+      final d = result.data;
+      _activeTemplateId = result.templateId;
+      if (!mounted) return;
+      setState(() {
+        _showTaxBreakdown = d.showTaxBreakdown;
+        _showFooter = d.showNotes;
+        _showBankDetails = d.showBankDetails;
+        _showUpiQr = d.showUpiQr;
+        _taxLabelController.text = d.taxLabel;
+        _taxRateController.text = d.taxRate > 0 ? d.taxRate.toString() : '';
+        _termsController.text = d.termsAndConditions;
+        _signatoryController.text = d.authorizedSignatory;
+        _bankNameController.text = d.bankName;
+        _bankAccountNoController.text = d.bankAccountNo;
+        _bankIfscController.text = d.bankIfsc;
+        _upiIdController.text = d.upiId;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _saveInvoiceSettings() async {
+    setState(() => _isSavingInvoiceSettings = true);
+    try {
+      final tenantId = ref.read(tenantIdProvider);
+      final repo = ref.read(invoiceTemplateRepositoryProvider);
+      await repo.saveTemplateSelection(
+        tenantId: tenantId,
+        templateId: _activeTemplateId,
+        taxLabel: _taxLabelController.text.trim(),
+        taxRate: double.tryParse(_taxRateController.text) ?? 0.0,
+        showTaxBreakdown: _showTaxBreakdown,
+        termsAndConditions: _termsController.text.trim(),
+        authorizedSignatory: _signatoryController.text.trim(),
+        showFooter: _showFooter,
+        bankName: _bankNameController.text.trim(),
+        bankAccountNo: _bankAccountNoController.text.trim(),
+        bankIfsc: _bankIfscController.text.trim(),
+        upiId: _upiIdController.text.trim(),
+        showBankDetails: _showBankDetails,
+        showUpiQr: _showUpiQr,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Invoice settings saved'),
+          backgroundColor: Colors.green,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingInvoiceSettings = false);
+    }
   }
 
   @override
@@ -48,6 +131,14 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
     _taxIdController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
+    _taxLabelController.dispose();
+    _taxRateController.dispose();
+    _termsController.dispose();
+    _signatoryController.dispose();
+    _bankNameController.dispose();
+    _bankAccountNoController.dispose();
+    _bankIfscController.dispose();
+    _upiIdController.dispose();
     super.dispose();
   }
 
@@ -484,8 +575,186 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                 ],
               ),
             ),
+
+            // ── Tax settings ───────────────────────────────────────────────
+            const SizedBox(height: 24),
+            _buildInvoiceSection(
+              icon: Icons.percent,
+              title: 'Tax Settings',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Show Tax Breakdown on Invoice',
+                          style: TextStyle(fontSize: 13)),
+                      Switch(
+                        value: _showTaxBreakdown,
+                        onChanged: (v) => setState(() => _showTaxBreakdown = v),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildField('Tax Label (e.g. GST, VAT)', _taxLabelController),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Tax rates are set per product (GST %). Edit a product to set its rate.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSaveButton('Save Tax Settings', _saveInvoiceSettings),
+                ],
+              ),
+            ),
+
+            // ── Footer / Terms ──────────────────────────────────────────────
+            const SizedBox(height: 16),
+            _buildInvoiceSection(
+              icon: Icons.description_outlined,
+              title: 'Footer & Terms',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Show Footer on Invoice',
+                          style: TextStyle(fontSize: 13)),
+                      Switch(
+                        value: _showFooter,
+                        onChanged: (v) => setState(() => _showFooter = v),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildField(
+                      'Terms & Conditions / Thank-you message', _termsController,
+                      maxLines: 3),
+                  const SizedBox(height: 12),
+                  _buildField('Authorized Signatory', _signatoryController),
+                  const SizedBox(height: 16),
+                  _buildSaveButton('Save Footer Settings', _saveInvoiceSettings),
+                ],
+              ),
+            ),
+
+            // ── Payment / Bank details ──────────────────────────────────────
+            const SizedBox(height: 16),
+            _buildInvoiceSection(
+              icon: Icons.account_balance_outlined,
+              title: 'Payment Details',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Show Bank Details', style: TextStyle(fontSize: 13)),
+                      Switch(
+                        value: _showBankDetails,
+                        onChanged: (v) => setState(() => _showBankDetails = v),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildField('Bank Name', _bankNameController),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                          child: _buildField(
+                              'Account Number', _bankAccountNoController,
+                              keyboardType: TextInputType.number)),
+                      const SizedBox(width: 16),
+                      Expanded(child: _buildField('IFSC Code', _bankIfscController)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Show UPI QR Code', style: TextStyle(fontSize: 13)),
+                      Switch(
+                        value: _showUpiQr,
+                        onChanged: (v) => setState(() => _showUpiQr = v),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildField('UPI ID', _upiIdController),
+                  const SizedBox(height: 16),
+                  _buildSaveButton('Save Payment Settings', _saveInvoiceSettings),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInvoiceSection({
+    required IconData icon,
+    required String title,
+    required Widget child,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Icon(icon, size: 18, color: Colors.blue.shade900),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: child,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSaveButton(String label, VoidCallback? onPressed) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: ElevatedButton(
+        onPressed: _isSavingInvoiceSettings ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.orange.shade400,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        ),
+        child: _isSavingInvoiceSettings
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              )
+            : Text(label),
       ),
     );
   }
@@ -508,6 +777,8 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
     TextEditingController controller, {
     bool isPassword = false,
     bool readOnly = false,
+    TextInputType? keyboardType,
+    int? maxLines = 1,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -521,6 +792,8 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
           controller: controller,
           obscureText: isPassword,
           readOnly: readOnly,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
           decoration: InputDecoration(
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,

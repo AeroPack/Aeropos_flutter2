@@ -59,6 +59,17 @@ class InvoiceTemplateRepository {
     bool? showCustomerDetails,
     bool? showFooter,
     String? customConfigJson,
+    String? bankName,
+    String? bankAccountNo,
+    String? bankIfsc,
+    String? upiId,
+    bool? showBankDetails,
+    bool? showUpiQr,
+    String? invoicePrefix,
+    String? taxLabel,
+    double? taxRate,
+    String? termsAndConditions,
+    String? authorizedSignatory,
   }) async {
     final existing = await (_db.select(
       _db.invoiceSettings,
@@ -99,6 +110,35 @@ class InvoiceTemplateRepository {
               showFooter: showFooter != null
                   ? Value(showFooter)
                   : const Value(true),
+              bankName: bankName != null
+                  ? Value(bankName)
+                  : const Value.absent(),
+              bankAccountNo: bankAccountNo != null
+                  ? Value(bankAccountNo)
+                  : const Value.absent(),
+              bankIfsc: bankIfsc != null
+                  ? Value(bankIfsc)
+                  : const Value.absent(),
+              upiId: upiId != null
+                  ? Value(upiId)
+                  : const Value.absent(),
+              showBankDetails: showBankDetails != null
+                  ? Value(showBankDetails)
+                  : const Value(false),
+              showUpiQr: showUpiQr != null
+                  ? Value(showUpiQr)
+                  : const Value(false),
+              invoicePrefix: invoicePrefix != null
+                  ? Value(invoicePrefix)
+                  : const Value('INV'),
+              taxLabel: taxLabel != null ? Value(taxLabel) : const Value.absent(),
+              taxRate: taxRate != null ? Value(taxRate) : const Value.absent(),
+              termsAndConditions: termsAndConditions != null
+                  ? Value(termsAndConditions)
+                  : const Value.absent(),
+              authorizedSignatory: authorizedSignatory != null
+                  ? Value(authorizedSignatory)
+                  : const Value.absent(),
               tenantId: Value(tenantId),
               updatedAt: Value(DateTime.now()),
             ),
@@ -135,6 +175,29 @@ class InvoiceTemplateRepository {
           showFooter: showFooter != null
               ? Value(showFooter)
               : const Value.absent(),
+          bankName: bankName != null ? Value(bankName) : const Value.absent(),
+          bankAccountNo: bankAccountNo != null
+              ? Value(bankAccountNo)
+              : const Value.absent(),
+          bankIfsc: bankIfsc != null ? Value(bankIfsc) : const Value.absent(),
+          upiId: upiId != null ? Value(upiId) : const Value.absent(),
+          showBankDetails: showBankDetails != null
+              ? Value(showBankDetails)
+              : const Value.absent(),
+          showUpiQr: showUpiQr != null
+              ? Value(showUpiQr)
+              : const Value.absent(),
+          invoicePrefix: invoicePrefix != null
+              ? Value(invoicePrefix)
+              : const Value.absent(),
+          taxLabel: taxLabel != null ? Value(taxLabel) : const Value.absent(),
+          taxRate: taxRate != null ? Value(taxRate) : const Value.absent(),
+          termsAndConditions: termsAndConditions != null
+              ? Value(termsAndConditions)
+              : const Value.absent(),
+          authorizedSignatory: authorizedSignatory != null
+              ? Value(authorizedSignatory)
+              : const Value.absent(),
           customConfig: customConfigJson != null
               ? Value(customConfigJson)
               : const Value.absent(),
@@ -167,10 +230,30 @@ class InvoiceTemplateRepository {
     final template = TemplateRegistry.getTemplateById(activeId);
     final defaultData = template.getDefaultData();
 
+    // Zero out all data fields that come from the template's getDefaultData()
+    // so that missing real values render as blank rather than fake text.
+    // Design fields (themeColorArgb, fontFamily, isThermal, thermalWidth,
+    // show* toggles) are intentionally left as template defaults until
+    // overridden by invoice_settings below.
+    defaultData.businessName = '';
+    defaultData.businessAddress = '';
+    defaultData.businessEmail = '';
+    defaultData.businessPhone = '';
+    defaultData.gstin = '';
+    defaultData.taxLabel = '';
+    defaultData.taxRate = 0.0;
+    defaultData.termsAndConditions = '';
+    defaultData.authorizedSignatory = '';
+    defaultData.bankName = '';
+    defaultData.bankAccountNo = '';
+    defaultData.bankIfsc = '';
+    defaultData.upiId = '';
+
     if (tenant != null) {
       defaultData.businessName = tenant.businessName ?? tenant.name;
       defaultData.businessAddress = tenant.businessAddress ?? '';
       defaultData.businessEmail = tenant.email ?? '';
+      defaultData.businessPhone = tenant.phone ?? '';
       if (tenant.taxId != null) defaultData.gstin = tenant.taxId!;
     }
 
@@ -188,6 +271,24 @@ class InvoiceTemplateRepository {
       defaultData.showBusinessAddress = settings.showAddress;
       defaultData.showClientContact = settings.showCustomerDetails;
       defaultData.showNotes = settings.showFooter;
+      defaultData.showBankDetails = settings.showBankDetails ?? false;
+      defaultData.showUpiQr = settings.showUpiQr ?? false;
+      defaultData.bankName = settings.bankName ?? '';
+      defaultData.bankAccountNo = settings.bankAccountNo ?? '';
+      defaultData.bankIfsc = settings.bankIfsc ?? '';
+      defaultData.upiId = settings.upiId ?? '';
+      if ((settings.taxLabel ?? '').isNotEmpty) {
+        defaultData.taxLabel = settings.taxLabel!;
+      }
+      if ((settings.taxRate ?? 0.0) > 0) {
+        defaultData.taxRate = settings.taxRate!;
+      }
+      if ((settings.termsAndConditions ?? '').isNotEmpty) {
+        defaultData.termsAndConditions = settings.termsAndConditions!;
+      }
+      if ((settings.authorizedSignatory ?? '').isNotEmpty) {
+        defaultData.authorizedSignatory = settings.authorizedSignatory!;
+      }
 
       if (settings.showLogo) {
         final cached = _logoBytesCache[tenantId];

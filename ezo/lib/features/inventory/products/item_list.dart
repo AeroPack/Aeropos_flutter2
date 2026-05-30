@@ -131,7 +131,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         product.sku ?? '-',
                         category?.name ?? '-',
                         brand?.name ?? '-',
-                        '₹${product.price.toStringAsFixed(2)}',
+                        'Rs${product.price.toStringAsFixed(2)}',
                       ];
                     }).toList();
 
@@ -360,7 +360,7 @@ class _ProductTableRow extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Text(
-              "₹${product.price.toStringAsFixed(2)}",
+              "Rs${product.price.toStringAsFixed(2)}",
               style: _cellStyle(),
             ),
           ),

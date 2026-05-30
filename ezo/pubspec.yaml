@@ -52,6 +52,13 @@ dependencies:
   file_picker: ^8.0.0
   share_plus: ^10.1.0
 
+  # Barcode
+  mobile_scanner: ^7.0.0
+  flutter_barcode_listener: ^0.1.4
+  barcode_widget: ^2.0.4
+  gs1_barcode_parser: ^1.0.0
+  audioplayers: ^6.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -70,6 +77,7 @@ flutter:
 
   assets:
     - assets/preview_templates/
+    - assets/sounds/
 
   # Fonts section - ALL fonts defined here
 fonts:

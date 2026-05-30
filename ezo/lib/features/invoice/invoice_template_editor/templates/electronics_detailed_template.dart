@@ -250,7 +250,7 @@ class ElectronicsDetailedTemplate extends InvoiceTemplate {
                                     ],
                                   ),
                                 ),
-                                pw.Spacer(),
+                                pw.SizedBox(height: 40),
                                 pw.Container(
                                   width: double.infinity,
                                   decoration: const pw.BoxDecoration(border: pw.Border(top: pw.BorderSide(width: 1.5))),

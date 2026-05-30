@@ -882,7 +882,7 @@ class _InvoiceDesignEditorScreenState
               ),
               const Spacer(),
               Text(
-                '₹${item.total}',
+                'Rs${item.total}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
@@ -991,7 +991,7 @@ class _InvoiceDesignEditorScreenState
                     ),
                   ),
                   Text(
-                    '₹${item.total}',
+                    'Rs${item.total}',
                     style: GoogleFonts.courierPrime(
                       fontWeight: FontWeight.bold,
                     ),
@@ -1012,7 +1012,7 @@ class _InvoiceDesignEditorScreenState
                 ),
               ),
               Text(
-                '₹$subtotal',
+                'Rs$subtotal',
                 style: GoogleFonts.courierPrime(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -1082,7 +1082,7 @@ class _InvoiceDesignEditorScreenState
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               Text(
-                '₹$subtotal',
+                'Rs$subtotal',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
@@ -1162,10 +1162,10 @@ class _InvoiceDesignEditorScreenState
               children: [
                 Expanded(flex: 3, child: Text(item.desc)),
                 Expanded(child: Text(item.qty.toString())),
-                Expanded(child: Text('₹${item.rate}')),
+                Expanded(child: Text('Rs${item.rate}')),
                 Expanded(
                   child: Text(
-                    '₹${item.total}',
+                    'Rs${item.total}',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),

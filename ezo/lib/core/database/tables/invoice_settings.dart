@@ -24,6 +24,12 @@ class InvoiceSettings extends Table {
   // Thermal Options
   IntColumn get thermalWidth => integer().withDefault(const Constant(80))();
 
+  // Bank & Payment Details
+  TextColumn get bankName => text().nullable()();
+  TextColumn get bankAccountNo => text().nullable()();
+  TextColumn get bankIfsc => text().nullable()();
+  TextColumn get upiId => text().nullable()();
+
   // Section Toggles
   BoolColumn get showLogo => boolean().withDefault(const Constant(true))();
   BoolColumn get showTaxBreakdown => boolean().withDefault(const Constant(true))();
@@ -31,6 +37,10 @@ class InvoiceSettings extends Table {
   BoolColumn get showCustomerDetails =>
       boolean().withDefault(const Constant(true))();
   BoolColumn get showFooter => boolean().withDefault(const Constant(true))();
+  BoolColumn get showBankDetails =>
+      boolean().withDefault(const Constant(false))();
+  BoolColumn get showUpiQr =>
+      boolean().withDefault(const Constant(false))();
 
   // Multi-tenant Link
   IntColumn get tenantId => integer().nullable()();
@@ -38,8 +48,20 @@ class InvoiceSettings extends Table {
   // Custom Template Configuration (JSON)
   TextColumn get customConfig => text().nullable()();
 
+  // Tax configuration
+  TextColumn get taxLabel => text().nullable()();
+  RealColumn get taxRate => real().nullable()();
+
+  // Footer / legal
+  TextColumn get termsAndConditions => text().nullable()();
+  TextColumn get authorizedSignatory => text().nullable()();
+
   // Invoice numbering
   IntColumn get invoiceCounter => integer().withDefault(const Constant(0))();
+  TextColumn get invoicePrefix =>
+      text().withDefault(const Constant('INV'))();
+  TextColumn get deviceCode =>
+      text().withDefault(const Constant('A'))();
 
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }

@@ -6,6 +6,7 @@ export const categories = pgTable("categories", {
     uuid: uuid("uuid").defaultRandom().notNull().unique(),
     name: text("name").notNull(),
     subcategory: text("subcategory"),
+    description: text("description"),
     isActive: boolean("is_active").default(true).notNull(),
     companyId: integer("company_id")
         .notNull()

@@ -72,6 +72,7 @@ class PosTextInput extends StatelessWidget {
   final bool isRequired;
   final bool isPassword;
   final bool readOnly;
+  final bool autofocus;
   final Widget? suffix;
   final int maxLines;
   final ValueChanged<String>? onChanged;
@@ -84,6 +85,7 @@ class PosTextInput extends StatelessWidget {
     this.isRequired = false,
     this.isPassword = false,
     this.readOnly = false,
+    this.autofocus = false,
     this.suffix,
     this.maxLines = 1,
     this.onChanged,
@@ -100,6 +102,7 @@ class PosTextInput extends StatelessWidget {
         maxLines: isPassword ? 1 : maxLines,
         onChanged: onChanged,
         readOnly: readOnly,
+        autofocus: autofocus,
         decoration: InputDecoration(
           hintText: placeholder,
           hintStyle: const TextStyle(color: PosColors.textLight, fontSize: 14),
@@ -154,6 +157,7 @@ class PosDropdown<T> extends StatelessWidget {
       isRequired: isRequired,
       extraAction: extraLabelWidget,
       child: DropdownButtonFormField<T>(
+        isExpanded: true,
         initialValue: value,
         decoration: InputDecoration(
           hintText: hint,
@@ -169,6 +173,10 @@ class PosDropdown<T> extends StatelessWidget {
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
             borderSide: const BorderSide(color: PosColors.border),
+          ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: BorderSide(color: PosColors.border.withValues(alpha: 0.3)),
           ),
         ),
         icon: const Icon(Icons.keyboard_arrow_down, color: PosColors.textLight),
@@ -300,11 +308,12 @@ class PosFormGrid extends StatelessWidget {
       );
     }
 
-    // Desktop: Chunk list into pairs
+    // Desktop: Chunk list into triplets
     List<Widget> rows = [];
-    for (var i = 0; i < children.length; i += 2) {
-      Widget left = children[i];
-      Widget? right = (i + 1 < children.length) ? children[i + 1] : null;
+    for (var i = 0; i < children.length; i += 3) {
+      Widget col1 = children[i];
+      Widget? col2 = (i + 1 < children.length) ? children[i + 1] : null;
+      Widget? col3 = (i + 2 < children.length) ? children[i + 2] : null;
 
       rows.add(
         Padding(
@@ -312,11 +321,11 @@ class PosFormGrid extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: left),
-              const SizedBox(width: 24), // Gap
-              Expanded(
-                child: right ?? const SizedBox(),
-              ), // Empty box if odd number
+              Expanded(child: col1),
+              const SizedBox(width: 24),
+              Expanded(child: col2 ?? const SizedBox()),
+              const SizedBox(width: 24),
+              Expanded(child: col3 ?? const SizedBox()),
             ],
           ),
         ),

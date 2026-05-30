@@ -228,8 +228,8 @@ class PosCartItemTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       item.selectedUnit != null
-                          ? '₹${item.unitPrice.toStringAsFixed(2)}/${item.selectedUnit!.unitSymbol ?? ''}'
-                          : '₹${item.unitPrice.toStringAsFixed(2)}',
+                          ? 'Rs${item.unitPrice.toStringAsFixed(2)}/${item.selectedUnit!.unitSymbol ?? ''}'
+                          : 'Rs${item.unitPrice.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -281,7 +281,7 @@ class PosCartItemTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '₹${item.total.toStringAsFixed(2)}',
+                      'Rs${item.total.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,

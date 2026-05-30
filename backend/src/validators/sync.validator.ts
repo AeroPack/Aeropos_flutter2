@@ -18,6 +18,13 @@ export const VALID_TABLES = [
   'purchase_receipt_items',
   'customer_transactions',
   'supplier_transactions',
+  'product_units',
+  'returns',
+  'return_items',
+  'wallet_transactions',
+  'invoice_audit_logs',
+  'inventory_movements',
+  'reserved_skus',
 ] as const;
 
 /**
@@ -25,11 +32,14 @@ export const VALID_TABLES = [
  * invoice_items and role_permissions are insert-only or replaced wholesale.
  */
 export const TABLES_WITHOUT_UPDATED_AT = new Set([
-  'invoice_items',
   'invoice_settings',  // uses updated_at but no is_deleted — handled separately
   'role_permissions',
   'tasks',             // tasks.id is UUID PK, no updated_at
   'purchase_receipt_items',
+  'return_items',
+  'wallet_transactions',
+  'invoice_audit_logs',
+  'inventory_movements',
 ]);
 
 /**
@@ -50,6 +60,9 @@ export const SOFT_DELETE_TABLES = new Set([
   'purchase_receipt_items',
   'customer_transactions',
   'supplier_transactions',
+  'product_units',
+  'returns',
+  'reserved_skus',
 ]);
 
 /**

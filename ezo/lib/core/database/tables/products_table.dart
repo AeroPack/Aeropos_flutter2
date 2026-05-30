@@ -43,6 +43,8 @@ class Products extends Table {
   BoolColumn get isPercentDiscount =>
       boolean().withDefault(const Constant(false))();
 
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
   // Sync columns
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();

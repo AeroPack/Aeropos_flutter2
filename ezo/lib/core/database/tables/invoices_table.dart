@@ -14,6 +14,8 @@ class Invoices extends Table {
   RealColumn get total => real()();
   TextColumn get paymentMethod =>
       text().nullable()(); // e.g. 'cash', 'card', 'upi'
+  TextColumn get paymentStatus =>
+      text().withDefault(const Constant('PENDING'))();
   TextColumn get signUrl => text().nullable()();
 
   IntColumn get tenantId => integer()();
@@ -33,4 +35,9 @@ class Invoices extends Table {
   )(); // 0: synched, 1: pending, 2: error
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   TextColumn get idempotencyKey => text().nullable()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {invoiceNumber, tenantId},
+  ];
 }

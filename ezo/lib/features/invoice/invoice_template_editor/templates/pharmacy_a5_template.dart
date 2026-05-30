@@ -221,9 +221,11 @@ class PharmacyWholesaleA5Template extends InvoiceTemplate {
                           child: pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
-                              pw.Text('Bank Details :', style: const pw.TextStyle(fontSize: 9)),
-                              pw.Text(data.bankName.isNotEmpty ? data.bankName : 'Bank Name', style: const pw.TextStyle(fontSize: 9)),
-                              pw.Text('Ac. No. : ${data.bankAccountNo.isNotEmpty ? data.bankAccountNo : "—"} IFSC Code : ${data.bankIfsc.isNotEmpty ? data.bankIfsc : "—"}', style: const pw.TextStyle(fontSize: 9)),
+                              if (data.showBankDetails && data.bankName.isNotEmpty) ...[
+                                pw.Text('Bank Details :', style: const pw.TextStyle(fontSize: 9)),
+                                pw.Text(data.bankName, style: const pw.TextStyle(fontSize: 9)),
+                                pw.Text('Ac. No. : ${data.bankAccountNo} IFSC Code : ${data.bankIfsc}', style: const pw.TextStyle(fontSize: 9)),
+                              ],
                               pw.SizedBox(height: 6),
                               pw.Text('Terms & Conditions :', style: const pw.TextStyle(fontSize: 9)),
                               pw.Text(data.notes.isNotEmpty ? data.notes : 'Subject to Jurisdiction.\nAdvance Payment before Delivery.', style: const pw.TextStyle(fontSize: 8)),

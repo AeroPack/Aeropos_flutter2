@@ -13,6 +13,8 @@ class Units extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
   // Sync columns
   IntColumn get syncStatus => integer().withDefault(
     const Constant(0),

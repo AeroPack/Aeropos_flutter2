@@ -84,7 +84,14 @@ class _UnitFormDialogState extends State<UnitFormDialog> {
               children: [
                  Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                  IconButton(
-                   icon: const Icon(Icons.close),
+                   icon: Container(
+                     padding: const EdgeInsets.all(2),
+                     decoration: const BoxDecoration(
+                       color: Colors.red,
+                       shape: BoxShape.circle,
+                     ),
+                     child: const Icon(Icons.close, color: Colors.white, size: 16),
+                   ),
                    onPressed: () => context.pop(),
                  )
               ],
@@ -96,6 +103,7 @@ class _UnitFormDialogState extends State<UnitFormDialog> {
               label: "Unit Name",
               placeholder: "e.g. Kilogram",
               controller: _nameController,
+              autofocus: true,
             ),
             const SizedBox(height: 16),
             

@@ -7,7 +7,6 @@ import 'package:aeropos/features/invoice/screens/invoice_preview_screen.dart';
 import 'package:aeropos/core/database/app_database.dart';
 import 'package:aeropos/core/widgets/table_export_actions.dart';
 import 'package:aeropos/features/pos/widgets/return_dialog.dart';
-import 'package:aeropos/features/pos/widgets/delete_invoice_dialog.dart';
 import 'package:aeropos/features/pos/widgets/invoice_audit_history_dialog.dart';
 class InvoiceHistoryScreen extends ConsumerStatefulWidget {
   const InvoiceHistoryScreen({super.key});
@@ -303,6 +302,7 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
       'Customer',
       'Amount',
       'Payment Method',
+      'Sync',
     ];
     final exportRows = <List<String>>[];
 
@@ -322,6 +322,7 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
           cust?.name ?? 'Walk-in',
           invoice.total.toStringAsFixed(2),
           invoice.paymentMethod ?? 'N/A',
+          invoice.syncStatus == 0 ? 'Synced' : 'Pending',
         ]);
       } catch (_) {
         continue;
@@ -456,6 +457,7 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
           _headerCell('Product', flex: 3),
           if (showCustomer) _headerCell('Customer', flex: 2),
           _headerCell('Amount', flex: 2, align: TextAlign.center),
+          _headerCell('Sync', flex: 1, align: TextAlign.center),
           _headerCell('Action', flex: 1, align: TextAlign.center),
         ],
       ),
@@ -492,7 +494,7 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
     try {
       final res = state.items[index];
       final invoice = res.readTable(ServiceLocator.instance.database.invoices);
-      final item = res.readTable(ServiceLocator.instance.database.invoiceItems);
+      final item = res.readTableOrNull(ServiceLocator.instance.database.invoiceItems);
       final prod = res.readTableOrNull(
         ServiceLocator.instance.database.products,
       );
@@ -671,6 +673,20 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
                 ),
                 Expanded(
                   flex: 1,
+                  child: Center(
+                    child: Icon(
+                      invoice.syncStatus == 0
+                          ? Icons.check_circle
+                          : Icons.cloud_upload,
+                      color: invoice.syncStatus == 0
+                          ? Colors.green
+                          : Colors.orange,
+                      size: 18,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
                   // FittedBox prevents overflow by gracefully scaling down the buttons
                   // if the column gets too narrow on intermediate window sizes.
                   child: FittedBox(
@@ -704,7 +720,7 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
   Widget _viewPdfButton(
     InvoiceEntity invoice,
     CustomerEntity? customer,
-    InvoiceItemEntity item, {
+    InvoiceItemEntity? item, {
     bool showLabel = true,
   }) {
     return Material(
@@ -745,7 +761,7 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
     );
   }
 
-Widget _invoiceActions(InvoiceEntity invoice, InvoiceItemEntity invoiceItem) {
+Widget _invoiceActions(InvoiceEntity invoice, InvoiceItemEntity? invoiceItem) {
   final isDeleted = invoice.isDeleted;
 
   return PopupMenuButton<String>(
@@ -796,6 +812,16 @@ switch (value) {
         }
       }
       break;
+    case 'history':
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (_) => InvoiceAuditHistoryDialog(
+            invoiceId: invoice.id,
+          ),
+        );
+      }
+      break;
     }
   },
     itemBuilder: (context) => [
@@ -835,30 +861,6 @@ switch (value) {
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 color: Color(0xFF0B1C30),
-              ),
-            ),
-          ],
-        ),
-      ),
-      const PopupMenuDivider(height: 1),
-      PopupMenuItem<String>(
-        value: 'delete',
-        enabled: !isDeleted,
-        height: 38,
-        child: Row(
-          children: [
-            Icon(
-              Icons.delete_outline_rounded, 
-              size: 16, 
-              color: isDeleted ? const Color(0xFFC1C6D7) : const Color(0xFFD32F2F),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'Delete Transaction',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isDeleted ? const Color(0xFFC1C6D7) : const Color(0xFFD32F2F),
               ),
             ),
           ],
@@ -1014,10 +1016,10 @@ switch (value) {
               final invoice = res.readTable(
                 ServiceLocator.instance.database.invoices,
               );
-              final item = res.readTable(
+              final item = res.readTableOrNull(
                 ServiceLocator.instance.database.invoiceItems,
               );
-              final prod = res.readTable(
+              final prod = res.readTableOrNull(
                 ServiceLocator.instance.database.products,
               );
               final cust = res.readTableOrNull(
@@ -1094,7 +1096,7 @@ switch (value) {
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            prod.name,
+                            prod?.name ?? 'Deleted Product',
                             style: const TextStyle(
                               fontWeight: FontWeight.w500,
                               fontSize: 13,
@@ -1293,7 +1295,7 @@ switch (value) {
   Future<void> _viewInvoice(
     InvoiceEntity invoice,
     CustomerEntity? customer,
-    InvoiceItemEntity item,
+    InvoiceItemEntity? item,
   ) async {
     final db = ServiceLocator.instance.database;
     final items = await db.getInvoiceItemsWithProduct(invoice.id);

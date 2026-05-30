@@ -50,7 +50,7 @@ class ReportScreen extends StatelessWidget {
                   mainAxisSpacing: 16,
                   childAspectRatio: childAspectRatio,
                   children: const [
-                    _StatCard(title: "Total Sales", value: "₹45,231", color: Colors.blue),
+                    _StatCard(title: "Total Sales", value: "Rs45,231", color: Colors.blue),
                     _StatCard(title: "Transactions", value: "128", color: Colors.orange),
                     _StatCard(title: "New Products", value: "12", color: Colors.green),
                     _StatCard(title: "Returns", value: "3", color: Colors.red),

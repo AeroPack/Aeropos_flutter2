@@ -594,7 +594,7 @@ class _GenericDataTableState<T> extends State<GenericDataTable<T>> {
                 ),
               ),
               Text(
-                '₹${rangeValues.start.toStringAsFixed(0)} - ₹${rangeValues.end.toStringAsFixed(0)}',
+                'Rs${rangeValues.start.toStringAsFixed(0)} - Rs${rangeValues.end.toStringAsFixed(0)}',
                 style: const TextStyle(
                   fontSize: 12,
                   color: PosColors.textLight,

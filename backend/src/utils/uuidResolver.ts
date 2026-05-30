@@ -1,63 +1,6 @@
 import { PoolClient } from 'pg';
 import { ValidTable } from '../validators/sync.validator';
-import { TableUuidRefs, UuidRefField } from '../types/sync.types';
-
-// ── UUID reference map aligned to your real schema ────────────
-//
-//  Rules:
-//  - optional: true  → if uuid field is absent or null, silently skip (nullable FK)
-//  - optional: false → if uuid field is present but unresolvable, FAIL the op
-//
-const TABLE_UUID_REFS: Partial<Record<ValidTable, TableUuidRefs>> = {
-  products: {
-    uuidFields: [
-      // category_id, unit_id, brand_id are all nullable FKs in your schema
-      { clientField: 'category_uuid', targetTable: 'categories', resultField: 'category_id', optional: true },
-      { clientField: 'unit_uuid',     targetTable: 'units',      resultField: 'unit_id',     optional: true },
-      { clientField: 'brand_uuid',    targetTable: 'brands',     resultField: 'brand_id',    optional: true },
-    ],
-  },
-  invoices: {
-    uuidFields: [
-      // customer_id is nullable on invoices (walk-in customers)
-      { clientField: 'customer_uuid', targetTable: 'customers', resultField: 'customer_id', optional: true },
-    ],
-  },
-  invoice_items: {
-    uuidFields: [
-      // invoice_id is required; product_id is nullable (custom line items)
-      { clientField: 'invoice_uuid', targetTable: 'invoices',  resultField: 'invoice_id', optional: false },
-      { clientField: 'product_uuid', targetTable: 'products',  resultField: 'product_id', optional: true  },
-    ],
-  },
-  purchase_receipts: {
-    uuidFields: [
-      { clientField: 'supplier_uuid', targetTable: 'suppliers', resultField: 'supplier_id', optional: true },
-    ],
-  },
-  purchase_receipt_items: {
-    uuidFields: [
-      { clientField: 'receipt_uuid', targetTable: 'purchase_receipts', resultField: 'receipt_id', optional: false },
-      { clientField: 'product_uuid', targetTable: 'products', resultField: 'product_id', optional: true },
-      { clientField: 'unit_uuid', targetTable: 'units', resultField: 'unit_id', optional: true },
-    ],
-  },
-  customer_transactions: {
-    uuidFields: [
-      { clientField: 'customer_uuid', targetTable: 'customers', resultField: 'customer_id', optional: false },
-    ],
-  },
-  supplier_transactions: {
-    uuidFields: [
-      { clientField: 'supplier_uuid', targetTable: 'suppliers', resultField: 'supplier_id', optional: false },
-    ],
-  },
-  // employees, customers, suppliers, brands, units, categories:
-  //   no FK references to other syncable entities — no resolver entry needed
-  // invoice_settings: no FK refs to syncable entities
-  // tasks: no FK refs to syncable entities
-  // role_permissions: no FK refs to syncable entities
-};
+import { TABLE_UUID_REFS } from '../services/entityApplier';
 
 export interface ResolveResult {
   resolved: Record<string, unknown>;
@@ -105,8 +48,20 @@ export async function resolveUuidRefs(
       };
     }
 
-    // categories and units don't have a UNIQUE constraint on uuid in your schema
-    // (they have uuid column but it's not explicitly UNIQUE — safe to query by it)
+    // Validate UUID format before querying PostgreSQL
+    // Prevents "invalid input syntax for type uuid" errors from non-UUID strings
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid)) {
+      if (optional) {
+        resolved[resultField] = null;
+        delete resolved[clientField];
+        continue;
+      }
+      return {
+        resolved,
+        missingRef: { clientField, uuid, targetTable },
+      };
+    }
+
     const { rows } = await client.query<{ id: number }>(
       `SELECT id FROM ${targetTable}
        WHERE uuid = $1

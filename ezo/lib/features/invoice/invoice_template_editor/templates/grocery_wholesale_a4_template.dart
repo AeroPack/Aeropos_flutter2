@@ -257,10 +257,12 @@ class GroceryWholesaleA4Template extends InvoiceTemplate {
                             child: pw.Column(
                               crossAxisAlignment: pw.CrossAxisAlignment.start,
                               children: [
-                                pw.Text('Bank Details:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
-                                pw.SizedBox(height: 2),
-                                pw.Text('Bank: ${data.bankName.isNotEmpty ? data.bankName : "Bank Name"} | A/C: ${data.bankAccountNo.isNotEmpty ? data.bankAccountNo : "Account No"}', style: const pw.TextStyle(fontSize: 8)),
-                                pw.Text('IFSC: ${data.bankIfsc.isNotEmpty ? data.bankIfsc : "IFSC Code"}', style: const pw.TextStyle(fontSize: 8)),
+                                if (data.showBankDetails && data.bankName.isNotEmpty) ...[
+                                  pw.Text('Bank Details:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                                  pw.SizedBox(height: 2),
+                                  pw.Text('Bank: ${data.bankName} | A/C: ${data.bankAccountNo}', style: const pw.TextStyle(fontSize: 8)),
+                                  pw.Text('IFSC: ${data.bankIfsc}', style: const pw.TextStyle(fontSize: 8)),
+                                ],
                                 pw.SizedBox(height: 8),
                                 if (data.showNotes && data.notes.isNotEmpty) ...[
                                   pw.Text('Terms & Conditions:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),

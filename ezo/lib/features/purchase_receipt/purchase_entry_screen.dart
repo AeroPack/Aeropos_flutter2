@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +6,9 @@ import 'package:aeropos/core/di/service_locator.dart';
 import 'package:aeropos/core/layout/pos_design_system.dart';
 import 'package:aeropos/core/database/app_database.dart';
 import 'package:aeropos/core/viewModel/purchase_receipt_view_model.dart';
+import 'package:aeropos/features/pos/services/barcode_service.dart';
+import 'package:aeropos/features/pos/state/barcode_state.dart';
+import 'package:aeropos/features/pos/widgets/barcode_camera_overlay.dart';
 
 class PurchaseReceiptForm extends StatefulWidget {
   final PurchaseReceiptEntity? receiptToEdit;
@@ -20,6 +24,7 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
   final _supplierViewModel = ServiceLocator.instance.supplierViewModel;
   final _productViewModel = ServiceLocator.instance.productViewModel;
   final _unitViewModel = ServiceLocator.instance.unitViewModel;
+  final _barcodeService = BarcodeService();
 
   final TextEditingController _dateController = TextEditingController(
     text: DateFormat('dd/MM/yyyy').format(DateTime.now()),
@@ -44,6 +49,18 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
     _isEditMode = widget.receiptToEdit != null;
     if (_isEditMode) {
       _loadReceiptForEdit();
+    }
+  }
+
+  void _onItemSearchChanged(String query) async {
+    final barcodePattern = RegExp(r'^\d{4,}$');
+    if (barcodePattern.hasMatch(query)) {
+      final result = await _barcodeService.resolve(query);
+      if (result case BarcodeMatched(:final product)) {
+        setState(() => _selectedProduct = product);
+        _searchController.clear();
+        return;
+      }
     }
   }
 
@@ -324,7 +341,7 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
           items: items,
         );
         _showSnackBar(
-          'Purchase updated successfully! Total: ₹${_totalAmount.toStringAsFixed(2)}',
+          'Purchase updated successfully! Total: Rs${_totalAmount.toStringAsFixed(2)}',
           isError: false,
         );
       } else {
@@ -339,7 +356,7 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
           items: items,
         );
         _showSnackBar(
-          'Purchase saved successfully! Total: ₹${_totalAmount.toStringAsFixed(2)}',
+          'Purchase saved successfully! Total: Rs${_totalAmount.toStringAsFixed(2)}',
           isError: false,
         );
       }
@@ -557,6 +574,42 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
           ),
           const SizedBox(height: 16),
           Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    labelText: 'Scan or type barcode',
+                    hintText: 'Barcode...',
+                    prefixIcon: const Icon(Icons.qr_code_scanner, size: 20),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 14,
+                    ),
+                  ),
+                  onChanged: _onItemSearchChanged,
+                ),
+              ),
+              if (Platform.isIOS || Platform.isMacOS)
+                IconButton(
+                  icon: const Icon(Icons.camera_alt),
+                  onPressed: () async {
+                    final code = await showModalBottomSheet<String>(
+                      context: context,
+                      builder: (_) => BarcodeCameraOverlay(
+                        onScanned: (v) => Navigator.pop(context, v),
+                      ),
+                    );
+                    if (code != null) _onItemSearchChanged(code);
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
@@ -698,7 +751,7 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
               Text(
-                'Total: ₹${_totalAmount.toStringAsFixed(2)}',
+                'Total: Rs${_totalAmount.toStringAsFixed(2)}',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -821,7 +874,7 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
                                 ),
                               )
                             : Text(
-                                '₹${entry.value['amount'].toStringAsFixed(2)}',
+                                'Rs${entry.value['amount'].toStringAsFixed(2)}',
                               ),
                       ),
                       Row(

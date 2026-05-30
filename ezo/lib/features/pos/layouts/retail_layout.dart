@@ -30,7 +30,10 @@ class RetailLayout extends BasePosLayout {
     required super.onSetOverallDiscount,
     required super.onReset,
     required super.onBack,
+    this.onBarcodeScanned,
   });
+
+  final Future<void> Function(String)? onBarcodeScanned;
 
   @override
   ConsumerState<RetailLayout> createState() => _RetailLayoutState();
@@ -149,6 +152,7 @@ class _RetailLayoutState extends BasePosLayoutState<RetailLayout> {
                             Expanded(
                               child: ProductSearchBar(
                                 onProductSelected: _addToCartDirect,
+                                onBarcodeInput: widget.onBarcodeScanned,
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -281,14 +285,14 @@ class _RetailLayoutState extends BasePosLayoutState<RetailLayout> {
           ),
           child: Column(
             children: [
-              _totalLine("SUBTOTAL", "\u20b9${subtotal.toStringAsFixed(2)}"),
-              _totalLine("TAX", "\u20b9${tax.toStringAsFixed(2)}"),
+              _totalLine("SUBTOTAL", "Rs${subtotal.toStringAsFixed(2)}"),
+              _totalLine("TAX", "Rs${tax.toStringAsFixed(2)}"),
               if (widget.cartState.totalDiscount > 0)
-                _totalLine("DISCOUNT", "-\u20b9${widget.cartState.totalDiscount.toStringAsFixed(2)}"),
+                _totalLine("DISCOUNT", "-Rs${widget.cartState.totalDiscount.toStringAsFixed(2)}"),
               if (widget.cartState.additionalChargesTotal > 0)
-                _totalLine("CHARGES", "\u20b9${widget.cartState.additionalChargesTotal.toStringAsFixed(2)}"),
+                _totalLine("CHARGES", "Rs${widget.cartState.additionalChargesTotal.toStringAsFixed(2)}"),
               const Divider(height: 16),
-              _totalLine("TOTAL", "\u20b9${total.toStringAsFixed(2)}"),
+              _totalLine("TOTAL", "Rs${total.toStringAsFixed(2)}"),
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -441,7 +445,7 @@ class _RetailLayoutState extends BasePosLayoutState<RetailLayout> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 alignment: Alignment.centerRight,
                 child: Text(
-                  '₹${amount.toStringAsFixed(2)}',
+                  'Rs${amount.toStringAsFixed(2)}',
                   style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
                 ),
               ),
@@ -502,7 +506,7 @@ class _RetailLayoutState extends BasePosLayoutState<RetailLayout> {
                 textAlign: TextAlign.right,
                 style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
                 decoration: InputDecoration(
-                  prefixText: '₹',
+                  prefixText: 'Rs',
                   prefixStyle: const TextStyle(fontSize: 13, color: Colors.grey),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   isDense: true,
@@ -969,7 +973,7 @@ class _RetailInvoiceModalState extends State<_RetailInvoiceModal> {
                   Expanded(
                     flex: 3,
                     child: Text(
-                      '${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity} × ₹${item.product.price.toStringAsFixed(0)}',
+                      '${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity} × Rs${item.product.price.toStringAsFixed(0)}',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
@@ -977,7 +981,7 @@ class _RetailInvoiceModalState extends State<_RetailInvoiceModal> {
                   Expanded(
                     flex: 2,
                     child: Text(
-                      '₹${item.total.toStringAsFixed(2)}',
+                      'Rs${item.total.toStringAsFixed(2)}',
                       textAlign: TextAlign.right,
                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                     ),
@@ -1002,14 +1006,14 @@ class _RetailInvoiceModalState extends State<_RetailInvoiceModal> {
       color: const Color(0xFFFAF8FF),
       child: Column(
         children: [
-          _modalTotalLine('SUBTOTAL', '₹${subtotal.toStringAsFixed(2)}', isGrand: false),
-          _modalTotalLine('TAX', '₹${tax.toStringAsFixed(2)}', isGrand: false),
+          _modalTotalLine('SUBTOTAL', 'Rs${subtotal.toStringAsFixed(2)}', isGrand: false),
+          _modalTotalLine('TAX', 'Rs${tax.toStringAsFixed(2)}', isGrand: false),
           if (widget.cartState.totalDiscount > 0)
-            _modalTotalLine('DISCOUNT', '-₹${widget.cartState.totalDiscount.toStringAsFixed(2)}', isGrand: false),
+            _modalTotalLine('DISCOUNT', '-Rs${widget.cartState.totalDiscount.toStringAsFixed(2)}', isGrand: false),
           if (charges > 0)
-            _modalTotalLine('CHARGES', '₹${charges.toStringAsFixed(2)}', isGrand: false),
+            _modalTotalLine('CHARGES', 'Rs${charges.toStringAsFixed(2)}', isGrand: false),
           const Divider(height: 16),
-          _modalTotalLine('TOTAL', '₹${total.toStringAsFixed(2)}', isGrand: true),
+          _modalTotalLine('TOTAL', 'Rs${total.toStringAsFixed(2)}', isGrand: true),
         ],
       ),
     );

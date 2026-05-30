@@ -12,6 +12,8 @@ export const products = pgTable("products", {
     hsn: text("hsn"),
     categoryId: integer("category_id").references(() => categories.id),
     unitId: integer("unit_id").references(() => units.id),
+    baseUnitId: integer("base_unit_id"),
+    allowLooseSale: boolean("allow_loose_sale").default(true).notNull(),
     brandId: integer("brand_id").references(() => brands.id),
     type: text("type"),
     packSize: text("pack_size"),

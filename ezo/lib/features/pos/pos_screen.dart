@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter_barcode_listener/flutter_barcode_listener.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:aeropos/features/pos/state/cart_state.dart';
 import 'package:aeropos/features/pos/state/pos_category_state.dart';
+import 'package:aeropos/features/pos/state/barcode_state.dart';
+import 'package:aeropos/features/pos/services/barcode_service.dart';
 import 'package:aeropos/features/pos/providers/pos_layout_provider.dart';
 import 'package:aeropos/features/pos/layouts/compact_layout.dart';
 import 'package:aeropos/features/pos/layouts/restaurant_layout.dart';
@@ -11,6 +15,7 @@ import 'package:aeropos/features/pos/layouts/retail_layout.dart';
 import 'package:aeropos/features/pos/layouts/touch_layout.dart';
 import 'package:aeropos/features/pos/layouts/dual_screen_layout.dart';
 import 'package:aeropos/features/pos/widgets/quantity_with_unit_dialog.dart';
+import 'package:aeropos/features/pos/widgets/quick_add_product_dialog.dart';
 
 import 'package:aeropos/core/database/app_database.dart';
 import 'package:aeropos/core/models/product_unit.dart';
@@ -24,6 +29,8 @@ import '../../core/widgets/master_header.dart';
 import 'package:aeropos/features/invoice/invoice_template_editor/template_repository.dart';
 import 'package:aeropos/features/invoice/invoice_template_editor/models.dart'
     as editor_models;
+import 'package:aeropos/features/invoice/invoice_template_editor/invoice_completeness_checker.dart'
+    as completeness;
 import 'package:aeropos/core/providers/tenant_provider.dart';
 import 'package:aeropos/core/theme/app_theme.dart';
 import 'package:aeropos/core/utils/number_to_words.dart';
@@ -91,13 +98,216 @@ class PosScreen extends ConsumerStatefulWidget {
 
 class _PosScreenState extends ConsumerState<PosScreen> {
   final _uuid = const Uuid();
+  final _player = AudioPlayer();
 
   @override
   void initState() {
     super.initState();
+    _player.setReleaseMode(ReleaseMode.stop);
     ServiceLocator.instance.syncEngine.pull().catchError((e, st) {
       debugPrint('POS sync pull failed: $e');
     });
+  }
+
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
+  }
+
+  bool _textFieldHasFocus() {
+    final focus = FocusManager.instance.primaryFocus;
+    if (focus == null) return false;
+    return focus.context?.widget is EditableText;
+  }
+
+  Future<void> _playBeep(bool success) async {
+    final asset = success ? 'sounds/beep_success.wav' : 'sounds/beep_error.wav';
+    await _player.play(AssetSource(asset));
+  }
+
+  Future<void> _onBarcodeScanned(String rawCode) async {
+    if (_textFieldHasFocus()) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+
+    final service = ref.read(barcodeServiceProvider);
+    final result = await service.resolve(rawCode);
+    if (!mounted) return;
+
+    switch (result) {
+      case BarcodeMatched(:final product, :final unit):
+        final pu = ProductUnit(
+          id: unit.id, productId: unit.productId, unitId: unit.unitId,
+          conversionFactor: unit.conversionFactor,
+          sellingPrice: unit.sellingPrice,
+          barcode: unit.barcode, isDefault: unit.isDefault,
+        );
+        ref.read(cartProvider.notifier).addProduct(product, selectedUnit: pu);
+        await _playBeep(true);
+        if (mounted) {
+          PosToast.showSuccess(context, '${product.name} added');
+        }
+
+      case BarcodePriceEmbedded(:final productLinkCode, :final embeddedPrice):
+        final db = ServiceLocator.instance.database;
+        final matches = await db.getProductsByBarcode(productLinkCode);
+        if (matches.isNotEmpty) {
+          final match = matches.first;
+          ref.read(cartProvider.notifier).addProduct(
+            match.product, manualUnitPrice: embeddedPrice);
+          await _playBeep(true);
+          if (!mounted) return;
+          PosToast.showSuccess(
+            context, '${match.product.name} — Rs ${embeddedPrice.toStringAsFixed(2)}');
+        } else {
+          await _playBeep(false);
+          if (!mounted) return;
+          PosToast.showError(context, 'Barcode not found: $productLinkCode');
+        }
+
+      case BarcodeWeightEmbedded(:final productLinkCode, :final weightKg):
+        final db = ServiceLocator.instance.database;
+        final matches = await db.getProductsByBarcode(productLinkCode);
+        if (matches.isNotEmpty) {
+          final match = matches.first;
+          ref.read(cartProvider.notifier).addProduct(
+            match.product, quantity: weightKg);
+          await _playBeep(true);
+          if (!mounted) return;
+          PosToast.showSuccess(
+            context, '${match.product.name} — ${weightKg.toStringAsFixed(3)} kg');
+        } else {
+          await _playBeep(false);
+          if (!mounted) return;
+          PosToast.showError(context, 'Barcode not found: $productLinkCode');
+        }
+
+      case BarcodeMultiVariant(:final rawCode, :final matches):
+        await _playBeep(false);
+        if (mounted) {
+          final selectedMatch = await showDialog<({ProductEntity product, ProductUnitEntity unit})>(
+            context: context,
+            builder: (ctx) => SimpleDialog(
+              title: Text('Select Item ($rawCode)'),
+              children: matches.map((match) {
+                final priceStr = 'Rs ${match.unit.sellingPrice?.toStringAsFixed(2) ?? match.product.price.toStringAsFixed(2)}';
+                return SimpleDialogOption(
+                  onPressed: () => Navigator.pop(ctx, match),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(match.product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(priceStr),
+                    trailing: const Icon(Icons.add_circle_outline),
+                  ),
+                );
+              }).toList(),
+            ),
+          );
+          if (selectedMatch != null && mounted) {
+            final pu = ProductUnit(
+              id: selectedMatch.unit.id, productId: selectedMatch.unit.productId,
+              unitId: selectedMatch.unit.unitId,
+              conversionFactor: selectedMatch.unit.conversionFactor,
+              sellingPrice: selectedMatch.unit.sellingPrice,
+              barcode: selectedMatch.unit.barcode, isDefault: selectedMatch.unit.isDefault,
+            );
+            ref.read(cartProvider.notifier).addProduct(selectedMatch.product, selectedUnit: pu);
+          }
+        }
+
+      case BarcodeNotFound(:final rawCode):
+        await _playBeep(false);
+
+        if (!mounted) return;
+        final result = await showDialog<Map<String, dynamic>>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => QuickAddProductDialog(barcode: rawCode),
+        );
+
+        if (result != null && mounted) {
+          final db = ServiceLocator.instance.database;
+
+          final allUnits = await db.select(db.units).get();
+          if (allUnits.isEmpty) {
+            throw Exception('No master units found in database');
+          }
+
+          final pieceUnit = allUnits.firstWhere(
+            (u) =>
+                u.name.toLowerCase() == 'piece' ||
+                u.name.toLowerCase() == 'pcs',
+            orElse: () => allUnits.first,
+          );
+
+          final stock = (result['stock'] as int? ?? 0);
+
+          final newItems = await db.insertQuickProduct(
+            barcode: rawCode,
+            name: result['name'] as String,
+            sellingPrice: result['price'] as double,
+            defaultUnitId: pieceUnit.id,
+            initialStock: stock,
+          );
+
+          final syncService = ServiceLocator.instance.syncEngine;
+          await syncService.logOperation(
+            entity: 'products',
+            entityId: newItems.product.uuid,
+            opType: 1,
+            data: {
+              'uuid': newItems.product.uuid,
+              'name': result['name'],
+              'price': result['price'],
+            },
+          );
+          await syncService.logOperation(
+            entity: 'product_units',
+            entityId: newItems.unit.uuid,
+            opType: 1,
+            data: {
+              'uuid': newItems.unit.uuid,
+              'product_id': newItems.product.uuid,
+              'barcode': rawCode,
+              'selling_price': result['price'],
+              'conversion_factor': 1.0,
+            },
+          );
+
+          if (stock > 0) {
+            final syncRepo = ServiceLocator.instance.syncRepository;
+            await syncRepo.logStockDelta(
+              productId: newItems.product.id.toString(),
+              delta: stock.toDouble(),
+              reason: 'initial_stock',
+            );
+          }
+
+          final pu = ProductUnit(
+            id: newItems.unit.id,
+            productId: newItems.unit.productId,
+            unitId: newItems.unit.unitId,
+            conversionFactor: newItems.unit.conversionFactor,
+            sellingPrice: newItems.unit.sellingPrice,
+            barcode: newItems.unit.barcode,
+            isDefault: newItems.unit.isDefault,
+          );
+
+          ref.read(cartProvider.notifier).addProduct(
+            newItems.product,
+            selectedUnit: pu,
+          );
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${result['name']} added to inventory!'),
+              ),
+            );
+          }
+        }
+    }
   }
 
   Future<void> _handleCheckout({
@@ -174,9 +384,13 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             (item) => editor_models.InvoiceItem(
               id: item.uuid,
               desc: item.product.name,
-              details: '', // SaleItem doesn't have detailed description usually
+              details: '',
               qty: item.quantity.toDouble(),
               rate: item.unitPrice,
+              hsnCode: item.product.hsn ?? '',
+              cgstRate: _halfGst(item.product.gstRate),
+              sgstRate: _halfGst(item.product.gstRate),
+              discount: item.discount,
             ),
           )
           .toList();
@@ -187,6 +401,13 @@ class _PosScreenState extends ConsumerState<PosScreen> {
       if (shouldSave) {
         ref.read(cartProvider.notifier).clearCart();
         PosToast.showSuccess(context, "Checkout completed");
+      }
+
+      // Check for missing invoice fields and warn before showing preview.
+      final gaps = completeness.checkInvoiceCompleteness(invoiceData);
+      if (gaps.isNotEmpty && mounted) {
+        final proceed = await _showInvoiceCompletenessWarning(gaps, tenantId, templateId);
+        if (!proceed || !mounted) return;
       }
 
       showDialog(
@@ -229,6 +450,34 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     } catch (e) {
       if (mounted) PosToast.showError(context, "Failed to process sale: $e");
     }
+  }
+
+  /// Shows a bottom sheet listing missing invoice fields.
+  /// Returns true if the user chooses to continue, false if they cancel.
+  Future<bool> _showInvoiceCompletenessWarning(
+    List<completeness.InvoiceFieldGap> gaps,
+    int tenantId,
+    String templateId,
+  ) async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _InvoiceCompletenessSheet(
+        gaps: gaps,
+        tenantId: tenantId,
+        templateId: templateId,
+      ),
+    );
+    return result ?? false;
+  }
+
+  /// Parses a product's gstRate string (e.g. "18%") into a numeric rate.
+  /// Returns half that rate for CGST/SGST split (intra-state default).
+  static double _halfGst(String? gstRateStr) {
+    if (gstRateStr == null) return 0.0;
+    final rate = double.tryParse(gstRateStr.replaceAll('%', '').trim()) ?? 0.0;
+    return rate / 2;
   }
 
   void _openInvoiceSettings() {
@@ -957,16 +1206,20 @@ class _PosScreenState extends ConsumerState<PosScreen> {
           ],
         ),
       ),
-      body: _buildSelectedLayout(
-        layoutType,
-        cartState,
-        cartNotifier,
-        products,
-        categories,
-        selectedCategoryId,
-        searchQuery,
-        onSearch,
-        onBack,
+      body: BarcodeKeyboardListener(
+        bufferDuration: const Duration(milliseconds: 80),
+        onBarcodeScanned: _onBarcodeScanned,
+        child: _buildSelectedLayout(
+          layoutType,
+          cartState,
+          cartNotifier,
+          products,
+          categories,
+          selectedCategoryId,
+          searchQuery,
+          onSearch,
+          onBack,
+        ),
       ),
     );
   }
@@ -982,6 +1235,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     void Function(String) onSearch,
     VoidCallback onBack,
   ) {
+    Future<void> onBarcodeScanned(String code) => _onBarcodeScanned(code);
     Future<void> onProductTap(ProductEntity product) async {
       final db = ServiceLocator.instance.database;
       final dao = db.productUnitDao;
@@ -1079,7 +1333,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
               Text('Bill split into $splitCount parts'),
               const SizedBox(height: 8),
               Text(
-                'Each part: ₹${splitAmount.toStringAsFixed(2)}',
+                'Each part: Rs${splitAmount.toStringAsFixed(2)}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -1177,6 +1431,10 @@ class _PosScreenState extends ConsumerState<PosScreen> {
               details: '',
               qty: item.quantity.toDouble(),
               rate: item.unitPrice,
+              hsnCode: item.product.hsn ?? '',
+              cgstRate: _halfGst(item.product.gstRate),
+              sgstRate: _halfGst(item.product.gstRate),
+              discount: item.discount,
             ),
           )
           .toList();
@@ -1243,7 +1501,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                   leading: const Icon(Icons.receipt),
                   title: Text('Order #${order.id}'),
                   subtitle: Text(
-                    '${order.items.length} items - ₹${order.total.toStringAsFixed(2)}',
+                    '${order.items.length} items - Rs${order.total.toStringAsFixed(2)}',
                   ),
                   trailing: Text(
                     _formatDateTime(order.createdAt),
@@ -1303,6 +1561,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
           onPrintReceipt: onPrintReceipt,
           onOrderHold: onOrderHold,
           onRecallOrder: onRecallOrder,
+          onBarcodeScanned: onBarcodeScanned,
         );
       case PosLayoutType.restaurant:
         return RestaurantLayout(
@@ -1328,6 +1587,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
           onPrintReceipt: onPrintReceipt,
           onOrderHold: onOrderHold,
           onRecallOrder: onRecallOrder,
+          onBarcodeScanned: onBarcodeScanned,
         );
       case PosLayoutType.retail:
         return RetailLayout(
@@ -1349,6 +1609,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
           onSetOverallDiscount: onSetOverallDiscount,
           onReset: onReset,
           onBack: onBack,
+          onBarcodeScanned: onBarcodeScanned,
         );
       case PosLayoutType.touch:
         return TouchLayout(
@@ -1455,7 +1716,7 @@ class _SplitBillDialogState extends State<_SplitBillDialog> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Each part: ₹${(widget.total / _splitCount).toStringAsFixed(2)}',
+            'Each part: Rs${(widget.total / _splitCount).toStringAsFixed(2)}',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
@@ -1474,6 +1735,233 @@ class _SplitBillDialogState extends State<_SplitBillDialog> {
           child: const Text('Split'),
         ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Invoice completeness warning sheet
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _InvoiceCompletenessSheet extends ConsumerStatefulWidget {
+  final List<completeness.InvoiceFieldGap> gaps;
+  final int tenantId;
+  final String templateId;
+
+  const _InvoiceCompletenessSheet({
+    required this.gaps,
+    required this.tenantId,
+    required this.templateId,
+  });
+
+  @override
+  ConsumerState<_InvoiceCompletenessSheet> createState() =>
+      _InvoiceCompletenessSheetState();
+}
+
+class _InvoiceCompletenessSheetState
+    extends ConsumerState<_InvoiceCompletenessSheet> {
+  bool _saving = false;
+
+  Future<void> _disableField(String toggleKey) async {
+    setState(() => _saving = true);
+    try {
+      final repo = ref.read(invoiceTemplateRepositoryProvider);
+      await repo.saveTemplateSelection(
+        tenantId: widget.tenantId,
+        templateId: widget.templateId,
+        showTaxBreakdown: toggleKey == 'showTaxBreakdown' ? false : null,
+        showAddress: toggleKey == 'showAddress' ? false : null,
+        showFooter: toggleKey == 'showFooter' ? false : null,
+        showBankDetails: toggleKey == 'showBankDetails' ? false : null,
+        showUpiQr: toggleKey == 'showUpiQr' ? false : null,
+        showCustomerDetails: toggleKey == 'showCustomerDetails' ? false : null,
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed to save: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  void _navigateToEdit(String editRoute) {
+    Navigator.of(context).pop(false);
+    context.go('/company-profile');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final grouped = <String, List<completeness.InvoiceFieldGap>>{};
+    for (final gap in widget.gaps) {
+      grouped.putIfAbsent(gap.category, () => []).add(gap);
+    }
+
+    return SafeArea(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).dividerColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                      color: Theme.of(context).colorScheme.error),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Invoice Incomplete',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'The following fields are missing. Fill them in or disable '
+                'the section, then retry.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.7),
+                    ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.45,
+              ),
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final category in grouped.keys) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                      child: Text(
+                        completeness.gapCategoryLabel(category),
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                    for (final gap in grouped[category]!)
+                      _GapRow(
+                        gap: gap,
+                        saving: _saving,
+                        onEdit: () => _navigateToEdit(gap.editRoute),
+                        onDisable: gap.disableToggle != null
+                            ? () => _disableField(gap.disableToggle!)
+                            : null,
+                      ),
+                  ],
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed:
+                          _saving ? null : () => Navigator.of(context).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed:
+                          _saving ? null : () => Navigator.of(context).pop(true),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.error,
+                      ),
+                      child: const Text('Continue Anyway'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GapRow extends StatelessWidget {
+  final completeness.InvoiceFieldGap gap;
+  final bool saving;
+  final VoidCallback onEdit;
+  final VoidCallback? onDisable;
+
+  const _GapRow({
+    required this.gap,
+    required this.saving,
+    required this.onEdit,
+    required this.onDisable,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      leading: Icon(
+        Icons.radio_button_unchecked,
+        size: 18,
+        color: Theme.of(context).colorScheme.error,
+      ),
+      title: Text(gap.label),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextButton(
+            onPressed: saving ? null : onEdit,
+            child: const Text('Fill in'),
+          ),
+          if (onDisable != null) ...[
+            const SizedBox(width: 4),
+            TextButton(
+              onPressed: saving ? null : onDisable,
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.5),
+              ),
+              child: const Text('Disable'),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

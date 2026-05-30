@@ -42,7 +42,7 @@ import 'package:aeropos/features/settings/screens/settings_screen.dart';
 import 'package:aeropos/features/settings/screens/role_settings_screen.dart';
 import 'package:aeropos/features/ledger/customer_ledger/add_customer_ledger.dart';
 import 'package:aeropos/features/ledger/supplier_ledger/add_supplier_ledger.dart';
-
+import 'package:aeropos/features/barcode/screens/barcode_generation_screen.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -217,8 +217,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'add',
                     builder: (context, state) {
-                      final product = state.extra as ProductEntity?;
-                      return AddItemScreen(product: product);
+                      final extra = state.extra;
+                      final product = extra is ProductEntity ? extra : null;
+                      final barcode = extra is String ? extra : null;
+                      return AddItemScreen(product: product, initialBarcode: barcode);
                     },
                   ),
                 ],
@@ -232,8 +234,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/add-product',
                 builder: (context, state) {
-                  final product = state.extra as ProductEntity?;
-                  return AddItemScreen(product: product);
+                  final extra = state.extra;
+                  final product = extra is ProductEntity ? extra : null;
+                  final barcode = extra is String ? extra : null;
+                  return AddItemScreen(product: product, initialBarcode: barcode);
                 },
               ),
             ],
@@ -441,6 +445,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         const AddSupplierLedgerScreen(),
                   ),
                 ],
+              ),
+            ],
+          ),
+          // Index 20: Barcode Generation
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/barcode-generation',
+                builder: (context, state) => const BarcodeGenerationScreen(),
               ),
             ],
           ),

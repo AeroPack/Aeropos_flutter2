@@ -6,6 +6,7 @@ import 'units_table.dart';
 @DataClassName('ProductUnitEntity')
 class ProductUnits extends Table {
   IntColumn get id => integer().autoIncrement()();
+  TextColumn get uuid => text().unique()();
   IntColumn get productId => integer().references(Products, #id)();
   IntColumn get unitId => integer().references(Units, #id)();
   RealColumn get conversionFactor => real()();

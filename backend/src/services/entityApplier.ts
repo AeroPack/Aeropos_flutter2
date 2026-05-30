@@ -43,6 +43,38 @@ export const TABLE_UUID_REFS: Partial<Record<ValidTable, TableUuidRefs>> = {
       { clientField: 'supplier_uuid', targetTable: 'suppliers', resultField: 'supplier_id', optional: false },
     ],
   },
+  product_units: {
+    uuidFields: [
+      { clientField: 'product_uuid', targetTable: 'products', resultField: 'product_id', optional: false },
+      { clientField: 'unit_uuid',    targetTable: 'units',    resultField: 'unit_id',    optional: false },
+    ],
+  },
+  returns: {
+    uuidFields: [
+      { clientField: 'original_invoice_uuid', targetTable: 'invoices', resultField: 'original_invoice_id', optional: false },
+    ],
+  },
+  return_items: {
+    uuidFields: [
+      { clientField: 'return_uuid', targetTable: 'returns', resultField: 'return_id', optional: false },
+      { clientField: 'product_uuid', targetTable: 'products', resultField: 'product_id', optional: false },
+    ],
+  },
+  wallet_transactions: {
+    uuidFields: [
+      { clientField: 'customer_uuid', targetTable: 'customers', resultField: 'customer_id', optional: false },
+    ],
+  },
+  invoice_audit_logs: {
+    uuidFields: [
+      { clientField: 'invoice_uuid', targetTable: 'invoices', resultField: 'invoice_id', optional: false },
+    ],
+  },
+  inventory_movements: {
+    uuidFields: [
+      { clientField: 'product_uuid', targetTable: 'products', resultField: 'product_id', optional: false },
+    ],
+  },
 };
 
 export interface ResolveResult {
@@ -172,10 +204,6 @@ async function handleInsertOrUpsert(
     if (hasUpdatedAt) payload['updated_at'] = timestamp;
   }
 
-  if (table === 'invoice_items') {
-    delete payload['updated_at'];
-  }
-
   const cols = Object.keys(payload);
   const vals = Object.values(payload);
   const placeholders = cols.map((_, i) => `$${i + 1}`).join(', ');
@@ -294,7 +322,7 @@ async function handleDelete(
   const current = existing[0];
 
   if (isSoftDelete) {
-    const hasUpdatedAt = table !== 'invoice_items';
+    const hasUpdatedAt = !TABLES_WITHOUT_UPDATED_AT.has(table) || table === 'invoice_settings';
     const setClause = hasUpdatedAt
       ? `is_deleted = true, updated_at = $1`
       : `is_deleted = true`;
@@ -332,4 +360,17 @@ function stripSystemFields(
   return Object.fromEntries(
     Object.entries(data).filter(([k]) => !always.has(k)),
   );
+}
+
+/**
+ * Convert camelCase keys to snake_case for SQL column name compatibility.
+ * E.g., "categoryId" → "category_id", "allowLooseSale" → "allow_loose_sale".
+ */
+export function camelToSnakeKeys(data: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    const snakeKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+    result[snakeKey] = value;
+  }
+  return result;
 }

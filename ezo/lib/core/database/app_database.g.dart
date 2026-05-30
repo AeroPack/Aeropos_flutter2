@@ -302,6 +302,17 @@ class $ProductsTable extends Products
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _syncStatusMeta = const VerificationMeta(
     'syncStatus',
   );
@@ -357,6 +368,7 @@ class $ProductsTable extends Products
     description,
     discount,
     isPercentDiscount,
+    deletedAt,
     syncStatus,
     isDeleted,
   ];
@@ -548,6 +560,12 @@ class $ProductsTable extends Products
         ),
       );
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     if (data.containsKey('sync_status')) {
       context.handle(
         _syncStatusMeta,
@@ -673,6 +691,10 @@ class $ProductsTable extends Products
         DriftSqlType.bool,
         data['${effectivePrefix}is_percent_discount'],
       )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
       syncStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sync_status'],
@@ -717,6 +739,7 @@ class ProductEntity extends DataClass implements Insertable<ProductEntity> {
   final String? description;
   final double discount;
   final bool isPercentDiscount;
+  final DateTime? deletedAt;
   final int syncStatus;
   final bool isDeleted;
   const ProductEntity({
@@ -746,6 +769,7 @@ class ProductEntity extends DataClass implements Insertable<ProductEntity> {
     this.description,
     required this.discount,
     required this.isPercentDiscount,
+    this.deletedAt,
     required this.syncStatus,
     required this.isDeleted,
   });
@@ -806,6 +830,9 @@ class ProductEntity extends DataClass implements Insertable<ProductEntity> {
     }
     map['discount'] = Variable<double>(discount);
     map['is_percent_discount'] = Variable<bool>(isPercentDiscount);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
     map['sync_status'] = Variable<int>(syncStatus);
     map['is_deleted'] = Variable<bool>(isDeleted);
     return map;
@@ -859,6 +886,9 @@ class ProductEntity extends DataClass implements Insertable<ProductEntity> {
           : Value(description),
       discount: Value(discount),
       isPercentDiscount: Value(isPercentDiscount),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
       syncStatus: Value(syncStatus),
       isDeleted: Value(isDeleted),
     );
@@ -896,6 +926,7 @@ class ProductEntity extends DataClass implements Insertable<ProductEntity> {
       description: serializer.fromJson<String?>(json['description']),
       discount: serializer.fromJson<double>(json['discount']),
       isPercentDiscount: serializer.fromJson<bool>(json['isPercentDiscount']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
     );
@@ -930,6 +961,7 @@ class ProductEntity extends DataClass implements Insertable<ProductEntity> {
       'description': serializer.toJson<String?>(description),
       'discount': serializer.toJson<double>(discount),
       'isPercentDiscount': serializer.toJson<bool>(isPercentDiscount),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'syncStatus': serializer.toJson<int>(syncStatus),
       'isDeleted': serializer.toJson<bool>(isDeleted),
     };
@@ -962,6 +994,7 @@ class ProductEntity extends DataClass implements Insertable<ProductEntity> {
     Value<String?> description = const Value.absent(),
     double? discount,
     bool? isPercentDiscount,
+    Value<DateTime?> deletedAt = const Value.absent(),
     int? syncStatus,
     bool? isDeleted,
   }) => ProductEntity(
@@ -991,6 +1024,7 @@ class ProductEntity extends DataClass implements Insertable<ProductEntity> {
     description: description.present ? description.value : this.description,
     discount: discount ?? this.discount,
     isPercentDiscount: isPercentDiscount ?? this.isPercentDiscount,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     syncStatus: syncStatus ?? this.syncStatus,
     isDeleted: isDeleted ?? this.isDeleted,
   );
@@ -1034,6 +1068,7 @@ class ProductEntity extends DataClass implements Insertable<ProductEntity> {
       isPercentDiscount: data.isPercentDiscount.present
           ? data.isPercentDiscount.value
           : this.isPercentDiscount,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
@@ -1070,6 +1105,7 @@ class ProductEntity extends DataClass implements Insertable<ProductEntity> {
           ..write('description: $description, ')
           ..write('discount: $discount, ')
           ..write('isPercentDiscount: $isPercentDiscount, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('isDeleted: $isDeleted')
           ..write(')'))
@@ -1104,6 +1140,7 @@ class ProductEntity extends DataClass implements Insertable<ProductEntity> {
     description,
     discount,
     isPercentDiscount,
+    deletedAt,
     syncStatus,
     isDeleted,
   ]);
@@ -1137,6 +1174,7 @@ class ProductEntity extends DataClass implements Insertable<ProductEntity> {
           other.description == this.description &&
           other.discount == this.discount &&
           other.isPercentDiscount == this.isPercentDiscount &&
+          other.deletedAt == this.deletedAt &&
           other.syncStatus == this.syncStatus &&
           other.isDeleted == this.isDeleted);
 }
@@ -1168,6 +1206,7 @@ class ProductsCompanion extends UpdateCompanion<ProductEntity> {
   final Value<String?> description;
   final Value<double> discount;
   final Value<bool> isPercentDiscount;
+  final Value<DateTime?> deletedAt;
   final Value<int> syncStatus;
   final Value<bool> isDeleted;
   const ProductsCompanion({
@@ -1197,6 +1236,7 @@ class ProductsCompanion extends UpdateCompanion<ProductEntity> {
     this.description = const Value.absent(),
     this.discount = const Value.absent(),
     this.isPercentDiscount = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.isDeleted = const Value.absent(),
   });
@@ -1227,6 +1267,7 @@ class ProductsCompanion extends UpdateCompanion<ProductEntity> {
     this.description = const Value.absent(),
     this.discount = const Value.absent(),
     this.isPercentDiscount = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.isDeleted = const Value.absent(),
   }) : uuid = Value(uuid),
@@ -1260,6 +1301,7 @@ class ProductsCompanion extends UpdateCompanion<ProductEntity> {
     Expression<String>? description,
     Expression<double>? discount,
     Expression<bool>? isPercentDiscount,
+    Expression<DateTime>? deletedAt,
     Expression<int>? syncStatus,
     Expression<bool>? isDeleted,
   }) {
@@ -1290,6 +1332,7 @@ class ProductsCompanion extends UpdateCompanion<ProductEntity> {
       if (description != null) 'description': description,
       if (discount != null) 'discount': discount,
       if (isPercentDiscount != null) 'is_percent_discount': isPercentDiscount,
+      if (deletedAt != null) 'deleted_at': deletedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (isDeleted != null) 'is_deleted': isDeleted,
     });
@@ -1322,6 +1365,7 @@ class ProductsCompanion extends UpdateCompanion<ProductEntity> {
     Value<String?>? description,
     Value<double>? discount,
     Value<bool>? isPercentDiscount,
+    Value<DateTime?>? deletedAt,
     Value<int>? syncStatus,
     Value<bool>? isDeleted,
   }) {
@@ -1352,6 +1396,7 @@ class ProductsCompanion extends UpdateCompanion<ProductEntity> {
       description: description ?? this.description,
       discount: discount ?? this.discount,
       isPercentDiscount: isPercentDiscount ?? this.isPercentDiscount,
+      deletedAt: deletedAt ?? this.deletedAt,
       syncStatus: syncStatus ?? this.syncStatus,
       isDeleted: isDeleted ?? this.isDeleted,
     );
@@ -1438,6 +1483,9 @@ class ProductsCompanion extends UpdateCompanion<ProductEntity> {
     if (isPercentDiscount.present) {
       map['is_percent_discount'] = Variable<bool>(isPercentDiscount.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     if (syncStatus.present) {
       map['sync_status'] = Variable<int>(syncStatus.value);
     }
@@ -1476,6 +1524,7 @@ class ProductsCompanion extends UpdateCompanion<ProductEntity> {
           ..write('description: $description, ')
           ..write('discount: $discount, ')
           ..write('isPercentDiscount: $isPercentDiscount, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('isDeleted: $isDeleted')
           ..write(')'))
@@ -1597,6 +1646,17 @@ class $CategoriesTable extends Categories
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _syncStatusMeta = const VerificationMeta(
     'syncStatus',
   );
@@ -1635,6 +1695,7 @@ class $CategoriesTable extends Categories
     tenantId,
     createdAt,
     updatedAt,
+    deletedAt,
     syncStatus,
     isDeleted,
   ];
@@ -1713,6 +1774,12 @@ class $CategoriesTable extends Categories
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     if (data.containsKey('sync_status')) {
       context.handle(
         _syncStatusMeta,
@@ -1770,6 +1837,10 @@ class $CategoriesTable extends Categories
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
       syncStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sync_status'],
@@ -1797,6 +1868,7 @@ class CategoryEntity extends DataClass implements Insertable<CategoryEntity> {
   final int tenantId;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? deletedAt;
   final int syncStatus;
   final bool isDeleted;
   const CategoryEntity({
@@ -1809,6 +1881,7 @@ class CategoryEntity extends DataClass implements Insertable<CategoryEntity> {
     required this.tenantId,
     required this.createdAt,
     required this.updatedAt,
+    this.deletedAt,
     required this.syncStatus,
     required this.isDeleted,
   });
@@ -1828,6 +1901,9 @@ class CategoryEntity extends DataClass implements Insertable<CategoryEntity> {
     map['tenant_id'] = Variable<int>(tenantId);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
     map['sync_status'] = Variable<int>(syncStatus);
     map['is_deleted'] = Variable<bool>(isDeleted);
     return map;
@@ -1848,6 +1924,9 @@ class CategoryEntity extends DataClass implements Insertable<CategoryEntity> {
       tenantId: Value(tenantId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
       syncStatus: Value(syncStatus),
       isDeleted: Value(isDeleted),
     );
@@ -1868,6 +1947,7 @@ class CategoryEntity extends DataClass implements Insertable<CategoryEntity> {
       tenantId: serializer.fromJson<int>(json['tenantId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
     );
@@ -1885,6 +1965,7 @@ class CategoryEntity extends DataClass implements Insertable<CategoryEntity> {
       'tenantId': serializer.toJson<int>(tenantId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'syncStatus': serializer.toJson<int>(syncStatus),
       'isDeleted': serializer.toJson<bool>(isDeleted),
     };
@@ -1900,6 +1981,7 @@ class CategoryEntity extends DataClass implements Insertable<CategoryEntity> {
     int? tenantId,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
     int? syncStatus,
     bool? isDeleted,
   }) => CategoryEntity(
@@ -1912,6 +1994,7 @@ class CategoryEntity extends DataClass implements Insertable<CategoryEntity> {
     tenantId: tenantId ?? this.tenantId,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     syncStatus: syncStatus ?? this.syncStatus,
     isDeleted: isDeleted ?? this.isDeleted,
   );
@@ -1930,6 +2013,7 @@ class CategoryEntity extends DataClass implements Insertable<CategoryEntity> {
       tenantId: data.tenantId.present ? data.tenantId.value : this.tenantId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
@@ -1949,6 +2033,7 @@ class CategoryEntity extends DataClass implements Insertable<CategoryEntity> {
           ..write('tenantId: $tenantId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('isDeleted: $isDeleted')
           ..write(')'))
@@ -1966,6 +2051,7 @@ class CategoryEntity extends DataClass implements Insertable<CategoryEntity> {
     tenantId,
     createdAt,
     updatedAt,
+    deletedAt,
     syncStatus,
     isDeleted,
   );
@@ -1982,6 +2068,7 @@ class CategoryEntity extends DataClass implements Insertable<CategoryEntity> {
           other.tenantId == this.tenantId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
           other.syncStatus == this.syncStatus &&
           other.isDeleted == this.isDeleted);
 }
@@ -1996,6 +2083,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryEntity> {
   final Value<int> tenantId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
   final Value<int> syncStatus;
   final Value<bool> isDeleted;
   const CategoriesCompanion({
@@ -2008,6 +2096,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryEntity> {
     this.tenantId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.isDeleted = const Value.absent(),
   });
@@ -2021,6 +2110,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryEntity> {
     required int tenantId,
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.isDeleted = const Value.absent(),
   }) : uuid = Value(uuid),
@@ -2036,6 +2126,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryEntity> {
     Expression<int>? tenantId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
     Expression<int>? syncStatus,
     Expression<bool>? isDeleted,
   }) {
@@ -2049,6 +2140,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryEntity> {
       if (tenantId != null) 'tenant_id': tenantId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (isDeleted != null) 'is_deleted': isDeleted,
     });
@@ -2064,6 +2156,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryEntity> {
     Value<int>? tenantId,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
     Value<int>? syncStatus,
     Value<bool>? isDeleted,
   }) {
@@ -2077,6 +2170,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryEntity> {
       tenantId: tenantId ?? this.tenantId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
       syncStatus: syncStatus ?? this.syncStatus,
       isDeleted: isDeleted ?? this.isDeleted,
     );
@@ -2112,6 +2206,9 @@ class CategoriesCompanion extends UpdateCompanion<CategoryEntity> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     if (syncStatus.present) {
       map['sync_status'] = Variable<int>(syncStatus.value);
     }
@@ -2133,6 +2230,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryEntity> {
           ..write('tenantId: $tenantId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('isDeleted: $isDeleted')
           ..write(')'))
@@ -2244,6 +2342,17 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, UnitEntity> {
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _syncStatusMeta = const VerificationMeta(
     'syncStatus',
   );
@@ -2281,6 +2390,7 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, UnitEntity> {
     tenantId,
     createdAt,
     updatedAt,
+    deletedAt,
     syncStatus,
     isDeleted,
   ];
@@ -2349,6 +2459,12 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, UnitEntity> {
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     if (data.containsKey('sync_status')) {
       context.handle(
         _syncStatusMeta,
@@ -2402,6 +2518,10 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, UnitEntity> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
       syncStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sync_status'],
@@ -2428,6 +2548,7 @@ class UnitEntity extends DataClass implements Insertable<UnitEntity> {
   final int tenantId;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? deletedAt;
   final int syncStatus;
   final bool isDeleted;
   const UnitEntity({
@@ -2439,6 +2560,7 @@ class UnitEntity extends DataClass implements Insertable<UnitEntity> {
     required this.tenantId,
     required this.createdAt,
     required this.updatedAt,
+    this.deletedAt,
     required this.syncStatus,
     required this.isDeleted,
   });
@@ -2453,6 +2575,9 @@ class UnitEntity extends DataClass implements Insertable<UnitEntity> {
     map['tenant_id'] = Variable<int>(tenantId);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
     map['sync_status'] = Variable<int>(syncStatus);
     map['is_deleted'] = Variable<bool>(isDeleted);
     return map;
@@ -2468,6 +2593,9 @@ class UnitEntity extends DataClass implements Insertable<UnitEntity> {
       tenantId: Value(tenantId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
       syncStatus: Value(syncStatus),
       isDeleted: Value(isDeleted),
     );
@@ -2487,6 +2615,7 @@ class UnitEntity extends DataClass implements Insertable<UnitEntity> {
       tenantId: serializer.fromJson<int>(json['tenantId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
     );
@@ -2503,6 +2632,7 @@ class UnitEntity extends DataClass implements Insertable<UnitEntity> {
       'tenantId': serializer.toJson<int>(tenantId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'syncStatus': serializer.toJson<int>(syncStatus),
       'isDeleted': serializer.toJson<bool>(isDeleted),
     };
@@ -2517,6 +2647,7 @@ class UnitEntity extends DataClass implements Insertable<UnitEntity> {
     int? tenantId,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
     int? syncStatus,
     bool? isDeleted,
   }) => UnitEntity(
@@ -2528,6 +2659,7 @@ class UnitEntity extends DataClass implements Insertable<UnitEntity> {
     tenantId: tenantId ?? this.tenantId,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     syncStatus: syncStatus ?? this.syncStatus,
     isDeleted: isDeleted ?? this.isDeleted,
   );
@@ -2541,6 +2673,7 @@ class UnitEntity extends DataClass implements Insertable<UnitEntity> {
       tenantId: data.tenantId.present ? data.tenantId.value : this.tenantId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
@@ -2559,6 +2692,7 @@ class UnitEntity extends DataClass implements Insertable<UnitEntity> {
           ..write('tenantId: $tenantId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('isDeleted: $isDeleted')
           ..write(')'))
@@ -2575,6 +2709,7 @@ class UnitEntity extends DataClass implements Insertable<UnitEntity> {
     tenantId,
     createdAt,
     updatedAt,
+    deletedAt,
     syncStatus,
     isDeleted,
   );
@@ -2590,6 +2725,7 @@ class UnitEntity extends DataClass implements Insertable<UnitEntity> {
           other.tenantId == this.tenantId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
           other.syncStatus == this.syncStatus &&
           other.isDeleted == this.isDeleted);
 }
@@ -2603,6 +2739,7 @@ class UnitsCompanion extends UpdateCompanion<UnitEntity> {
   final Value<int> tenantId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
   final Value<int> syncStatus;
   final Value<bool> isDeleted;
   const UnitsCompanion({
@@ -2614,6 +2751,7 @@ class UnitsCompanion extends UpdateCompanion<UnitEntity> {
     this.tenantId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.isDeleted = const Value.absent(),
   });
@@ -2626,6 +2764,7 @@ class UnitsCompanion extends UpdateCompanion<UnitEntity> {
     required int tenantId,
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.isDeleted = const Value.absent(),
   }) : uuid = Value(uuid),
@@ -2641,6 +2780,7 @@ class UnitsCompanion extends UpdateCompanion<UnitEntity> {
     Expression<int>? tenantId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
     Expression<int>? syncStatus,
     Expression<bool>? isDeleted,
   }) {
@@ -2653,6 +2793,7 @@ class UnitsCompanion extends UpdateCompanion<UnitEntity> {
       if (tenantId != null) 'tenant_id': tenantId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (isDeleted != null) 'is_deleted': isDeleted,
     });
@@ -2667,6 +2808,7 @@ class UnitsCompanion extends UpdateCompanion<UnitEntity> {
     Value<int>? tenantId,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
     Value<int>? syncStatus,
     Value<bool>? isDeleted,
   }) {
@@ -2679,6 +2821,7 @@ class UnitsCompanion extends UpdateCompanion<UnitEntity> {
       tenantId: tenantId ?? this.tenantId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
       syncStatus: syncStatus ?? this.syncStatus,
       isDeleted: isDeleted ?? this.isDeleted,
     );
@@ -2711,6 +2854,9 @@ class UnitsCompanion extends UpdateCompanion<UnitEntity> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     if (syncStatus.present) {
       map['sync_status'] = Variable<int>(syncStatus.value);
     }
@@ -2731,6 +2877,7 @@ class UnitsCompanion extends UpdateCompanion<UnitEntity> {
           ..write('tenantId: $tenantId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('isDeleted: $isDeleted')
           ..write(')'))
@@ -2756,6 +2903,16 @@ class $ProductUnitsTable extends ProductUnits
     defaultConstraints: GeneratedColumn.constraintIsAlways(
       'PRIMARY KEY AUTOINCREMENT',
     ),
+  );
+  static const VerificationMeta _uuidMeta = const VerificationMeta('uuid');
+  @override
+  late final GeneratedColumn<String> uuid = GeneratedColumn<String>(
+    'uuid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
   static const VerificationMeta _productIdMeta = const VerificationMeta(
     'productId',
@@ -2896,6 +3053,7 @@ class $ProductUnitsTable extends ProductUnits
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    uuid,
     productId,
     unitId,
     conversionFactor,
@@ -2922,6 +3080,14 @@ class $ProductUnitsTable extends ProductUnits
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uuid')) {
+      context.handle(
+        _uuidMeta,
+        uuid.isAcceptableOrUnknown(data['uuid']!, _uuidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_uuidMeta);
     }
     if (data.containsKey('product_id')) {
       context.handle(
@@ -3020,6 +3186,10 @@ class $ProductUnitsTable extends ProductUnits
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
+      uuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uuid'],
+      )!,
       productId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}product_id'],
@@ -3076,6 +3246,7 @@ class $ProductUnitsTable extends ProductUnits
 class ProductUnitEntity extends DataClass
     implements Insertable<ProductUnitEntity> {
   final int id;
+  final String uuid;
   final int productId;
   final int unitId;
   final double conversionFactor;
@@ -3089,6 +3260,7 @@ class ProductUnitEntity extends DataClass
   final bool isDeleted;
   const ProductUnitEntity({
     required this.id,
+    required this.uuid,
     required this.productId,
     required this.unitId,
     required this.conversionFactor,
@@ -3105,6 +3277,7 @@ class ProductUnitEntity extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    map['uuid'] = Variable<String>(uuid);
     map['product_id'] = Variable<int>(productId);
     map['unit_id'] = Variable<int>(unitId);
     map['conversion_factor'] = Variable<double>(conversionFactor);
@@ -3126,6 +3299,7 @@ class ProductUnitEntity extends DataClass
   ProductUnitsCompanion toCompanion(bool nullToAbsent) {
     return ProductUnitsCompanion(
       id: Value(id),
+      uuid: Value(uuid),
       productId: Value(productId),
       unitId: Value(unitId),
       conversionFactor: Value(conversionFactor),
@@ -3151,6 +3325,7 @@ class ProductUnitEntity extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ProductUnitEntity(
       id: serializer.fromJson<int>(json['id']),
+      uuid: serializer.fromJson<String>(json['uuid']),
       productId: serializer.fromJson<int>(json['productId']),
       unitId: serializer.fromJson<int>(json['unitId']),
       conversionFactor: serializer.fromJson<double>(json['conversionFactor']),
@@ -3169,6 +3344,7 @@ class ProductUnitEntity extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'uuid': serializer.toJson<String>(uuid),
       'productId': serializer.toJson<int>(productId),
       'unitId': serializer.toJson<int>(unitId),
       'conversionFactor': serializer.toJson<double>(conversionFactor),
@@ -3185,6 +3361,7 @@ class ProductUnitEntity extends DataClass
 
   ProductUnitEntity copyWith({
     int? id,
+    String? uuid,
     int? productId,
     int? unitId,
     double? conversionFactor,
@@ -3198,6 +3375,7 @@ class ProductUnitEntity extends DataClass
     bool? isDeleted,
   }) => ProductUnitEntity(
     id: id ?? this.id,
+    uuid: uuid ?? this.uuid,
     productId: productId ?? this.productId,
     unitId: unitId ?? this.unitId,
     conversionFactor: conversionFactor ?? this.conversionFactor,
@@ -3213,6 +3391,7 @@ class ProductUnitEntity extends DataClass
   ProductUnitEntity copyWithCompanion(ProductUnitsCompanion data) {
     return ProductUnitEntity(
       id: data.id.present ? data.id.value : this.id,
+      uuid: data.uuid.present ? data.uuid.value : this.uuid,
       productId: data.productId.present ? data.productId.value : this.productId,
       unitId: data.unitId.present ? data.unitId.value : this.unitId,
       conversionFactor: data.conversionFactor.present
@@ -3237,6 +3416,7 @@ class ProductUnitEntity extends DataClass
   String toString() {
     return (StringBuffer('ProductUnitEntity(')
           ..write('id: $id, ')
+          ..write('uuid: $uuid, ')
           ..write('productId: $productId, ')
           ..write('unitId: $unitId, ')
           ..write('conversionFactor: $conversionFactor, ')
@@ -3255,6 +3435,7 @@ class ProductUnitEntity extends DataClass
   @override
   int get hashCode => Object.hash(
     id,
+    uuid,
     productId,
     unitId,
     conversionFactor,
@@ -3272,6 +3453,7 @@ class ProductUnitEntity extends DataClass
       identical(this, other) ||
       (other is ProductUnitEntity &&
           other.id == this.id &&
+          other.uuid == this.uuid &&
           other.productId == this.productId &&
           other.unitId == this.unitId &&
           other.conversionFactor == this.conversionFactor &&
@@ -3287,6 +3469,7 @@ class ProductUnitEntity extends DataClass
 
 class ProductUnitsCompanion extends UpdateCompanion<ProductUnitEntity> {
   final Value<int> id;
+  final Value<String> uuid;
   final Value<int> productId;
   final Value<int> unitId;
   final Value<double> conversionFactor;
@@ -3300,6 +3483,7 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitEntity> {
   final Value<bool> isDeleted;
   const ProductUnitsCompanion({
     this.id = const Value.absent(),
+    this.uuid = const Value.absent(),
     this.productId = const Value.absent(),
     this.unitId = const Value.absent(),
     this.conversionFactor = const Value.absent(),
@@ -3314,6 +3498,7 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitEntity> {
   });
   ProductUnitsCompanion.insert({
     this.id = const Value.absent(),
+    required String uuid,
     required int productId,
     required int unitId,
     required double conversionFactor,
@@ -3325,12 +3510,14 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitEntity> {
     this.updatedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.isDeleted = const Value.absent(),
-  }) : productId = Value(productId),
+  }) : uuid = Value(uuid),
+       productId = Value(productId),
        unitId = Value(unitId),
        conversionFactor = Value(conversionFactor),
        tenantId = Value(tenantId);
   static Insertable<ProductUnitEntity> custom({
     Expression<int>? id,
+    Expression<String>? uuid,
     Expression<int>? productId,
     Expression<int>? unitId,
     Expression<double>? conversionFactor,
@@ -3345,6 +3532,7 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitEntity> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (uuid != null) 'uuid': uuid,
       if (productId != null) 'product_id': productId,
       if (unitId != null) 'unit_id': unitId,
       if (conversionFactor != null) 'conversion_factor': conversionFactor,
@@ -3361,6 +3549,7 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitEntity> {
 
   ProductUnitsCompanion copyWith({
     Value<int>? id,
+    Value<String>? uuid,
     Value<int>? productId,
     Value<int>? unitId,
     Value<double>? conversionFactor,
@@ -3375,6 +3564,7 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitEntity> {
   }) {
     return ProductUnitsCompanion(
       id: id ?? this.id,
+      uuid: uuid ?? this.uuid,
       productId: productId ?? this.productId,
       unitId: unitId ?? this.unitId,
       conversionFactor: conversionFactor ?? this.conversionFactor,
@@ -3394,6 +3584,9 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitEntity> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (uuid.present) {
+      map['uuid'] = Variable<String>(uuid.value);
     }
     if (productId.present) {
       map['product_id'] = Variable<int>(productId.value);
@@ -3435,6 +3628,7 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitEntity> {
   String toString() {
     return (StringBuffer('ProductUnitsCompanion(')
           ..write('id: $id, ')
+          ..write('uuid: $uuid, ')
           ..write('productId: $productId, ')
           ..write('unitId: $unitId, ')
           ..write('conversionFactor: $conversionFactor, ')
@@ -3502,6 +3696,15 @@ class $TenantsTable extends Tenants
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _phoneMeta = const VerificationMeta('phone');
+  @override
+  late final GeneratedColumn<String> phone = GeneratedColumn<String>(
+    'phone',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _businessNameMeta = const VerificationMeta(
     'businessName',
   );
@@ -3528,6 +3731,80 @@ class $TenantsTable extends Tenants
   @override
   late final GeneratedColumn<String> taxId = GeneratedColumn<String>(
     'tax_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _externalKeyMeta = const VerificationMeta(
+    'externalKey',
+  );
+  @override
+  late final GeneratedColumn<String> externalKey = GeneratedColumn<String>(
+    'external_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _slugMeta = const VerificationMeta('slug');
+  @override
+  late final GeneratedColumn<String> slug = GeneratedColumn<String>(
+    'slug',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('active'),
+  );
+  static const VerificationMeta _planMeta = const VerificationMeta('plan');
+  @override
+  late final GeneratedColumn<String> plan = GeneratedColumn<String>(
+    'plan',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('free'),
+  );
+  static const VerificationMeta _planExpiresAtMeta = const VerificationMeta(
+    'planExpiresAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> planExpiresAt =
+      GeneratedColumn<DateTime>(
+        'plan_expires_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _billingEmailMeta = const VerificationMeta(
+    'billingEmail',
+  );
+  @override
+  late final GeneratedColumn<String> billingEmail = GeneratedColumn<String>(
+    'billing_email',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _settingsMeta = const VerificationMeta(
+    'settings',
+  );
+  @override
+  late final GeneratedColumn<String> settings = GeneratedColumn<String>(
+    'settings',
     aliasedName,
     true,
     type: DriftSqlType.string,
@@ -3590,9 +3867,17 @@ class $TenantsTable extends Tenants
     uuid,
     name,
     email,
+    phone,
     businessName,
     businessAddress,
     taxId,
+    externalKey,
+    slug,
+    status,
+    plan,
+    planExpiresAt,
+    billingEmail,
+    settings,
     createdAt,
     updatedAt,
     syncStatus,
@@ -3635,6 +3920,12 @@ class $TenantsTable extends Tenants
         email.isAcceptableOrUnknown(data['email']!, _emailMeta),
       );
     }
+    if (data.containsKey('phone')) {
+      context.handle(
+        _phoneMeta,
+        phone.isAcceptableOrUnknown(data['phone']!, _phoneMeta),
+      );
+    }
     if (data.containsKey('business_name')) {
       context.handle(
         _businessNameMeta,
@@ -3657,6 +3948,57 @@ class $TenantsTable extends Tenants
       context.handle(
         _taxIdMeta,
         taxId.isAcceptableOrUnknown(data['tax_id']!, _taxIdMeta),
+      );
+    }
+    if (data.containsKey('external_key')) {
+      context.handle(
+        _externalKeyMeta,
+        externalKey.isAcceptableOrUnknown(
+          data['external_key']!,
+          _externalKeyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('slug')) {
+      context.handle(
+        _slugMeta,
+        slug.isAcceptableOrUnknown(data['slug']!, _slugMeta),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('plan')) {
+      context.handle(
+        _planMeta,
+        plan.isAcceptableOrUnknown(data['plan']!, _planMeta),
+      );
+    }
+    if (data.containsKey('plan_expires_at')) {
+      context.handle(
+        _planExpiresAtMeta,
+        planExpiresAt.isAcceptableOrUnknown(
+          data['plan_expires_at']!,
+          _planExpiresAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('billing_email')) {
+      context.handle(
+        _billingEmailMeta,
+        billingEmail.isAcceptableOrUnknown(
+          data['billing_email']!,
+          _billingEmailMeta,
+        ),
+      );
+    }
+    if (data.containsKey('settings')) {
+      context.handle(
+        _settingsMeta,
+        settings.isAcceptableOrUnknown(data['settings']!, _settingsMeta),
       );
     }
     if (data.containsKey('created_at')) {
@@ -3708,6 +4050,10 @@ class $TenantsTable extends Tenants
         DriftSqlType.string,
         data['${effectivePrefix}email'],
       ),
+      phone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}phone'],
+      ),
       businessName: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}business_name'],
@@ -3719,6 +4065,34 @@ class $TenantsTable extends Tenants
       taxId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}tax_id'],
+      ),
+      externalKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}external_key'],
+      ),
+      slug: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}slug'],
+      ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      plan: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plan'],
+      )!,
+      planExpiresAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}plan_expires_at'],
+      ),
+      billingEmail: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}billing_email'],
+      ),
+      settings: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}settings'],
       ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -3750,9 +4124,17 @@ class TenantEntity extends DataClass implements Insertable<TenantEntity> {
   final String uuid;
   final String name;
   final String? email;
+  final String? phone;
   final String? businessName;
   final String? businessAddress;
   final String? taxId;
+  final String? externalKey;
+  final String? slug;
+  final String status;
+  final String plan;
+  final DateTime? planExpiresAt;
+  final String? billingEmail;
+  final String? settings;
   final DateTime createdAt;
   final DateTime updatedAt;
   final int syncStatus;
@@ -3762,9 +4144,17 @@ class TenantEntity extends DataClass implements Insertable<TenantEntity> {
     required this.uuid,
     required this.name,
     this.email,
+    this.phone,
     this.businessName,
     this.businessAddress,
     this.taxId,
+    this.externalKey,
+    this.slug,
+    required this.status,
+    required this.plan,
+    this.planExpiresAt,
+    this.billingEmail,
+    this.settings,
     required this.createdAt,
     required this.updatedAt,
     required this.syncStatus,
@@ -3779,6 +4169,9 @@ class TenantEntity extends DataClass implements Insertable<TenantEntity> {
     if (!nullToAbsent || email != null) {
       map['email'] = Variable<String>(email);
     }
+    if (!nullToAbsent || phone != null) {
+      map['phone'] = Variable<String>(phone);
+    }
     if (!nullToAbsent || businessName != null) {
       map['business_name'] = Variable<String>(businessName);
     }
@@ -3787,6 +4180,23 @@ class TenantEntity extends DataClass implements Insertable<TenantEntity> {
     }
     if (!nullToAbsent || taxId != null) {
       map['tax_id'] = Variable<String>(taxId);
+    }
+    if (!nullToAbsent || externalKey != null) {
+      map['external_key'] = Variable<String>(externalKey);
+    }
+    if (!nullToAbsent || slug != null) {
+      map['slug'] = Variable<String>(slug);
+    }
+    map['status'] = Variable<String>(status);
+    map['plan'] = Variable<String>(plan);
+    if (!nullToAbsent || planExpiresAt != null) {
+      map['plan_expires_at'] = Variable<DateTime>(planExpiresAt);
+    }
+    if (!nullToAbsent || billingEmail != null) {
+      map['billing_email'] = Variable<String>(billingEmail);
+    }
+    if (!nullToAbsent || settings != null) {
+      map['settings'] = Variable<String>(settings);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -3803,6 +4213,9 @@ class TenantEntity extends DataClass implements Insertable<TenantEntity> {
       email: email == null && nullToAbsent
           ? const Value.absent()
           : Value(email),
+      phone: phone == null && nullToAbsent
+          ? const Value.absent()
+          : Value(phone),
       businessName: businessName == null && nullToAbsent
           ? const Value.absent()
           : Value(businessName),
@@ -3812,6 +4225,21 @@ class TenantEntity extends DataClass implements Insertable<TenantEntity> {
       taxId: taxId == null && nullToAbsent
           ? const Value.absent()
           : Value(taxId),
+      externalKey: externalKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(externalKey),
+      slug: slug == null && nullToAbsent ? const Value.absent() : Value(slug),
+      status: Value(status),
+      plan: Value(plan),
+      planExpiresAt: planExpiresAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(planExpiresAt),
+      billingEmail: billingEmail == null && nullToAbsent
+          ? const Value.absent()
+          : Value(billingEmail),
+      settings: settings == null && nullToAbsent
+          ? const Value.absent()
+          : Value(settings),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       syncStatus: Value(syncStatus),
@@ -3829,9 +4257,17 @@ class TenantEntity extends DataClass implements Insertable<TenantEntity> {
       uuid: serializer.fromJson<String>(json['uuid']),
       name: serializer.fromJson<String>(json['name']),
       email: serializer.fromJson<String?>(json['email']),
+      phone: serializer.fromJson<String?>(json['phone']),
       businessName: serializer.fromJson<String?>(json['businessName']),
       businessAddress: serializer.fromJson<String?>(json['businessAddress']),
       taxId: serializer.fromJson<String?>(json['taxId']),
+      externalKey: serializer.fromJson<String?>(json['externalKey']),
+      slug: serializer.fromJson<String?>(json['slug']),
+      status: serializer.fromJson<String>(json['status']),
+      plan: serializer.fromJson<String>(json['plan']),
+      planExpiresAt: serializer.fromJson<DateTime?>(json['planExpiresAt']),
+      billingEmail: serializer.fromJson<String?>(json['billingEmail']),
+      settings: serializer.fromJson<String?>(json['settings']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
@@ -3846,9 +4282,17 @@ class TenantEntity extends DataClass implements Insertable<TenantEntity> {
       'uuid': serializer.toJson<String>(uuid),
       'name': serializer.toJson<String>(name),
       'email': serializer.toJson<String?>(email),
+      'phone': serializer.toJson<String?>(phone),
       'businessName': serializer.toJson<String?>(businessName),
       'businessAddress': serializer.toJson<String?>(businessAddress),
       'taxId': serializer.toJson<String?>(taxId),
+      'externalKey': serializer.toJson<String?>(externalKey),
+      'slug': serializer.toJson<String?>(slug),
+      'status': serializer.toJson<String>(status),
+      'plan': serializer.toJson<String>(plan),
+      'planExpiresAt': serializer.toJson<DateTime?>(planExpiresAt),
+      'billingEmail': serializer.toJson<String?>(billingEmail),
+      'settings': serializer.toJson<String?>(settings),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'syncStatus': serializer.toJson<int>(syncStatus),
@@ -3861,9 +4305,17 @@ class TenantEntity extends DataClass implements Insertable<TenantEntity> {
     String? uuid,
     String? name,
     Value<String?> email = const Value.absent(),
+    Value<String?> phone = const Value.absent(),
     Value<String?> businessName = const Value.absent(),
     Value<String?> businessAddress = const Value.absent(),
     Value<String?> taxId = const Value.absent(),
+    Value<String?> externalKey = const Value.absent(),
+    Value<String?> slug = const Value.absent(),
+    String? status,
+    String? plan,
+    Value<DateTime?> planExpiresAt = const Value.absent(),
+    Value<String?> billingEmail = const Value.absent(),
+    Value<String?> settings = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
     int? syncStatus,
@@ -3873,11 +4325,21 @@ class TenantEntity extends DataClass implements Insertable<TenantEntity> {
     uuid: uuid ?? this.uuid,
     name: name ?? this.name,
     email: email.present ? email.value : this.email,
+    phone: phone.present ? phone.value : this.phone,
     businessName: businessName.present ? businessName.value : this.businessName,
     businessAddress: businessAddress.present
         ? businessAddress.value
         : this.businessAddress,
     taxId: taxId.present ? taxId.value : this.taxId,
+    externalKey: externalKey.present ? externalKey.value : this.externalKey,
+    slug: slug.present ? slug.value : this.slug,
+    status: status ?? this.status,
+    plan: plan ?? this.plan,
+    planExpiresAt: planExpiresAt.present
+        ? planExpiresAt.value
+        : this.planExpiresAt,
+    billingEmail: billingEmail.present ? billingEmail.value : this.billingEmail,
+    settings: settings.present ? settings.value : this.settings,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncStatus: syncStatus ?? this.syncStatus,
@@ -3889,6 +4351,7 @@ class TenantEntity extends DataClass implements Insertable<TenantEntity> {
       uuid: data.uuid.present ? data.uuid.value : this.uuid,
       name: data.name.present ? data.name.value : this.name,
       email: data.email.present ? data.email.value : this.email,
+      phone: data.phone.present ? data.phone.value : this.phone,
       businessName: data.businessName.present
           ? data.businessName.value
           : this.businessName,
@@ -3896,6 +4359,19 @@ class TenantEntity extends DataClass implements Insertable<TenantEntity> {
           ? data.businessAddress.value
           : this.businessAddress,
       taxId: data.taxId.present ? data.taxId.value : this.taxId,
+      externalKey: data.externalKey.present
+          ? data.externalKey.value
+          : this.externalKey,
+      slug: data.slug.present ? data.slug.value : this.slug,
+      status: data.status.present ? data.status.value : this.status,
+      plan: data.plan.present ? data.plan.value : this.plan,
+      planExpiresAt: data.planExpiresAt.present
+          ? data.planExpiresAt.value
+          : this.planExpiresAt,
+      billingEmail: data.billingEmail.present
+          ? data.billingEmail.value
+          : this.billingEmail,
+      settings: data.settings.present ? data.settings.value : this.settings,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       syncStatus: data.syncStatus.present
@@ -3912,9 +4388,17 @@ class TenantEntity extends DataClass implements Insertable<TenantEntity> {
           ..write('uuid: $uuid, ')
           ..write('name: $name, ')
           ..write('email: $email, ')
+          ..write('phone: $phone, ')
           ..write('businessName: $businessName, ')
           ..write('businessAddress: $businessAddress, ')
           ..write('taxId: $taxId, ')
+          ..write('externalKey: $externalKey, ')
+          ..write('slug: $slug, ')
+          ..write('status: $status, ')
+          ..write('plan: $plan, ')
+          ..write('planExpiresAt: $planExpiresAt, ')
+          ..write('billingEmail: $billingEmail, ')
+          ..write('settings: $settings, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
@@ -3929,9 +4413,17 @@ class TenantEntity extends DataClass implements Insertable<TenantEntity> {
     uuid,
     name,
     email,
+    phone,
     businessName,
     businessAddress,
     taxId,
+    externalKey,
+    slug,
+    status,
+    plan,
+    planExpiresAt,
+    billingEmail,
+    settings,
     createdAt,
     updatedAt,
     syncStatus,
@@ -3945,9 +4437,17 @@ class TenantEntity extends DataClass implements Insertable<TenantEntity> {
           other.uuid == this.uuid &&
           other.name == this.name &&
           other.email == this.email &&
+          other.phone == this.phone &&
           other.businessName == this.businessName &&
           other.businessAddress == this.businessAddress &&
           other.taxId == this.taxId &&
+          other.externalKey == this.externalKey &&
+          other.slug == this.slug &&
+          other.status == this.status &&
+          other.plan == this.plan &&
+          other.planExpiresAt == this.planExpiresAt &&
+          other.billingEmail == this.billingEmail &&
+          other.settings == this.settings &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.syncStatus == this.syncStatus &&
@@ -3959,9 +4459,17 @@ class TenantsCompanion extends UpdateCompanion<TenantEntity> {
   final Value<String> uuid;
   final Value<String> name;
   final Value<String?> email;
+  final Value<String?> phone;
   final Value<String?> businessName;
   final Value<String?> businessAddress;
   final Value<String?> taxId;
+  final Value<String?> externalKey;
+  final Value<String?> slug;
+  final Value<String> status;
+  final Value<String> plan;
+  final Value<DateTime?> planExpiresAt;
+  final Value<String?> billingEmail;
+  final Value<String?> settings;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> syncStatus;
@@ -3971,9 +4479,17 @@ class TenantsCompanion extends UpdateCompanion<TenantEntity> {
     this.uuid = const Value.absent(),
     this.name = const Value.absent(),
     this.email = const Value.absent(),
+    this.phone = const Value.absent(),
     this.businessName = const Value.absent(),
     this.businessAddress = const Value.absent(),
     this.taxId = const Value.absent(),
+    this.externalKey = const Value.absent(),
+    this.slug = const Value.absent(),
+    this.status = const Value.absent(),
+    this.plan = const Value.absent(),
+    this.planExpiresAt = const Value.absent(),
+    this.billingEmail = const Value.absent(),
+    this.settings = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -3984,9 +4500,17 @@ class TenantsCompanion extends UpdateCompanion<TenantEntity> {
     required String uuid,
     required String name,
     this.email = const Value.absent(),
+    this.phone = const Value.absent(),
     this.businessName = const Value.absent(),
     this.businessAddress = const Value.absent(),
     this.taxId = const Value.absent(),
+    this.externalKey = const Value.absent(),
+    this.slug = const Value.absent(),
+    this.status = const Value.absent(),
+    this.plan = const Value.absent(),
+    this.planExpiresAt = const Value.absent(),
+    this.billingEmail = const Value.absent(),
+    this.settings = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -3998,9 +4522,17 @@ class TenantsCompanion extends UpdateCompanion<TenantEntity> {
     Expression<String>? uuid,
     Expression<String>? name,
     Expression<String>? email,
+    Expression<String>? phone,
     Expression<String>? businessName,
     Expression<String>? businessAddress,
     Expression<String>? taxId,
+    Expression<String>? externalKey,
+    Expression<String>? slug,
+    Expression<String>? status,
+    Expression<String>? plan,
+    Expression<DateTime>? planExpiresAt,
+    Expression<String>? billingEmail,
+    Expression<String>? settings,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? syncStatus,
@@ -4011,9 +4543,17 @@ class TenantsCompanion extends UpdateCompanion<TenantEntity> {
       if (uuid != null) 'uuid': uuid,
       if (name != null) 'name': name,
       if (email != null) 'email': email,
+      if (phone != null) 'phone': phone,
       if (businessName != null) 'business_name': businessName,
       if (businessAddress != null) 'business_address': businessAddress,
       if (taxId != null) 'tax_id': taxId,
+      if (externalKey != null) 'external_key': externalKey,
+      if (slug != null) 'slug': slug,
+      if (status != null) 'status': status,
+      if (plan != null) 'plan': plan,
+      if (planExpiresAt != null) 'plan_expires_at': planExpiresAt,
+      if (billingEmail != null) 'billing_email': billingEmail,
+      if (settings != null) 'settings': settings,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
@@ -4026,9 +4566,17 @@ class TenantsCompanion extends UpdateCompanion<TenantEntity> {
     Value<String>? uuid,
     Value<String>? name,
     Value<String?>? email,
+    Value<String?>? phone,
     Value<String?>? businessName,
     Value<String?>? businessAddress,
     Value<String?>? taxId,
+    Value<String?>? externalKey,
+    Value<String?>? slug,
+    Value<String>? status,
+    Value<String>? plan,
+    Value<DateTime?>? planExpiresAt,
+    Value<String?>? billingEmail,
+    Value<String?>? settings,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? syncStatus,
@@ -4039,9 +4587,17 @@ class TenantsCompanion extends UpdateCompanion<TenantEntity> {
       uuid: uuid ?? this.uuid,
       name: name ?? this.name,
       email: email ?? this.email,
+      phone: phone ?? this.phone,
       businessName: businessName ?? this.businessName,
       businessAddress: businessAddress ?? this.businessAddress,
       taxId: taxId ?? this.taxId,
+      externalKey: externalKey ?? this.externalKey,
+      slug: slug ?? this.slug,
+      status: status ?? this.status,
+      plan: plan ?? this.plan,
+      planExpiresAt: planExpiresAt ?? this.planExpiresAt,
+      billingEmail: billingEmail ?? this.billingEmail,
+      settings: settings ?? this.settings,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       syncStatus: syncStatus ?? this.syncStatus,
@@ -4064,6 +4620,9 @@ class TenantsCompanion extends UpdateCompanion<TenantEntity> {
     if (email.present) {
       map['email'] = Variable<String>(email.value);
     }
+    if (phone.present) {
+      map['phone'] = Variable<String>(phone.value);
+    }
     if (businessName.present) {
       map['business_name'] = Variable<String>(businessName.value);
     }
@@ -4072,6 +4631,27 @@ class TenantsCompanion extends UpdateCompanion<TenantEntity> {
     }
     if (taxId.present) {
       map['tax_id'] = Variable<String>(taxId.value);
+    }
+    if (externalKey.present) {
+      map['external_key'] = Variable<String>(externalKey.value);
+    }
+    if (slug.present) {
+      map['slug'] = Variable<String>(slug.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (plan.present) {
+      map['plan'] = Variable<String>(plan.value);
+    }
+    if (planExpiresAt.present) {
+      map['plan_expires_at'] = Variable<DateTime>(planExpiresAt.value);
+    }
+    if (billingEmail.present) {
+      map['billing_email'] = Variable<String>(billingEmail.value);
+    }
+    if (settings.present) {
+      map['settings'] = Variable<String>(settings.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -4095,9 +4675,17 @@ class TenantsCompanion extends UpdateCompanion<TenantEntity> {
           ..write('uuid: $uuid, ')
           ..write('name: $name, ')
           ..write('email: $email, ')
+          ..write('phone: $phone, ')
           ..write('businessName: $businessName, ')
           ..write('businessAddress: $businessAddress, ')
           ..write('taxId: $taxId, ')
+          ..write('externalKey: $externalKey, ')
+          ..write('slug: $slug, ')
+          ..write('status: $status, ')
+          ..write('plan: $plan, ')
+          ..write('planExpiresAt: $planExpiresAt, ')
+          ..write('billingEmail: $billingEmail, ')
+          ..write('settings: $settings, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
@@ -5669,6 +6257,91 @@ class $EmployeesTable extends Employees
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _avatarUrlMeta = const VerificationMeta(
+    'avatarUrl',
+  );
+  @override
+  late final GeneratedColumn<String> avatarUrl = GeneratedColumn<String>(
+    'avatar_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isOwnerMeta = const VerificationMeta(
+    'isOwner',
+  );
+  @override
+  late final GeneratedColumn<bool> isOwner = GeneratedColumn<bool>(
+    'is_owner',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_owner" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isEmailVerifiedMeta = const VerificationMeta(
+    'isEmailVerified',
+  );
+  @override
+  late final GeneratedColumn<bool> isEmailVerified = GeneratedColumn<bool>(
+    'is_email_verified',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_email_verified" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _emailVerificationTokenMeta =
+      const VerificationMeta('emailVerificationToken');
+  @override
+  late final GeneratedColumn<String> emailVerificationToken =
+      GeneratedColumn<String>(
+        'email_verification_token',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _emailVerificationExpiresMeta =
+      const VerificationMeta('emailVerificationExpires');
+  @override
+  late final GeneratedColumn<DateTime> emailVerificationExpires =
+      GeneratedColumn<DateTime>(
+        'email_verification_expires',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _passwordResetTokenMeta =
+      const VerificationMeta('passwordResetToken');
+  @override
+  late final GeneratedColumn<String> passwordResetToken =
+      GeneratedColumn<String>(
+        'password_reset_token',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _passwordResetExpiresMeta =
+      const VerificationMeta('passwordResetExpires');
+  @override
+  late final GeneratedColumn<DateTime> passwordResetExpires =
+      GeneratedColumn<DateTime>(
+        'password_reset_expires',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _tenantIdMeta = const VerificationMeta(
     'tenantId',
   );
@@ -5744,6 +6417,13 @@ class $EmployeesTable extends Employees
     role,
     password,
     googleAuth,
+    avatarUrl,
+    isOwner,
+    isEmailVerified,
+    emailVerificationToken,
+    emailVerificationExpires,
+    passwordResetToken,
+    passwordResetExpires,
     tenantId,
     createdAt,
     updatedAt,
@@ -5827,6 +6507,63 @@ class $EmployeesTable extends Employees
       context.handle(
         _googleAuthMeta,
         googleAuth.isAcceptableOrUnknown(data['google_auth']!, _googleAuthMeta),
+      );
+    }
+    if (data.containsKey('avatar_url')) {
+      context.handle(
+        _avatarUrlMeta,
+        avatarUrl.isAcceptableOrUnknown(data['avatar_url']!, _avatarUrlMeta),
+      );
+    }
+    if (data.containsKey('is_owner')) {
+      context.handle(
+        _isOwnerMeta,
+        isOwner.isAcceptableOrUnknown(data['is_owner']!, _isOwnerMeta),
+      );
+    }
+    if (data.containsKey('is_email_verified')) {
+      context.handle(
+        _isEmailVerifiedMeta,
+        isEmailVerified.isAcceptableOrUnknown(
+          data['is_email_verified']!,
+          _isEmailVerifiedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('email_verification_token')) {
+      context.handle(
+        _emailVerificationTokenMeta,
+        emailVerificationToken.isAcceptableOrUnknown(
+          data['email_verification_token']!,
+          _emailVerificationTokenMeta,
+        ),
+      );
+    }
+    if (data.containsKey('email_verification_expires')) {
+      context.handle(
+        _emailVerificationExpiresMeta,
+        emailVerificationExpires.isAcceptableOrUnknown(
+          data['email_verification_expires']!,
+          _emailVerificationExpiresMeta,
+        ),
+      );
+    }
+    if (data.containsKey('password_reset_token')) {
+      context.handle(
+        _passwordResetTokenMeta,
+        passwordResetToken.isAcceptableOrUnknown(
+          data['password_reset_token']!,
+          _passwordResetTokenMeta,
+        ),
+      );
+    }
+    if (data.containsKey('password_reset_expires')) {
+      context.handle(
+        _passwordResetExpiresMeta,
+        passwordResetExpires.isAcceptableOrUnknown(
+          data['password_reset_expires']!,
+          _passwordResetExpiresMeta,
+        ),
       );
     }
     if (data.containsKey('tenant_id')) {
@@ -5914,6 +6651,34 @@ class $EmployeesTable extends Employees
         DriftSqlType.bool,
         data['${effectivePrefix}google_auth'],
       )!,
+      avatarUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}avatar_url'],
+      ),
+      isOwner: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_owner'],
+      )!,
+      isEmailVerified: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_email_verified'],
+      )!,
+      emailVerificationToken: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}email_verification_token'],
+      ),
+      emailVerificationExpires: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}email_verification_expires'],
+      ),
+      passwordResetToken: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}password_reset_token'],
+      ),
+      passwordResetExpires: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}password_reset_expires'],
+      ),
       tenantId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}tenant_id'],
@@ -5955,6 +6720,13 @@ class EmployeeEntity extends DataClass implements Insertable<EmployeeEntity> {
   final String role;
   final String? password;
   final bool googleAuth;
+  final String? avatarUrl;
+  final bool isOwner;
+  final bool isEmailVerified;
+  final String? emailVerificationToken;
+  final DateTime? emailVerificationExpires;
+  final String? passwordResetToken;
+  final DateTime? passwordResetExpires;
   final int tenantId;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -5972,6 +6744,13 @@ class EmployeeEntity extends DataClass implements Insertable<EmployeeEntity> {
     required this.role,
     this.password,
     required this.googleAuth,
+    this.avatarUrl,
+    required this.isOwner,
+    required this.isEmailVerified,
+    this.emailVerificationToken,
+    this.emailVerificationExpires,
+    this.passwordResetToken,
+    this.passwordResetExpires,
     required this.tenantId,
     required this.createdAt,
     required this.updatedAt,
@@ -6004,6 +6783,27 @@ class EmployeeEntity extends DataClass implements Insertable<EmployeeEntity> {
       map['password'] = Variable<String>(password);
     }
     map['google_auth'] = Variable<bool>(googleAuth);
+    if (!nullToAbsent || avatarUrl != null) {
+      map['avatar_url'] = Variable<String>(avatarUrl);
+    }
+    map['is_owner'] = Variable<bool>(isOwner);
+    map['is_email_verified'] = Variable<bool>(isEmailVerified);
+    if (!nullToAbsent || emailVerificationToken != null) {
+      map['email_verification_token'] = Variable<String>(
+        emailVerificationToken,
+      );
+    }
+    if (!nullToAbsent || emailVerificationExpires != null) {
+      map['email_verification_expires'] = Variable<DateTime>(
+        emailVerificationExpires,
+      );
+    }
+    if (!nullToAbsent || passwordResetToken != null) {
+      map['password_reset_token'] = Variable<String>(passwordResetToken);
+    }
+    if (!nullToAbsent || passwordResetExpires != null) {
+      map['password_reset_expires'] = Variable<DateTime>(passwordResetExpires);
+    }
     map['tenant_id'] = Variable<int>(tenantId);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -6037,6 +6837,23 @@ class EmployeeEntity extends DataClass implements Insertable<EmployeeEntity> {
           ? const Value.absent()
           : Value(password),
       googleAuth: Value(googleAuth),
+      avatarUrl: avatarUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(avatarUrl),
+      isOwner: Value(isOwner),
+      isEmailVerified: Value(isEmailVerified),
+      emailVerificationToken: emailVerificationToken == null && nullToAbsent
+          ? const Value.absent()
+          : Value(emailVerificationToken),
+      emailVerificationExpires: emailVerificationExpires == null && nullToAbsent
+          ? const Value.absent()
+          : Value(emailVerificationExpires),
+      passwordResetToken: passwordResetToken == null && nullToAbsent
+          ? const Value.absent()
+          : Value(passwordResetToken),
+      passwordResetExpires: passwordResetExpires == null && nullToAbsent
+          ? const Value.absent()
+          : Value(passwordResetExpires),
       tenantId: Value(tenantId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -6062,6 +6879,21 @@ class EmployeeEntity extends DataClass implements Insertable<EmployeeEntity> {
       role: serializer.fromJson<String>(json['role']),
       password: serializer.fromJson<String?>(json['password']),
       googleAuth: serializer.fromJson<bool>(json['googleAuth']),
+      avatarUrl: serializer.fromJson<String?>(json['avatarUrl']),
+      isOwner: serializer.fromJson<bool>(json['isOwner']),
+      isEmailVerified: serializer.fromJson<bool>(json['isEmailVerified']),
+      emailVerificationToken: serializer.fromJson<String?>(
+        json['emailVerificationToken'],
+      ),
+      emailVerificationExpires: serializer.fromJson<DateTime?>(
+        json['emailVerificationExpires'],
+      ),
+      passwordResetToken: serializer.fromJson<String?>(
+        json['passwordResetToken'],
+      ),
+      passwordResetExpires: serializer.fromJson<DateTime?>(
+        json['passwordResetExpires'],
+      ),
       tenantId: serializer.fromJson<int>(json['tenantId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -6084,6 +6916,19 @@ class EmployeeEntity extends DataClass implements Insertable<EmployeeEntity> {
       'role': serializer.toJson<String>(role),
       'password': serializer.toJson<String?>(password),
       'googleAuth': serializer.toJson<bool>(googleAuth),
+      'avatarUrl': serializer.toJson<String?>(avatarUrl),
+      'isOwner': serializer.toJson<bool>(isOwner),
+      'isEmailVerified': serializer.toJson<bool>(isEmailVerified),
+      'emailVerificationToken': serializer.toJson<String?>(
+        emailVerificationToken,
+      ),
+      'emailVerificationExpires': serializer.toJson<DateTime?>(
+        emailVerificationExpires,
+      ),
+      'passwordResetToken': serializer.toJson<String?>(passwordResetToken),
+      'passwordResetExpires': serializer.toJson<DateTime?>(
+        passwordResetExpires,
+      ),
       'tenantId': serializer.toJson<int>(tenantId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -6104,6 +6949,13 @@ class EmployeeEntity extends DataClass implements Insertable<EmployeeEntity> {
     String? role,
     Value<String?> password = const Value.absent(),
     bool? googleAuth,
+    Value<String?> avatarUrl = const Value.absent(),
+    bool? isOwner,
+    bool? isEmailVerified,
+    Value<String?> emailVerificationToken = const Value.absent(),
+    Value<DateTime?> emailVerificationExpires = const Value.absent(),
+    Value<String?> passwordResetToken = const Value.absent(),
+    Value<DateTime?> passwordResetExpires = const Value.absent(),
     int? tenantId,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -6121,6 +6973,21 @@ class EmployeeEntity extends DataClass implements Insertable<EmployeeEntity> {
     role: role ?? this.role,
     password: password.present ? password.value : this.password,
     googleAuth: googleAuth ?? this.googleAuth,
+    avatarUrl: avatarUrl.present ? avatarUrl.value : this.avatarUrl,
+    isOwner: isOwner ?? this.isOwner,
+    isEmailVerified: isEmailVerified ?? this.isEmailVerified,
+    emailVerificationToken: emailVerificationToken.present
+        ? emailVerificationToken.value
+        : this.emailVerificationToken,
+    emailVerificationExpires: emailVerificationExpires.present
+        ? emailVerificationExpires.value
+        : this.emailVerificationExpires,
+    passwordResetToken: passwordResetToken.present
+        ? passwordResetToken.value
+        : this.passwordResetToken,
+    passwordResetExpires: passwordResetExpires.present
+        ? passwordResetExpires.value
+        : this.passwordResetExpires,
     tenantId: tenantId ?? this.tenantId,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -6142,6 +7009,23 @@ class EmployeeEntity extends DataClass implements Insertable<EmployeeEntity> {
       googleAuth: data.googleAuth.present
           ? data.googleAuth.value
           : this.googleAuth,
+      avatarUrl: data.avatarUrl.present ? data.avatarUrl.value : this.avatarUrl,
+      isOwner: data.isOwner.present ? data.isOwner.value : this.isOwner,
+      isEmailVerified: data.isEmailVerified.present
+          ? data.isEmailVerified.value
+          : this.isEmailVerified,
+      emailVerificationToken: data.emailVerificationToken.present
+          ? data.emailVerificationToken.value
+          : this.emailVerificationToken,
+      emailVerificationExpires: data.emailVerificationExpires.present
+          ? data.emailVerificationExpires.value
+          : this.emailVerificationExpires,
+      passwordResetToken: data.passwordResetToken.present
+          ? data.passwordResetToken.value
+          : this.passwordResetToken,
+      passwordResetExpires: data.passwordResetExpires.present
+          ? data.passwordResetExpires.value
+          : this.passwordResetExpires,
       tenantId: data.tenantId.present ? data.tenantId.value : this.tenantId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -6166,6 +7050,13 @@ class EmployeeEntity extends DataClass implements Insertable<EmployeeEntity> {
           ..write('role: $role, ')
           ..write('password: $password, ')
           ..write('googleAuth: $googleAuth, ')
+          ..write('avatarUrl: $avatarUrl, ')
+          ..write('isOwner: $isOwner, ')
+          ..write('isEmailVerified: $isEmailVerified, ')
+          ..write('emailVerificationToken: $emailVerificationToken, ')
+          ..write('emailVerificationExpires: $emailVerificationExpires, ')
+          ..write('passwordResetToken: $passwordResetToken, ')
+          ..write('passwordResetExpires: $passwordResetExpires, ')
           ..write('tenantId: $tenantId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -6176,7 +7067,7 @@ class EmployeeEntity extends DataClass implements Insertable<EmployeeEntity> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     uuid,
     name,
@@ -6188,12 +7079,19 @@ class EmployeeEntity extends DataClass implements Insertable<EmployeeEntity> {
     role,
     password,
     googleAuth,
+    avatarUrl,
+    isOwner,
+    isEmailVerified,
+    emailVerificationToken,
+    emailVerificationExpires,
+    passwordResetToken,
+    passwordResetExpires,
     tenantId,
     createdAt,
     updatedAt,
     syncStatus,
     isDeleted,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6209,6 +7107,13 @@ class EmployeeEntity extends DataClass implements Insertable<EmployeeEntity> {
           other.role == this.role &&
           other.password == this.password &&
           other.googleAuth == this.googleAuth &&
+          other.avatarUrl == this.avatarUrl &&
+          other.isOwner == this.isOwner &&
+          other.isEmailVerified == this.isEmailVerified &&
+          other.emailVerificationToken == this.emailVerificationToken &&
+          other.emailVerificationExpires == this.emailVerificationExpires &&
+          other.passwordResetToken == this.passwordResetToken &&
+          other.passwordResetExpires == this.passwordResetExpires &&
           other.tenantId == this.tenantId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -6228,6 +7133,13 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeEntity> {
   final Value<String> role;
   final Value<String?> password;
   final Value<bool> googleAuth;
+  final Value<String?> avatarUrl;
+  final Value<bool> isOwner;
+  final Value<bool> isEmailVerified;
+  final Value<String?> emailVerificationToken;
+  final Value<DateTime?> emailVerificationExpires;
+  final Value<String?> passwordResetToken;
+  final Value<DateTime?> passwordResetExpires;
   final Value<int> tenantId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -6245,6 +7157,13 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeEntity> {
     this.role = const Value.absent(),
     this.password = const Value.absent(),
     this.googleAuth = const Value.absent(),
+    this.avatarUrl = const Value.absent(),
+    this.isOwner = const Value.absent(),
+    this.isEmailVerified = const Value.absent(),
+    this.emailVerificationToken = const Value.absent(),
+    this.emailVerificationExpires = const Value.absent(),
+    this.passwordResetToken = const Value.absent(),
+    this.passwordResetExpires = const Value.absent(),
     this.tenantId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -6263,6 +7182,13 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeEntity> {
     this.role = const Value.absent(),
     this.password = const Value.absent(),
     this.googleAuth = const Value.absent(),
+    this.avatarUrl = const Value.absent(),
+    this.isOwner = const Value.absent(),
+    this.isEmailVerified = const Value.absent(),
+    this.emailVerificationToken = const Value.absent(),
+    this.emailVerificationExpires = const Value.absent(),
+    this.passwordResetToken = const Value.absent(),
+    this.passwordResetExpires = const Value.absent(),
     required int tenantId,
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -6283,6 +7209,13 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeEntity> {
     Expression<String>? role,
     Expression<String>? password,
     Expression<bool>? googleAuth,
+    Expression<String>? avatarUrl,
+    Expression<bool>? isOwner,
+    Expression<bool>? isEmailVerified,
+    Expression<String>? emailVerificationToken,
+    Expression<DateTime>? emailVerificationExpires,
+    Expression<String>? passwordResetToken,
+    Expression<DateTime>? passwordResetExpires,
     Expression<int>? tenantId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -6301,6 +7234,17 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeEntity> {
       if (role != null) 'role': role,
       if (password != null) 'password': password,
       if (googleAuth != null) 'google_auth': googleAuth,
+      if (avatarUrl != null) 'avatar_url': avatarUrl,
+      if (isOwner != null) 'is_owner': isOwner,
+      if (isEmailVerified != null) 'is_email_verified': isEmailVerified,
+      if (emailVerificationToken != null)
+        'email_verification_token': emailVerificationToken,
+      if (emailVerificationExpires != null)
+        'email_verification_expires': emailVerificationExpires,
+      if (passwordResetToken != null)
+        'password_reset_token': passwordResetToken,
+      if (passwordResetExpires != null)
+        'password_reset_expires': passwordResetExpires,
       if (tenantId != null) 'tenant_id': tenantId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -6321,6 +7265,13 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeEntity> {
     Value<String>? role,
     Value<String?>? password,
     Value<bool>? googleAuth,
+    Value<String?>? avatarUrl,
+    Value<bool>? isOwner,
+    Value<bool>? isEmailVerified,
+    Value<String?>? emailVerificationToken,
+    Value<DateTime?>? emailVerificationExpires,
+    Value<String?>? passwordResetToken,
+    Value<DateTime?>? passwordResetExpires,
     Value<int>? tenantId,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -6339,6 +7290,15 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeEntity> {
       role: role ?? this.role,
       password: password ?? this.password,
       googleAuth: googleAuth ?? this.googleAuth,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      isOwner: isOwner ?? this.isOwner,
+      isEmailVerified: isEmailVerified ?? this.isEmailVerified,
+      emailVerificationToken:
+          emailVerificationToken ?? this.emailVerificationToken,
+      emailVerificationExpires:
+          emailVerificationExpires ?? this.emailVerificationExpires,
+      passwordResetToken: passwordResetToken ?? this.passwordResetToken,
+      passwordResetExpires: passwordResetExpires ?? this.passwordResetExpires,
       tenantId: tenantId ?? this.tenantId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -6383,6 +7343,33 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeEntity> {
     if (googleAuth.present) {
       map['google_auth'] = Variable<bool>(googleAuth.value);
     }
+    if (avatarUrl.present) {
+      map['avatar_url'] = Variable<String>(avatarUrl.value);
+    }
+    if (isOwner.present) {
+      map['is_owner'] = Variable<bool>(isOwner.value);
+    }
+    if (isEmailVerified.present) {
+      map['is_email_verified'] = Variable<bool>(isEmailVerified.value);
+    }
+    if (emailVerificationToken.present) {
+      map['email_verification_token'] = Variable<String>(
+        emailVerificationToken.value,
+      );
+    }
+    if (emailVerificationExpires.present) {
+      map['email_verification_expires'] = Variable<DateTime>(
+        emailVerificationExpires.value,
+      );
+    }
+    if (passwordResetToken.present) {
+      map['password_reset_token'] = Variable<String>(passwordResetToken.value);
+    }
+    if (passwordResetExpires.present) {
+      map['password_reset_expires'] = Variable<DateTime>(
+        passwordResetExpires.value,
+      );
+    }
     if (tenantId.present) {
       map['tenant_id'] = Variable<int>(tenantId.value);
     }
@@ -6415,6 +7402,13 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeEntity> {
           ..write('role: $role, ')
           ..write('password: $password, ')
           ..write('googleAuth: $googleAuth, ')
+          ..write('avatarUrl: $avatarUrl, ')
+          ..write('isOwner: $isOwner, ')
+          ..write('isEmailVerified: $isEmailVerified, ')
+          ..write('emailVerificationToken: $emailVerificationToken, ')
+          ..write('emailVerificationExpires: $emailVerificationExpires, ')
+          ..write('passwordResetToken: $passwordResetToken, ')
+          ..write('passwordResetExpires: $passwordResetExpires, ')
           ..write('tenantId: $tenantId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -6559,6 +7553,48 @@ class $InvoiceSettingsTable extends InvoiceSettings
     requiredDuringInsert: false,
     defaultValue: const Constant(80),
   );
+  static const VerificationMeta _bankNameMeta = const VerificationMeta(
+    'bankName',
+  );
+  @override
+  late final GeneratedColumn<String> bankName = GeneratedColumn<String>(
+    'bank_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _bankAccountNoMeta = const VerificationMeta(
+    'bankAccountNo',
+  );
+  @override
+  late final GeneratedColumn<String> bankAccountNo = GeneratedColumn<String>(
+    'bank_account_no',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _bankIfscMeta = const VerificationMeta(
+    'bankIfsc',
+  );
+  @override
+  late final GeneratedColumn<String> bankIfsc = GeneratedColumn<String>(
+    'bank_ifsc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _upiIdMeta = const VerificationMeta('upiId');
+  @override
+  late final GeneratedColumn<String> upiId = GeneratedColumn<String>(
+    'upi_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _showLogoMeta = const VerificationMeta(
     'showLogo',
   );
@@ -6633,6 +7669,36 @@ class $InvoiceSettingsTable extends InvoiceSettings
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _showBankDetailsMeta = const VerificationMeta(
+    'showBankDetails',
+  );
+  @override
+  late final GeneratedColumn<bool> showBankDetails = GeneratedColumn<bool>(
+    'show_bank_details',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("show_bank_details" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _showUpiQrMeta = const VerificationMeta(
+    'showUpiQr',
+  );
+  @override
+  late final GeneratedColumn<bool> showUpiQr = GeneratedColumn<bool>(
+    'show_upi_qr',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("show_upi_qr" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _tenantIdMeta = const VerificationMeta(
     'tenantId',
   );
@@ -6655,6 +7721,50 @@ class $InvoiceSettingsTable extends InvoiceSettings
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _taxLabelMeta = const VerificationMeta(
+    'taxLabel',
+  );
+  @override
+  late final GeneratedColumn<String> taxLabel = GeneratedColumn<String>(
+    'tax_label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _taxRateMeta = const VerificationMeta(
+    'taxRate',
+  );
+  @override
+  late final GeneratedColumn<double> taxRate = GeneratedColumn<double>(
+    'tax_rate',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _termsAndConditionsMeta =
+      const VerificationMeta('termsAndConditions');
+  @override
+  late final GeneratedColumn<String> termsAndConditions =
+      GeneratedColumn<String>(
+        'terms_and_conditions',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _authorizedSignatoryMeta =
+      const VerificationMeta('authorizedSignatory');
+  @override
+  late final GeneratedColumn<String> authorizedSignatory =
+      GeneratedColumn<String>(
+        'authorized_signatory',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _invoiceCounterMeta = const VerificationMeta(
     'invoiceCounter',
   );
@@ -6666,6 +7776,30 @@ class $InvoiceSettingsTable extends InvoiceSettings
     type: DriftSqlType.int,
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _invoicePrefixMeta = const VerificationMeta(
+    'invoicePrefix',
+  );
+  @override
+  late final GeneratedColumn<String> invoicePrefix = GeneratedColumn<String>(
+    'invoice_prefix',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('INV'),
+  );
+  static const VerificationMeta _deviceCodeMeta = const VerificationMeta(
+    'deviceCode',
+  );
+  @override
+  late final GeneratedColumn<String> deviceCode = GeneratedColumn<String>(
+    'device_code',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('A'),
   );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
@@ -6691,14 +7825,26 @@ class $InvoiceSettingsTable extends InvoiceSettings
     logoLocalPath,
     logoBytes,
     thermalWidth,
+    bankName,
+    bankAccountNo,
+    bankIfsc,
+    upiId,
     showLogo,
     showTaxBreakdown,
     showAddress,
     showCustomerDetails,
     showFooter,
+    showBankDetails,
+    showUpiQr,
     tenantId,
     customConfig,
+    taxLabel,
+    taxRate,
+    termsAndConditions,
+    authorizedSignatory,
     invoiceCounter,
+    invoicePrefix,
+    deviceCode,
     updatedAt,
   ];
   @override
@@ -6787,6 +7933,33 @@ class $InvoiceSettingsTable extends InvoiceSettings
         ),
       );
     }
+    if (data.containsKey('bank_name')) {
+      context.handle(
+        _bankNameMeta,
+        bankName.isAcceptableOrUnknown(data['bank_name']!, _bankNameMeta),
+      );
+    }
+    if (data.containsKey('bank_account_no')) {
+      context.handle(
+        _bankAccountNoMeta,
+        bankAccountNo.isAcceptableOrUnknown(
+          data['bank_account_no']!,
+          _bankAccountNoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('bank_ifsc')) {
+      context.handle(
+        _bankIfscMeta,
+        bankIfsc.isAcceptableOrUnknown(data['bank_ifsc']!, _bankIfscMeta),
+      );
+    }
+    if (data.containsKey('upi_id')) {
+      context.handle(
+        _upiIdMeta,
+        upiId.isAcceptableOrUnknown(data['upi_id']!, _upiIdMeta),
+      );
+    }
     if (data.containsKey('show_logo')) {
       context.handle(
         _showLogoMeta,
@@ -6826,6 +7999,21 @@ class $InvoiceSettingsTable extends InvoiceSettings
         showFooter.isAcceptableOrUnknown(data['show_footer']!, _showFooterMeta),
       );
     }
+    if (data.containsKey('show_bank_details')) {
+      context.handle(
+        _showBankDetailsMeta,
+        showBankDetails.isAcceptableOrUnknown(
+          data['show_bank_details']!,
+          _showBankDetailsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('show_upi_qr')) {
+      context.handle(
+        _showUpiQrMeta,
+        showUpiQr.isAcceptableOrUnknown(data['show_upi_qr']!, _showUpiQrMeta),
+      );
+    }
     if (data.containsKey('tenant_id')) {
       context.handle(
         _tenantIdMeta,
@@ -6841,6 +8029,36 @@ class $InvoiceSettingsTable extends InvoiceSettings
         ),
       );
     }
+    if (data.containsKey('tax_label')) {
+      context.handle(
+        _taxLabelMeta,
+        taxLabel.isAcceptableOrUnknown(data['tax_label']!, _taxLabelMeta),
+      );
+    }
+    if (data.containsKey('tax_rate')) {
+      context.handle(
+        _taxRateMeta,
+        taxRate.isAcceptableOrUnknown(data['tax_rate']!, _taxRateMeta),
+      );
+    }
+    if (data.containsKey('terms_and_conditions')) {
+      context.handle(
+        _termsAndConditionsMeta,
+        termsAndConditions.isAcceptableOrUnknown(
+          data['terms_and_conditions']!,
+          _termsAndConditionsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('authorized_signatory')) {
+      context.handle(
+        _authorizedSignatoryMeta,
+        authorizedSignatory.isAcceptableOrUnknown(
+          data['authorized_signatory']!,
+          _authorizedSignatoryMeta,
+        ),
+      );
+    }
     if (data.containsKey('invoice_counter')) {
       context.handle(
         _invoiceCounterMeta,
@@ -6848,6 +8066,21 @@ class $InvoiceSettingsTable extends InvoiceSettings
           data['invoice_counter']!,
           _invoiceCounterMeta,
         ),
+      );
+    }
+    if (data.containsKey('invoice_prefix')) {
+      context.handle(
+        _invoicePrefixMeta,
+        invoicePrefix.isAcceptableOrUnknown(
+          data['invoice_prefix']!,
+          _invoicePrefixMeta,
+        ),
+      );
+    }
+    if (data.containsKey('device_code')) {
+      context.handle(
+        _deviceCodeMeta,
+        deviceCode.isAcceptableOrUnknown(data['device_code']!, _deviceCodeMeta),
       );
     }
     if (data.containsKey('updated_at')) {
@@ -6905,6 +8138,22 @@ class $InvoiceSettingsTable extends InvoiceSettings
         DriftSqlType.int,
         data['${effectivePrefix}thermal_width'],
       )!,
+      bankName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}bank_name'],
+      ),
+      bankAccountNo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}bank_account_no'],
+      ),
+      bankIfsc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}bank_ifsc'],
+      ),
+      upiId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}upi_id'],
+      ),
       showLogo: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}show_logo'],
@@ -6925,6 +8174,14 @@ class $InvoiceSettingsTable extends InvoiceSettings
         DriftSqlType.bool,
         data['${effectivePrefix}show_footer'],
       )!,
+      showBankDetails: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}show_bank_details'],
+      )!,
+      showUpiQr: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}show_upi_qr'],
+      )!,
       tenantId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}tenant_id'],
@@ -6933,9 +8190,33 @@ class $InvoiceSettingsTable extends InvoiceSettings
         DriftSqlType.string,
         data['${effectivePrefix}custom_config'],
       ),
+      taxLabel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tax_label'],
+      ),
+      taxRate: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}tax_rate'],
+      ),
+      termsAndConditions: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}terms_and_conditions'],
+      ),
+      authorizedSignatory: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}authorized_signatory'],
+      ),
       invoiceCounter: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}invoice_counter'],
+      )!,
+      invoicePrefix: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}invoice_prefix'],
+      )!,
+      deviceCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_code'],
       )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -6962,14 +8243,26 @@ class InvoiceSettingEntity extends DataClass
   final String? logoLocalPath;
   final Uint8List? logoBytes;
   final int thermalWidth;
+  final String? bankName;
+  final String? bankAccountNo;
+  final String? bankIfsc;
+  final String? upiId;
   final bool showLogo;
   final bool showTaxBreakdown;
   final bool showAddress;
   final bool showCustomerDetails;
   final bool showFooter;
+  final bool showBankDetails;
+  final bool showUpiQr;
   final int? tenantId;
   final String? customConfig;
+  final String? taxLabel;
+  final double? taxRate;
+  final String? termsAndConditions;
+  final String? authorizedSignatory;
   final int invoiceCounter;
+  final String invoicePrefix;
+  final String deviceCode;
   final DateTime updatedAt;
   const InvoiceSettingEntity({
     required this.id,
@@ -6982,14 +8275,26 @@ class InvoiceSettingEntity extends DataClass
     this.logoLocalPath,
     this.logoBytes,
     required this.thermalWidth,
+    this.bankName,
+    this.bankAccountNo,
+    this.bankIfsc,
+    this.upiId,
     required this.showLogo,
     required this.showTaxBreakdown,
     required this.showAddress,
     required this.showCustomerDetails,
     required this.showFooter,
+    required this.showBankDetails,
+    required this.showUpiQr,
     this.tenantId,
     this.customConfig,
+    this.taxLabel,
+    this.taxRate,
+    this.termsAndConditions,
+    this.authorizedSignatory,
     required this.invoiceCounter,
+    required this.invoicePrefix,
+    required this.deviceCode,
     required this.updatedAt,
   });
   @override
@@ -7011,18 +8316,46 @@ class InvoiceSettingEntity extends DataClass
       map['logo_bytes'] = Variable<Uint8List>(logoBytes);
     }
     map['thermal_width'] = Variable<int>(thermalWidth);
+    if (!nullToAbsent || bankName != null) {
+      map['bank_name'] = Variable<String>(bankName);
+    }
+    if (!nullToAbsent || bankAccountNo != null) {
+      map['bank_account_no'] = Variable<String>(bankAccountNo);
+    }
+    if (!nullToAbsent || bankIfsc != null) {
+      map['bank_ifsc'] = Variable<String>(bankIfsc);
+    }
+    if (!nullToAbsent || upiId != null) {
+      map['upi_id'] = Variable<String>(upiId);
+    }
     map['show_logo'] = Variable<bool>(showLogo);
     map['show_tax_breakdown'] = Variable<bool>(showTaxBreakdown);
     map['show_address'] = Variable<bool>(showAddress);
     map['show_customer_details'] = Variable<bool>(showCustomerDetails);
     map['show_footer'] = Variable<bool>(showFooter);
+    map['show_bank_details'] = Variable<bool>(showBankDetails);
+    map['show_upi_qr'] = Variable<bool>(showUpiQr);
     if (!nullToAbsent || tenantId != null) {
       map['tenant_id'] = Variable<int>(tenantId);
     }
     if (!nullToAbsent || customConfig != null) {
       map['custom_config'] = Variable<String>(customConfig);
     }
+    if (!nullToAbsent || taxLabel != null) {
+      map['tax_label'] = Variable<String>(taxLabel);
+    }
+    if (!nullToAbsent || taxRate != null) {
+      map['tax_rate'] = Variable<double>(taxRate);
+    }
+    if (!nullToAbsent || termsAndConditions != null) {
+      map['terms_and_conditions'] = Variable<String>(termsAndConditions);
+    }
+    if (!nullToAbsent || authorizedSignatory != null) {
+      map['authorized_signatory'] = Variable<String>(authorizedSignatory);
+    }
     map['invoice_counter'] = Variable<int>(invoiceCounter);
+    map['invoice_prefix'] = Variable<String>(invoicePrefix);
+    map['device_code'] = Variable<String>(deviceCode);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
   }
@@ -7045,18 +8378,46 @@ class InvoiceSettingEntity extends DataClass
           ? const Value.absent()
           : Value(logoBytes),
       thermalWidth: Value(thermalWidth),
+      bankName: bankName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bankName),
+      bankAccountNo: bankAccountNo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bankAccountNo),
+      bankIfsc: bankIfsc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bankIfsc),
+      upiId: upiId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(upiId),
       showLogo: Value(showLogo),
       showTaxBreakdown: Value(showTaxBreakdown),
       showAddress: Value(showAddress),
       showCustomerDetails: Value(showCustomerDetails),
       showFooter: Value(showFooter),
+      showBankDetails: Value(showBankDetails),
+      showUpiQr: Value(showUpiQr),
       tenantId: tenantId == null && nullToAbsent
           ? const Value.absent()
           : Value(tenantId),
       customConfig: customConfig == null && nullToAbsent
           ? const Value.absent()
           : Value(customConfig),
+      taxLabel: taxLabel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(taxLabel),
+      taxRate: taxRate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(taxRate),
+      termsAndConditions: termsAndConditions == null && nullToAbsent
+          ? const Value.absent()
+          : Value(termsAndConditions),
+      authorizedSignatory: authorizedSignatory == null && nullToAbsent
+          ? const Value.absent()
+          : Value(authorizedSignatory),
       invoiceCounter: Value(invoiceCounter),
+      invoicePrefix: Value(invoicePrefix),
+      deviceCode: Value(deviceCode),
       updatedAt: Value(updatedAt),
     );
   }
@@ -7079,6 +8440,10 @@ class InvoiceSettingEntity extends DataClass
       logoLocalPath: serializer.fromJson<String?>(json['logoLocalPath']),
       logoBytes: serializer.fromJson<Uint8List?>(json['logoBytes']),
       thermalWidth: serializer.fromJson<int>(json['thermalWidth']),
+      bankName: serializer.fromJson<String?>(json['bankName']),
+      bankAccountNo: serializer.fromJson<String?>(json['bankAccountNo']),
+      bankIfsc: serializer.fromJson<String?>(json['bankIfsc']),
+      upiId: serializer.fromJson<String?>(json['upiId']),
       showLogo: serializer.fromJson<bool>(json['showLogo']),
       showTaxBreakdown: serializer.fromJson<bool>(json['showTaxBreakdown']),
       showAddress: serializer.fromJson<bool>(json['showAddress']),
@@ -7086,9 +8451,21 @@ class InvoiceSettingEntity extends DataClass
         json['showCustomerDetails'],
       ),
       showFooter: serializer.fromJson<bool>(json['showFooter']),
+      showBankDetails: serializer.fromJson<bool>(json['showBankDetails']),
+      showUpiQr: serializer.fromJson<bool>(json['showUpiQr']),
       tenantId: serializer.fromJson<int?>(json['tenantId']),
       customConfig: serializer.fromJson<String?>(json['customConfig']),
+      taxLabel: serializer.fromJson<String?>(json['taxLabel']),
+      taxRate: serializer.fromJson<double?>(json['taxRate']),
+      termsAndConditions: serializer.fromJson<String?>(
+        json['termsAndConditions'],
+      ),
+      authorizedSignatory: serializer.fromJson<String?>(
+        json['authorizedSignatory'],
+      ),
       invoiceCounter: serializer.fromJson<int>(json['invoiceCounter']),
+      invoicePrefix: serializer.fromJson<String>(json['invoicePrefix']),
+      deviceCode: serializer.fromJson<String>(json['deviceCode']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
   }
@@ -7106,14 +8483,26 @@ class InvoiceSettingEntity extends DataClass
       'logoLocalPath': serializer.toJson<String?>(logoLocalPath),
       'logoBytes': serializer.toJson<Uint8List?>(logoBytes),
       'thermalWidth': serializer.toJson<int>(thermalWidth),
+      'bankName': serializer.toJson<String?>(bankName),
+      'bankAccountNo': serializer.toJson<String?>(bankAccountNo),
+      'bankIfsc': serializer.toJson<String?>(bankIfsc),
+      'upiId': serializer.toJson<String?>(upiId),
       'showLogo': serializer.toJson<bool>(showLogo),
       'showTaxBreakdown': serializer.toJson<bool>(showTaxBreakdown),
       'showAddress': serializer.toJson<bool>(showAddress),
       'showCustomerDetails': serializer.toJson<bool>(showCustomerDetails),
       'showFooter': serializer.toJson<bool>(showFooter),
+      'showBankDetails': serializer.toJson<bool>(showBankDetails),
+      'showUpiQr': serializer.toJson<bool>(showUpiQr),
       'tenantId': serializer.toJson<int?>(tenantId),
       'customConfig': serializer.toJson<String?>(customConfig),
+      'taxLabel': serializer.toJson<String?>(taxLabel),
+      'taxRate': serializer.toJson<double?>(taxRate),
+      'termsAndConditions': serializer.toJson<String?>(termsAndConditions),
+      'authorizedSignatory': serializer.toJson<String?>(authorizedSignatory),
       'invoiceCounter': serializer.toJson<int>(invoiceCounter),
+      'invoicePrefix': serializer.toJson<String>(invoicePrefix),
+      'deviceCode': serializer.toJson<String>(deviceCode),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
@@ -7129,14 +8518,26 @@ class InvoiceSettingEntity extends DataClass
     Value<String?> logoLocalPath = const Value.absent(),
     Value<Uint8List?> logoBytes = const Value.absent(),
     int? thermalWidth,
+    Value<String?> bankName = const Value.absent(),
+    Value<String?> bankAccountNo = const Value.absent(),
+    Value<String?> bankIfsc = const Value.absent(),
+    Value<String?> upiId = const Value.absent(),
     bool? showLogo,
     bool? showTaxBreakdown,
     bool? showAddress,
     bool? showCustomerDetails,
     bool? showFooter,
+    bool? showBankDetails,
+    bool? showUpiQr,
     Value<int?> tenantId = const Value.absent(),
     Value<String?> customConfig = const Value.absent(),
+    Value<String?> taxLabel = const Value.absent(),
+    Value<double?> taxRate = const Value.absent(),
+    Value<String?> termsAndConditions = const Value.absent(),
+    Value<String?> authorizedSignatory = const Value.absent(),
     int? invoiceCounter,
+    String? invoicePrefix,
+    String? deviceCode,
     DateTime? updatedAt,
   }) => InvoiceSettingEntity(
     id: id ?? this.id,
@@ -7151,14 +8552,32 @@ class InvoiceSettingEntity extends DataClass
         : this.logoLocalPath,
     logoBytes: logoBytes.present ? logoBytes.value : this.logoBytes,
     thermalWidth: thermalWidth ?? this.thermalWidth,
+    bankName: bankName.present ? bankName.value : this.bankName,
+    bankAccountNo: bankAccountNo.present
+        ? bankAccountNo.value
+        : this.bankAccountNo,
+    bankIfsc: bankIfsc.present ? bankIfsc.value : this.bankIfsc,
+    upiId: upiId.present ? upiId.value : this.upiId,
     showLogo: showLogo ?? this.showLogo,
     showTaxBreakdown: showTaxBreakdown ?? this.showTaxBreakdown,
     showAddress: showAddress ?? this.showAddress,
     showCustomerDetails: showCustomerDetails ?? this.showCustomerDetails,
     showFooter: showFooter ?? this.showFooter,
+    showBankDetails: showBankDetails ?? this.showBankDetails,
+    showUpiQr: showUpiQr ?? this.showUpiQr,
     tenantId: tenantId.present ? tenantId.value : this.tenantId,
     customConfig: customConfig.present ? customConfig.value : this.customConfig,
+    taxLabel: taxLabel.present ? taxLabel.value : this.taxLabel,
+    taxRate: taxRate.present ? taxRate.value : this.taxRate,
+    termsAndConditions: termsAndConditions.present
+        ? termsAndConditions.value
+        : this.termsAndConditions,
+    authorizedSignatory: authorizedSignatory.present
+        ? authorizedSignatory.value
+        : this.authorizedSignatory,
     invoiceCounter: invoiceCounter ?? this.invoiceCounter,
+    invoicePrefix: invoicePrefix ?? this.invoicePrefix,
+    deviceCode: deviceCode ?? this.deviceCode,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   InvoiceSettingEntity copyWithCompanion(InvoiceSettingsCompanion data) {
@@ -7185,6 +8604,12 @@ class InvoiceSettingEntity extends DataClass
       thermalWidth: data.thermalWidth.present
           ? data.thermalWidth.value
           : this.thermalWidth,
+      bankName: data.bankName.present ? data.bankName.value : this.bankName,
+      bankAccountNo: data.bankAccountNo.present
+          ? data.bankAccountNo.value
+          : this.bankAccountNo,
+      bankIfsc: data.bankIfsc.present ? data.bankIfsc.value : this.bankIfsc,
+      upiId: data.upiId.present ? data.upiId.value : this.upiId,
       showLogo: data.showLogo.present ? data.showLogo.value : this.showLogo,
       showTaxBreakdown: data.showTaxBreakdown.present
           ? data.showTaxBreakdown.value
@@ -7198,13 +8623,31 @@ class InvoiceSettingEntity extends DataClass
       showFooter: data.showFooter.present
           ? data.showFooter.value
           : this.showFooter,
+      showBankDetails: data.showBankDetails.present
+          ? data.showBankDetails.value
+          : this.showBankDetails,
+      showUpiQr: data.showUpiQr.present ? data.showUpiQr.value : this.showUpiQr,
       tenantId: data.tenantId.present ? data.tenantId.value : this.tenantId,
       customConfig: data.customConfig.present
           ? data.customConfig.value
           : this.customConfig,
+      taxLabel: data.taxLabel.present ? data.taxLabel.value : this.taxLabel,
+      taxRate: data.taxRate.present ? data.taxRate.value : this.taxRate,
+      termsAndConditions: data.termsAndConditions.present
+          ? data.termsAndConditions.value
+          : this.termsAndConditions,
+      authorizedSignatory: data.authorizedSignatory.present
+          ? data.authorizedSignatory.value
+          : this.authorizedSignatory,
       invoiceCounter: data.invoiceCounter.present
           ? data.invoiceCounter.value
           : this.invoiceCounter,
+      invoicePrefix: data.invoicePrefix.present
+          ? data.invoicePrefix.value
+          : this.invoicePrefix,
+      deviceCode: data.deviceCode.present
+          ? data.deviceCode.value
+          : this.deviceCode,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -7222,21 +8665,33 @@ class InvoiceSettingEntity extends DataClass
           ..write('logoLocalPath: $logoLocalPath, ')
           ..write('logoBytes: $logoBytes, ')
           ..write('thermalWidth: $thermalWidth, ')
+          ..write('bankName: $bankName, ')
+          ..write('bankAccountNo: $bankAccountNo, ')
+          ..write('bankIfsc: $bankIfsc, ')
+          ..write('upiId: $upiId, ')
           ..write('showLogo: $showLogo, ')
           ..write('showTaxBreakdown: $showTaxBreakdown, ')
           ..write('showAddress: $showAddress, ')
           ..write('showCustomerDetails: $showCustomerDetails, ')
           ..write('showFooter: $showFooter, ')
+          ..write('showBankDetails: $showBankDetails, ')
+          ..write('showUpiQr: $showUpiQr, ')
           ..write('tenantId: $tenantId, ')
           ..write('customConfig: $customConfig, ')
+          ..write('taxLabel: $taxLabel, ')
+          ..write('taxRate: $taxRate, ')
+          ..write('termsAndConditions: $termsAndConditions, ')
+          ..write('authorizedSignatory: $authorizedSignatory, ')
           ..write('invoiceCounter: $invoiceCounter, ')
+          ..write('invoicePrefix: $invoicePrefix, ')
+          ..write('deviceCode: $deviceCode, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     layout,
     footerMessage,
@@ -7247,16 +8702,28 @@ class InvoiceSettingEntity extends DataClass
     logoLocalPath,
     $driftBlobEquality.hash(logoBytes),
     thermalWidth,
+    bankName,
+    bankAccountNo,
+    bankIfsc,
+    upiId,
     showLogo,
     showTaxBreakdown,
     showAddress,
     showCustomerDetails,
     showFooter,
+    showBankDetails,
+    showUpiQr,
     tenantId,
     customConfig,
+    taxLabel,
+    taxRate,
+    termsAndConditions,
+    authorizedSignatory,
     invoiceCounter,
+    invoicePrefix,
+    deviceCode,
     updatedAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -7271,14 +8738,26 @@ class InvoiceSettingEntity extends DataClass
           other.logoLocalPath == this.logoLocalPath &&
           $driftBlobEquality.equals(other.logoBytes, this.logoBytes) &&
           other.thermalWidth == this.thermalWidth &&
+          other.bankName == this.bankName &&
+          other.bankAccountNo == this.bankAccountNo &&
+          other.bankIfsc == this.bankIfsc &&
+          other.upiId == this.upiId &&
           other.showLogo == this.showLogo &&
           other.showTaxBreakdown == this.showTaxBreakdown &&
           other.showAddress == this.showAddress &&
           other.showCustomerDetails == this.showCustomerDetails &&
           other.showFooter == this.showFooter &&
+          other.showBankDetails == this.showBankDetails &&
+          other.showUpiQr == this.showUpiQr &&
           other.tenantId == this.tenantId &&
           other.customConfig == this.customConfig &&
+          other.taxLabel == this.taxLabel &&
+          other.taxRate == this.taxRate &&
+          other.termsAndConditions == this.termsAndConditions &&
+          other.authorizedSignatory == this.authorizedSignatory &&
           other.invoiceCounter == this.invoiceCounter &&
+          other.invoicePrefix == this.invoicePrefix &&
+          other.deviceCode == this.deviceCode &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -7293,14 +8772,26 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
   final Value<String?> logoLocalPath;
   final Value<Uint8List?> logoBytes;
   final Value<int> thermalWidth;
+  final Value<String?> bankName;
+  final Value<String?> bankAccountNo;
+  final Value<String?> bankIfsc;
+  final Value<String?> upiId;
   final Value<bool> showLogo;
   final Value<bool> showTaxBreakdown;
   final Value<bool> showAddress;
   final Value<bool> showCustomerDetails;
   final Value<bool> showFooter;
+  final Value<bool> showBankDetails;
+  final Value<bool> showUpiQr;
   final Value<int?> tenantId;
   final Value<String?> customConfig;
+  final Value<String?> taxLabel;
+  final Value<double?> taxRate;
+  final Value<String?> termsAndConditions;
+  final Value<String?> authorizedSignatory;
   final Value<int> invoiceCounter;
+  final Value<String> invoicePrefix;
+  final Value<String> deviceCode;
   final Value<DateTime> updatedAt;
   const InvoiceSettingsCompanion({
     this.id = const Value.absent(),
@@ -7313,14 +8804,26 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
     this.logoLocalPath = const Value.absent(),
     this.logoBytes = const Value.absent(),
     this.thermalWidth = const Value.absent(),
+    this.bankName = const Value.absent(),
+    this.bankAccountNo = const Value.absent(),
+    this.bankIfsc = const Value.absent(),
+    this.upiId = const Value.absent(),
     this.showLogo = const Value.absent(),
     this.showTaxBreakdown = const Value.absent(),
     this.showAddress = const Value.absent(),
     this.showCustomerDetails = const Value.absent(),
     this.showFooter = const Value.absent(),
+    this.showBankDetails = const Value.absent(),
+    this.showUpiQr = const Value.absent(),
     this.tenantId = const Value.absent(),
     this.customConfig = const Value.absent(),
+    this.taxLabel = const Value.absent(),
+    this.taxRate = const Value.absent(),
+    this.termsAndConditions = const Value.absent(),
+    this.authorizedSignatory = const Value.absent(),
     this.invoiceCounter = const Value.absent(),
+    this.invoicePrefix = const Value.absent(),
+    this.deviceCode = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
   InvoiceSettingsCompanion.insert({
@@ -7334,14 +8837,26 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
     this.logoLocalPath = const Value.absent(),
     this.logoBytes = const Value.absent(),
     this.thermalWidth = const Value.absent(),
+    this.bankName = const Value.absent(),
+    this.bankAccountNo = const Value.absent(),
+    this.bankIfsc = const Value.absent(),
+    this.upiId = const Value.absent(),
     this.showLogo = const Value.absent(),
     this.showTaxBreakdown = const Value.absent(),
     this.showAddress = const Value.absent(),
     this.showCustomerDetails = const Value.absent(),
     this.showFooter = const Value.absent(),
+    this.showBankDetails = const Value.absent(),
+    this.showUpiQr = const Value.absent(),
     this.tenantId = const Value.absent(),
     this.customConfig = const Value.absent(),
+    this.taxLabel = const Value.absent(),
+    this.taxRate = const Value.absent(),
+    this.termsAndConditions = const Value.absent(),
+    this.authorizedSignatory = const Value.absent(),
     this.invoiceCounter = const Value.absent(),
+    this.invoicePrefix = const Value.absent(),
+    this.deviceCode = const Value.absent(),
     this.updatedAt = const Value.absent(),
   }) : layout = Value(layout);
   static Insertable<InvoiceSettingEntity> custom({
@@ -7355,14 +8870,26 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
     Expression<String>? logoLocalPath,
     Expression<Uint8List>? logoBytes,
     Expression<int>? thermalWidth,
+    Expression<String>? bankName,
+    Expression<String>? bankAccountNo,
+    Expression<String>? bankIfsc,
+    Expression<String>? upiId,
     Expression<bool>? showLogo,
     Expression<bool>? showTaxBreakdown,
     Expression<bool>? showAddress,
     Expression<bool>? showCustomerDetails,
     Expression<bool>? showFooter,
+    Expression<bool>? showBankDetails,
+    Expression<bool>? showUpiQr,
     Expression<int>? tenantId,
     Expression<String>? customConfig,
+    Expression<String>? taxLabel,
+    Expression<double>? taxRate,
+    Expression<String>? termsAndConditions,
+    Expression<String>? authorizedSignatory,
     Expression<int>? invoiceCounter,
+    Expression<String>? invoicePrefix,
+    Expression<String>? deviceCode,
     Expression<DateTime>? updatedAt,
   }) {
     return RawValuesInsertable({
@@ -7377,15 +8904,29 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
       if (logoLocalPath != null) 'logo_local_path': logoLocalPath,
       if (logoBytes != null) 'logo_bytes': logoBytes,
       if (thermalWidth != null) 'thermal_width': thermalWidth,
+      if (bankName != null) 'bank_name': bankName,
+      if (bankAccountNo != null) 'bank_account_no': bankAccountNo,
+      if (bankIfsc != null) 'bank_ifsc': bankIfsc,
+      if (upiId != null) 'upi_id': upiId,
       if (showLogo != null) 'show_logo': showLogo,
       if (showTaxBreakdown != null) 'show_tax_breakdown': showTaxBreakdown,
       if (showAddress != null) 'show_address': showAddress,
       if (showCustomerDetails != null)
         'show_customer_details': showCustomerDetails,
       if (showFooter != null) 'show_footer': showFooter,
+      if (showBankDetails != null) 'show_bank_details': showBankDetails,
+      if (showUpiQr != null) 'show_upi_qr': showUpiQr,
       if (tenantId != null) 'tenant_id': tenantId,
       if (customConfig != null) 'custom_config': customConfig,
+      if (taxLabel != null) 'tax_label': taxLabel,
+      if (taxRate != null) 'tax_rate': taxRate,
+      if (termsAndConditions != null)
+        'terms_and_conditions': termsAndConditions,
+      if (authorizedSignatory != null)
+        'authorized_signatory': authorizedSignatory,
       if (invoiceCounter != null) 'invoice_counter': invoiceCounter,
+      if (invoicePrefix != null) 'invoice_prefix': invoicePrefix,
+      if (deviceCode != null) 'device_code': deviceCode,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
   }
@@ -7401,14 +8942,26 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
     Value<String?>? logoLocalPath,
     Value<Uint8List?>? logoBytes,
     Value<int>? thermalWidth,
+    Value<String?>? bankName,
+    Value<String?>? bankAccountNo,
+    Value<String?>? bankIfsc,
+    Value<String?>? upiId,
     Value<bool>? showLogo,
     Value<bool>? showTaxBreakdown,
     Value<bool>? showAddress,
     Value<bool>? showCustomerDetails,
     Value<bool>? showFooter,
+    Value<bool>? showBankDetails,
+    Value<bool>? showUpiQr,
     Value<int?>? tenantId,
     Value<String?>? customConfig,
+    Value<String?>? taxLabel,
+    Value<double?>? taxRate,
+    Value<String?>? termsAndConditions,
+    Value<String?>? authorizedSignatory,
     Value<int>? invoiceCounter,
+    Value<String>? invoicePrefix,
+    Value<String>? deviceCode,
     Value<DateTime>? updatedAt,
   }) {
     return InvoiceSettingsCompanion(
@@ -7422,14 +8975,26 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
       logoLocalPath: logoLocalPath ?? this.logoLocalPath,
       logoBytes: logoBytes ?? this.logoBytes,
       thermalWidth: thermalWidth ?? this.thermalWidth,
+      bankName: bankName ?? this.bankName,
+      bankAccountNo: bankAccountNo ?? this.bankAccountNo,
+      bankIfsc: bankIfsc ?? this.bankIfsc,
+      upiId: upiId ?? this.upiId,
       showLogo: showLogo ?? this.showLogo,
       showTaxBreakdown: showTaxBreakdown ?? this.showTaxBreakdown,
       showAddress: showAddress ?? this.showAddress,
       showCustomerDetails: showCustomerDetails ?? this.showCustomerDetails,
       showFooter: showFooter ?? this.showFooter,
+      showBankDetails: showBankDetails ?? this.showBankDetails,
+      showUpiQr: showUpiQr ?? this.showUpiQr,
       tenantId: tenantId ?? this.tenantId,
       customConfig: customConfig ?? this.customConfig,
+      taxLabel: taxLabel ?? this.taxLabel,
+      taxRate: taxRate ?? this.taxRate,
+      termsAndConditions: termsAndConditions ?? this.termsAndConditions,
+      authorizedSignatory: authorizedSignatory ?? this.authorizedSignatory,
       invoiceCounter: invoiceCounter ?? this.invoiceCounter,
+      invoicePrefix: invoicePrefix ?? this.invoicePrefix,
+      deviceCode: deviceCode ?? this.deviceCode,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
@@ -7467,6 +9032,18 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
     if (thermalWidth.present) {
       map['thermal_width'] = Variable<int>(thermalWidth.value);
     }
+    if (bankName.present) {
+      map['bank_name'] = Variable<String>(bankName.value);
+    }
+    if (bankAccountNo.present) {
+      map['bank_account_no'] = Variable<String>(bankAccountNo.value);
+    }
+    if (bankIfsc.present) {
+      map['bank_ifsc'] = Variable<String>(bankIfsc.value);
+    }
+    if (upiId.present) {
+      map['upi_id'] = Variable<String>(upiId.value);
+    }
     if (showLogo.present) {
       map['show_logo'] = Variable<bool>(showLogo.value);
     }
@@ -7482,14 +9059,38 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
     if (showFooter.present) {
       map['show_footer'] = Variable<bool>(showFooter.value);
     }
+    if (showBankDetails.present) {
+      map['show_bank_details'] = Variable<bool>(showBankDetails.value);
+    }
+    if (showUpiQr.present) {
+      map['show_upi_qr'] = Variable<bool>(showUpiQr.value);
+    }
     if (tenantId.present) {
       map['tenant_id'] = Variable<int>(tenantId.value);
     }
     if (customConfig.present) {
       map['custom_config'] = Variable<String>(customConfig.value);
     }
+    if (taxLabel.present) {
+      map['tax_label'] = Variable<String>(taxLabel.value);
+    }
+    if (taxRate.present) {
+      map['tax_rate'] = Variable<double>(taxRate.value);
+    }
+    if (termsAndConditions.present) {
+      map['terms_and_conditions'] = Variable<String>(termsAndConditions.value);
+    }
+    if (authorizedSignatory.present) {
+      map['authorized_signatory'] = Variable<String>(authorizedSignatory.value);
+    }
     if (invoiceCounter.present) {
       map['invoice_counter'] = Variable<int>(invoiceCounter.value);
+    }
+    if (invoicePrefix.present) {
+      map['invoice_prefix'] = Variable<String>(invoicePrefix.value);
+    }
+    if (deviceCode.present) {
+      map['device_code'] = Variable<String>(deviceCode.value);
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
@@ -7510,14 +9111,26 @@ class InvoiceSettingsCompanion extends UpdateCompanion<InvoiceSettingEntity> {
           ..write('logoLocalPath: $logoLocalPath, ')
           ..write('logoBytes: $logoBytes, ')
           ..write('thermalWidth: $thermalWidth, ')
+          ..write('bankName: $bankName, ')
+          ..write('bankAccountNo: $bankAccountNo, ')
+          ..write('bankIfsc: $bankIfsc, ')
+          ..write('upiId: $upiId, ')
           ..write('showLogo: $showLogo, ')
           ..write('showTaxBreakdown: $showTaxBreakdown, ')
           ..write('showAddress: $showAddress, ')
           ..write('showCustomerDetails: $showCustomerDetails, ')
           ..write('showFooter: $showFooter, ')
+          ..write('showBankDetails: $showBankDetails, ')
+          ..write('showUpiQr: $showUpiQr, ')
           ..write('tenantId: $tenantId, ')
           ..write('customConfig: $customConfig, ')
+          ..write('taxLabel: $taxLabel, ')
+          ..write('taxRate: $taxRate, ')
+          ..write('termsAndConditions: $termsAndConditions, ')
+          ..write('authorizedSignatory: $authorizedSignatory, ')
           ..write('invoiceCounter: $invoiceCounter, ')
+          ..write('invoicePrefix: $invoicePrefix, ')
+          ..write('deviceCode: $deviceCode, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -7635,6 +9248,18 @@ class $InvoicesTable extends Invoices
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
+  );
+  static const VerificationMeta _paymentStatusMeta = const VerificationMeta(
+    'paymentStatus',
+  );
+  @override
+  late final GeneratedColumn<String> paymentStatus = GeneratedColumn<String>(
+    'payment_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('PENDING'),
   );
   static const VerificationMeta _signUrlMeta = const VerificationMeta(
     'signUrl',
@@ -7788,6 +9413,7 @@ class $InvoicesTable extends Invoices
     discount,
     total,
     paymentMethod,
+    paymentStatus,
     signUrl,
     tenantId,
     createdAt,
@@ -7888,6 +9514,15 @@ class $InvoicesTable extends Invoices
         ),
       );
     }
+    if (data.containsKey('payment_status')) {
+      context.handle(
+        _paymentStatusMeta,
+        paymentStatus.isAcceptableOrUnknown(
+          data['payment_status']!,
+          _paymentStatusMeta,
+        ),
+      );
+    }
     if (data.containsKey('sign_url')) {
       context.handle(
         _signUrlMeta,
@@ -7977,6 +9612,10 @@ class $InvoicesTable extends Invoices
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {invoiceNumber, tenantId},
+  ];
+  @override
   InvoiceEntity map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return InvoiceEntity(
@@ -8020,6 +9659,10 @@ class $InvoicesTable extends Invoices
         DriftSqlType.string,
         data['${effectivePrefix}payment_method'],
       ),
+      paymentStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payment_status'],
+      )!,
       signUrl: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}sign_url'],
@@ -8088,6 +9731,7 @@ class InvoiceEntity extends DataClass implements Insertable<InvoiceEntity> {
   final double discount;
   final double total;
   final String? paymentMethod;
+  final String paymentStatus;
   final String? signUrl;
   final int tenantId;
   final DateTime createdAt;
@@ -8111,6 +9755,7 @@ class InvoiceEntity extends DataClass implements Insertable<InvoiceEntity> {
     required this.discount,
     required this.total,
     this.paymentMethod,
+    required this.paymentStatus,
     this.signUrl,
     required this.tenantId,
     required this.createdAt,
@@ -8141,6 +9786,7 @@ class InvoiceEntity extends DataClass implements Insertable<InvoiceEntity> {
     if (!nullToAbsent || paymentMethod != null) {
       map['payment_method'] = Variable<String>(paymentMethod);
     }
+    map['payment_status'] = Variable<String>(paymentStatus);
     if (!nullToAbsent || signUrl != null) {
       map['sign_url'] = Variable<String>(signUrl);
     }
@@ -8184,6 +9830,7 @@ class InvoiceEntity extends DataClass implements Insertable<InvoiceEntity> {
       paymentMethod: paymentMethod == null && nullToAbsent
           ? const Value.absent()
           : Value(paymentMethod),
+      paymentStatus: Value(paymentStatus),
       signUrl: signUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(signUrl),
@@ -8227,6 +9874,7 @@ class InvoiceEntity extends DataClass implements Insertable<InvoiceEntity> {
       discount: serializer.fromJson<double>(json['discount']),
       total: serializer.fromJson<double>(json['total']),
       paymentMethod: serializer.fromJson<String?>(json['paymentMethod']),
+      paymentStatus: serializer.fromJson<String>(json['paymentStatus']),
       signUrl: serializer.fromJson<String?>(json['signUrl']),
       tenantId: serializer.fromJson<int>(json['tenantId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -8255,6 +9903,7 @@ class InvoiceEntity extends DataClass implements Insertable<InvoiceEntity> {
       'discount': serializer.toJson<double>(discount),
       'total': serializer.toJson<double>(total),
       'paymentMethod': serializer.toJson<String?>(paymentMethod),
+      'paymentStatus': serializer.toJson<String>(paymentStatus),
       'signUrl': serializer.toJson<String?>(signUrl),
       'tenantId': serializer.toJson<int>(tenantId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -8281,6 +9930,7 @@ class InvoiceEntity extends DataClass implements Insertable<InvoiceEntity> {
     double? discount,
     double? total,
     Value<String?> paymentMethod = const Value.absent(),
+    String? paymentStatus,
     Value<String?> signUrl = const Value.absent(),
     int? tenantId,
     DateTime? createdAt,
@@ -8306,6 +9956,7 @@ class InvoiceEntity extends DataClass implements Insertable<InvoiceEntity> {
     paymentMethod: paymentMethod.present
         ? paymentMethod.value
         : this.paymentMethod,
+    paymentStatus: paymentStatus ?? this.paymentStatus,
     signUrl: signUrl.present ? signUrl.value : this.signUrl,
     tenantId: tenantId ?? this.tenantId,
     createdAt: createdAt ?? this.createdAt,
@@ -8341,6 +9992,9 @@ class InvoiceEntity extends DataClass implements Insertable<InvoiceEntity> {
       paymentMethod: data.paymentMethod.present
           ? data.paymentMethod.value
           : this.paymentMethod,
+      paymentStatus: data.paymentStatus.present
+          ? data.paymentStatus.value
+          : this.paymentStatus,
       signUrl: data.signUrl.present ? data.signUrl.value : this.signUrl,
       tenantId: data.tenantId.present ? data.tenantId.value : this.tenantId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -8377,6 +10031,7 @@ class InvoiceEntity extends DataClass implements Insertable<InvoiceEntity> {
           ..write('discount: $discount, ')
           ..write('total: $total, ')
           ..write('paymentMethod: $paymentMethod, ')
+          ..write('paymentStatus: $paymentStatus, ')
           ..write('signUrl: $signUrl, ')
           ..write('tenantId: $tenantId, ')
           ..write('createdAt: $createdAt, ')
@@ -8405,6 +10060,7 @@ class InvoiceEntity extends DataClass implements Insertable<InvoiceEntity> {
     discount,
     total,
     paymentMethod,
+    paymentStatus,
     signUrl,
     tenantId,
     createdAt,
@@ -8432,6 +10088,7 @@ class InvoiceEntity extends DataClass implements Insertable<InvoiceEntity> {
           other.discount == this.discount &&
           other.total == this.total &&
           other.paymentMethod == this.paymentMethod &&
+          other.paymentStatus == this.paymentStatus &&
           other.signUrl == this.signUrl &&
           other.tenantId == this.tenantId &&
           other.createdAt == this.createdAt &&
@@ -8457,6 +10114,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceEntity> {
   final Value<double> discount;
   final Value<double> total;
   final Value<String?> paymentMethod;
+  final Value<String> paymentStatus;
   final Value<String?> signUrl;
   final Value<int> tenantId;
   final Value<DateTime> createdAt;
@@ -8480,6 +10138,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceEntity> {
     this.discount = const Value.absent(),
     this.total = const Value.absent(),
     this.paymentMethod = const Value.absent(),
+    this.paymentStatus = const Value.absent(),
     this.signUrl = const Value.absent(),
     this.tenantId = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -8504,6 +10163,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceEntity> {
     this.discount = const Value.absent(),
     required double total,
     this.paymentMethod = const Value.absent(),
+    this.paymentStatus = const Value.absent(),
     this.signUrl = const Value.absent(),
     required int tenantId,
     this.createdAt = const Value.absent(),
@@ -8534,6 +10194,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceEntity> {
     Expression<double>? discount,
     Expression<double>? total,
     Expression<String>? paymentMethod,
+    Expression<String>? paymentStatus,
     Expression<String>? signUrl,
     Expression<int>? tenantId,
     Expression<DateTime>? createdAt,
@@ -8558,6 +10219,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceEntity> {
       if (discount != null) 'discount': discount,
       if (total != null) 'total': total,
       if (paymentMethod != null) 'payment_method': paymentMethod,
+      if (paymentStatus != null) 'payment_status': paymentStatus,
       if (signUrl != null) 'sign_url': signUrl,
       if (tenantId != null) 'tenant_id': tenantId,
       if (createdAt != null) 'created_at': createdAt,
@@ -8584,6 +10246,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceEntity> {
     Value<double>? discount,
     Value<double>? total,
     Value<String?>? paymentMethod,
+    Value<String>? paymentStatus,
     Value<String?>? signUrl,
     Value<int>? tenantId,
     Value<DateTime>? createdAt,
@@ -8608,6 +10271,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceEntity> {
       discount: discount ?? this.discount,
       total: total ?? this.total,
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
       signUrl: signUrl ?? this.signUrl,
       tenantId: tenantId ?? this.tenantId,
       createdAt: createdAt ?? this.createdAt,
@@ -8655,6 +10319,9 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceEntity> {
     }
     if (paymentMethod.present) {
       map['payment_method'] = Variable<String>(paymentMethod.value);
+    }
+    if (paymentStatus.present) {
+      map['payment_status'] = Variable<String>(paymentStatus.value);
     }
     if (signUrl.present) {
       map['sign_url'] = Variable<String>(signUrl.value);
@@ -8708,6 +10375,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceEntity> {
           ..write('discount: $discount, ')
           ..write('total: $total, ')
           ..write('paymentMethod: $paymentMethod, ')
+          ..write('paymentStatus: $paymentStatus, ')
           ..write('signUrl: $signUrl, ')
           ..write('tenantId: $tenantId, ')
           ..write('createdAt: $createdAt, ')
@@ -9661,6 +11329,17 @@ class $BrandsTable extends Brands with TableInfo<$BrandsTable, BrandEntity> {
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _syncStatusMeta = const VerificationMeta(
     'syncStatus',
   );
@@ -9698,6 +11377,7 @@ class $BrandsTable extends Brands with TableInfo<$BrandsTable, BrandEntity> {
     tenantId,
     createdAt,
     updatedAt,
+    deletedAt,
     syncStatus,
     isDeleted,
   ];
@@ -9767,6 +11447,12 @@ class $BrandsTable extends Brands with TableInfo<$BrandsTable, BrandEntity> {
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     if (data.containsKey('sync_status')) {
       context.handle(
         _syncStatusMeta,
@@ -9820,6 +11506,10 @@ class $BrandsTable extends Brands with TableInfo<$BrandsTable, BrandEntity> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
       syncStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sync_status'],
@@ -9846,6 +11536,7 @@ class BrandEntity extends DataClass implements Insertable<BrandEntity> {
   final int tenantId;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? deletedAt;
   final int syncStatus;
   final bool isDeleted;
   const BrandEntity({
@@ -9857,6 +11548,7 @@ class BrandEntity extends DataClass implements Insertable<BrandEntity> {
     required this.tenantId,
     required this.createdAt,
     required this.updatedAt,
+    this.deletedAt,
     required this.syncStatus,
     required this.isDeleted,
   });
@@ -9873,6 +11565,9 @@ class BrandEntity extends DataClass implements Insertable<BrandEntity> {
     map['tenant_id'] = Variable<int>(tenantId);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
     map['sync_status'] = Variable<int>(syncStatus);
     map['is_deleted'] = Variable<bool>(isDeleted);
     return map;
@@ -9890,6 +11585,9 @@ class BrandEntity extends DataClass implements Insertable<BrandEntity> {
       tenantId: Value(tenantId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
       syncStatus: Value(syncStatus),
       isDeleted: Value(isDeleted),
     );
@@ -9909,6 +11607,7 @@ class BrandEntity extends DataClass implements Insertable<BrandEntity> {
       tenantId: serializer.fromJson<int>(json['tenantId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
     );
@@ -9925,6 +11624,7 @@ class BrandEntity extends DataClass implements Insertable<BrandEntity> {
       'tenantId': serializer.toJson<int>(tenantId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'syncStatus': serializer.toJson<int>(syncStatus),
       'isDeleted': serializer.toJson<bool>(isDeleted),
     };
@@ -9939,6 +11639,7 @@ class BrandEntity extends DataClass implements Insertable<BrandEntity> {
     int? tenantId,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
     int? syncStatus,
     bool? isDeleted,
   }) => BrandEntity(
@@ -9950,6 +11651,7 @@ class BrandEntity extends DataClass implements Insertable<BrandEntity> {
     tenantId: tenantId ?? this.tenantId,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     syncStatus: syncStatus ?? this.syncStatus,
     isDeleted: isDeleted ?? this.isDeleted,
   );
@@ -9965,6 +11667,7 @@ class BrandEntity extends DataClass implements Insertable<BrandEntity> {
       tenantId: data.tenantId.present ? data.tenantId.value : this.tenantId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
@@ -9983,6 +11686,7 @@ class BrandEntity extends DataClass implements Insertable<BrandEntity> {
           ..write('tenantId: $tenantId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('isDeleted: $isDeleted')
           ..write(')'))
@@ -9999,6 +11703,7 @@ class BrandEntity extends DataClass implements Insertable<BrandEntity> {
     tenantId,
     createdAt,
     updatedAt,
+    deletedAt,
     syncStatus,
     isDeleted,
   );
@@ -10014,6 +11719,7 @@ class BrandEntity extends DataClass implements Insertable<BrandEntity> {
           other.tenantId == this.tenantId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
           other.syncStatus == this.syncStatus &&
           other.isDeleted == this.isDeleted);
 }
@@ -10027,6 +11733,7 @@ class BrandsCompanion extends UpdateCompanion<BrandEntity> {
   final Value<int> tenantId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
   final Value<int> syncStatus;
   final Value<bool> isDeleted;
   const BrandsCompanion({
@@ -10038,6 +11745,7 @@ class BrandsCompanion extends UpdateCompanion<BrandEntity> {
     this.tenantId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.isDeleted = const Value.absent(),
   });
@@ -10050,6 +11758,7 @@ class BrandsCompanion extends UpdateCompanion<BrandEntity> {
     required int tenantId,
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.isDeleted = const Value.absent(),
   }) : uuid = Value(uuid),
@@ -10064,6 +11773,7 @@ class BrandsCompanion extends UpdateCompanion<BrandEntity> {
     Expression<int>? tenantId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
     Expression<int>? syncStatus,
     Expression<bool>? isDeleted,
   }) {
@@ -10076,6 +11786,7 @@ class BrandsCompanion extends UpdateCompanion<BrandEntity> {
       if (tenantId != null) 'tenant_id': tenantId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (isDeleted != null) 'is_deleted': isDeleted,
     });
@@ -10090,6 +11801,7 @@ class BrandsCompanion extends UpdateCompanion<BrandEntity> {
     Value<int>? tenantId,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
     Value<int>? syncStatus,
     Value<bool>? isDeleted,
   }) {
@@ -10102,6 +11814,7 @@ class BrandsCompanion extends UpdateCompanion<BrandEntity> {
       tenantId: tenantId ?? this.tenantId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
       syncStatus: syncStatus ?? this.syncStatus,
       isDeleted: isDeleted ?? this.isDeleted,
     );
@@ -10134,6 +11847,9 @@ class BrandsCompanion extends UpdateCompanion<BrandEntity> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     if (syncStatus.present) {
       map['sync_status'] = Variable<int>(syncStatus.value);
     }
@@ -10154,6 +11870,7 @@ class BrandsCompanion extends UpdateCompanion<BrandEntity> {
           ..write('tenantId: $tenantId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('isDeleted: $isDeleted')
           ..write(')'))
@@ -20561,6 +22278,7 @@ typedef $$ProductsTableCreateCompanionBuilder =
       Value<String?> description,
       Value<double> discount,
       Value<bool> isPercentDiscount,
+      Value<DateTime?> deletedAt,
       Value<int> syncStatus,
       Value<bool> isDeleted,
     });
@@ -20592,6 +22310,7 @@ typedef $$ProductsTableUpdateCompanionBuilder =
       Value<String?> description,
       Value<double> discount,
       Value<bool> isPercentDiscount,
+      Value<DateTime?> deletedAt,
       Value<int> syncStatus,
       Value<bool> isDeleted,
     });
@@ -20783,6 +22502,11 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<bool> get isPercentDiscount => $composableBuilder(
     column: $table.isPercentDiscount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -20986,6 +22710,11 @@ class $$ProductsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => ColumnOrderings(column),
@@ -21095,6 +22824,9 @@ class $$ProductsTableAnnotationComposer
     column: $table.isPercentDiscount,
     builder: (column) => column,
   );
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
   GeneratedColumn<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
@@ -21213,6 +22945,7 @@ class $$ProductsTableTableManager
                 Value<String?> description = const Value.absent(),
                 Value<double> discount = const Value.absent(),
                 Value<bool> isPercentDiscount = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
               }) => ProductsCompanion(
@@ -21242,6 +22975,7 @@ class $$ProductsTableTableManager
                 description: description,
                 discount: discount,
                 isPercentDiscount: isPercentDiscount,
+                deletedAt: deletedAt,
                 syncStatus: syncStatus,
                 isDeleted: isDeleted,
               ),
@@ -21273,6 +23007,7 @@ class $$ProductsTableTableManager
                 Value<String?> description = const Value.absent(),
                 Value<double> discount = const Value.absent(),
                 Value<bool> isPercentDiscount = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
               }) => ProductsCompanion.insert(
@@ -21302,6 +23037,7 @@ class $$ProductsTableTableManager
                 description: description,
                 discount: discount,
                 isPercentDiscount: isPercentDiscount,
+                deletedAt: deletedAt,
                 syncStatus: syncStatus,
                 isDeleted: isDeleted,
               ),
@@ -21402,6 +23138,7 @@ typedef $$CategoriesTableCreateCompanionBuilder =
       required int tenantId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
       Value<int> syncStatus,
       Value<bool> isDeleted,
     });
@@ -21416,6 +23153,7 @@ typedef $$CategoriesTableUpdateCompanionBuilder =
       Value<int> tenantId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
       Value<int> syncStatus,
       Value<bool> isDeleted,
     });
@@ -21471,6 +23209,11 @@ class $$CategoriesTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -21539,6 +23282,11 @@ class $$CategoriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => ColumnOrderings(column),
@@ -21590,6 +23338,9 @@ class $$CategoriesTableAnnotationComposer
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
   GeneratedColumn<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => column,
@@ -21639,6 +23390,7 @@ class $$CategoriesTableTableManager
                 Value<int> tenantId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
               }) => CategoriesCompanion(
@@ -21651,6 +23403,7 @@ class $$CategoriesTableTableManager
                 tenantId: tenantId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                deletedAt: deletedAt,
                 syncStatus: syncStatus,
                 isDeleted: isDeleted,
               ),
@@ -21665,6 +23418,7 @@ class $$CategoriesTableTableManager
                 required int tenantId,
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
               }) => CategoriesCompanion.insert(
@@ -21677,6 +23431,7 @@ class $$CategoriesTableTableManager
                 tenantId: tenantId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                deletedAt: deletedAt,
                 syncStatus: syncStatus,
                 isDeleted: isDeleted,
               ),
@@ -21715,6 +23470,7 @@ typedef $$UnitsTableCreateCompanionBuilder =
       required int tenantId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
       Value<int> syncStatus,
       Value<bool> isDeleted,
     });
@@ -21728,6 +23484,7 @@ typedef $$UnitsTableUpdateCompanionBuilder =
       Value<int> tenantId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
       Value<int> syncStatus,
       Value<bool> isDeleted,
     });
@@ -21828,6 +23585,11 @@ class $$UnitsTableFilterComposer extends Composer<_$AppDatabase, $UnitsTable> {
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -21941,6 +23703,11 @@ class $$UnitsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => ColumnOrderings(column),
@@ -21984,6 +23751,9 @@ class $$UnitsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
   GeneratedColumn<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
@@ -22084,6 +23854,7 @@ class $$UnitsTableTableManager
                 Value<int> tenantId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
               }) => UnitsCompanion(
@@ -22095,6 +23866,7 @@ class $$UnitsTableTableManager
                 tenantId: tenantId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                deletedAt: deletedAt,
                 syncStatus: syncStatus,
                 isDeleted: isDeleted,
               ),
@@ -22108,6 +23880,7 @@ class $$UnitsTableTableManager
                 required int tenantId,
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
               }) => UnitsCompanion.insert(
@@ -22119,6 +23892,7 @@ class $$UnitsTableTableManager
                 tenantId: tenantId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                deletedAt: deletedAt,
                 syncStatus: syncStatus,
                 isDeleted: isDeleted,
               ),
@@ -22209,6 +23983,7 @@ typedef $$UnitsTableProcessedTableManager =
 typedef $$ProductUnitsTableCreateCompanionBuilder =
     ProductUnitsCompanion Function({
       Value<int> id,
+      required String uuid,
       required int productId,
       required int unitId,
       required double conversionFactor,
@@ -22224,6 +23999,7 @@ typedef $$ProductUnitsTableCreateCompanionBuilder =
 typedef $$ProductUnitsTableUpdateCompanionBuilder =
     ProductUnitsCompanion Function({
       Value<int> id,
+      Value<String> uuid,
       Value<int> productId,
       Value<int> unitId,
       Value<double> conversionFactor,
@@ -22291,6 +24067,11 @@ class $$ProductUnitsTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get uuid => $composableBuilder(
+    column: $table.uuid,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -22400,6 +24181,11 @@ class $$ProductUnitsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get conversionFactor => $composableBuilder(
     column: $table.conversionFactor,
     builder: (column) => ColumnOrderings(column),
@@ -22503,6 +24289,9 @@ class $$ProductUnitsTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uuid =>
+      $composableBuilder(column: $table.uuid, builder: (column) => column);
 
   GeneratedColumn<double> get conversionFactor => $composableBuilder(
     column: $table.conversionFactor,
@@ -22613,6 +24402,7 @@ class $$ProductUnitsTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String> uuid = const Value.absent(),
                 Value<int> productId = const Value.absent(),
                 Value<int> unitId = const Value.absent(),
                 Value<double> conversionFactor = const Value.absent(),
@@ -22626,6 +24416,7 @@ class $$ProductUnitsTableTableManager
                 Value<bool> isDeleted = const Value.absent(),
               }) => ProductUnitsCompanion(
                 id: id,
+                uuid: uuid,
                 productId: productId,
                 unitId: unitId,
                 conversionFactor: conversionFactor,
@@ -22641,6 +24432,7 @@ class $$ProductUnitsTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                required String uuid,
                 required int productId,
                 required int unitId,
                 required double conversionFactor,
@@ -22654,6 +24446,7 @@ class $$ProductUnitsTableTableManager
                 Value<bool> isDeleted = const Value.absent(),
               }) => ProductUnitsCompanion.insert(
                 id: id,
+                uuid: uuid,
                 productId: productId,
                 unitId: unitId,
                 conversionFactor: conversionFactor,
@@ -22752,9 +24545,17 @@ typedef $$TenantsTableCreateCompanionBuilder =
       required String uuid,
       required String name,
       Value<String?> email,
+      Value<String?> phone,
       Value<String?> businessName,
       Value<String?> businessAddress,
       Value<String?> taxId,
+      Value<String?> externalKey,
+      Value<String?> slug,
+      Value<String> status,
+      Value<String> plan,
+      Value<DateTime?> planExpiresAt,
+      Value<String?> billingEmail,
+      Value<String?> settings,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> syncStatus,
@@ -22766,9 +24567,17 @@ typedef $$TenantsTableUpdateCompanionBuilder =
       Value<String> uuid,
       Value<String> name,
       Value<String?> email,
+      Value<String?> phone,
       Value<String?> businessName,
       Value<String?> businessAddress,
       Value<String?> taxId,
+      Value<String?> externalKey,
+      Value<String?> slug,
+      Value<String> status,
+      Value<String> plan,
+      Value<DateTime?> planExpiresAt,
+      Value<String?> billingEmail,
+      Value<String?> settings,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> syncStatus,
@@ -22804,6 +24613,11 @@ class $$TenantsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get phone => $composableBuilder(
+    column: $table.phone,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get businessName => $composableBuilder(
     column: $table.businessName,
     builder: (column) => ColumnFilters(column),
@@ -22816,6 +24630,41 @@ class $$TenantsTableFilterComposer
 
   ColumnFilters<String> get taxId => $composableBuilder(
     column: $table.taxId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get externalKey => $composableBuilder(
+    column: $table.externalKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get slug => $composableBuilder(
+    column: $table.slug,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get plan => $composableBuilder(
+    column: $table.plan,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get planExpiresAt => $composableBuilder(
+    column: $table.planExpiresAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get billingEmail => $composableBuilder(
+    column: $table.billingEmail,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get settings => $composableBuilder(
+    column: $table.settings,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -22869,6 +24718,11 @@ class $$TenantsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get phone => $composableBuilder(
+    column: $table.phone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get businessName => $composableBuilder(
     column: $table.businessName,
     builder: (column) => ColumnOrderings(column),
@@ -22881,6 +24735,41 @@ class $$TenantsTableOrderingComposer
 
   ColumnOrderings<String> get taxId => $composableBuilder(
     column: $table.taxId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get externalKey => $composableBuilder(
+    column: $table.externalKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get slug => $composableBuilder(
+    column: $table.slug,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get plan => $composableBuilder(
+    column: $table.plan,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get planExpiresAt => $composableBuilder(
+    column: $table.planExpiresAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get billingEmail => $composableBuilder(
+    column: $table.billingEmail,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get settings => $composableBuilder(
+    column: $table.settings,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -22926,6 +24815,9 @@ class $$TenantsTableAnnotationComposer
   GeneratedColumn<String> get email =>
       $composableBuilder(column: $table.email, builder: (column) => column);
 
+  GeneratedColumn<String> get phone =>
+      $composableBuilder(column: $table.phone, builder: (column) => column);
+
   GeneratedColumn<String> get businessName => $composableBuilder(
     column: $table.businessName,
     builder: (column) => column,
@@ -22938,6 +24830,33 @@ class $$TenantsTableAnnotationComposer
 
   GeneratedColumn<String> get taxId =>
       $composableBuilder(column: $table.taxId, builder: (column) => column);
+
+  GeneratedColumn<String> get externalKey => $composableBuilder(
+    column: $table.externalKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get slug =>
+      $composableBuilder(column: $table.slug, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get plan =>
+      $composableBuilder(column: $table.plan, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get planExpiresAt => $composableBuilder(
+    column: $table.planExpiresAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get billingEmail => $composableBuilder(
+    column: $table.billingEmail,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get settings =>
+      $composableBuilder(column: $table.settings, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -22989,9 +24908,17 @@ class $$TenantsTableTableManager
                 Value<String> uuid = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> email = const Value.absent(),
+                Value<String?> phone = const Value.absent(),
                 Value<String?> businessName = const Value.absent(),
                 Value<String?> businessAddress = const Value.absent(),
                 Value<String?> taxId = const Value.absent(),
+                Value<String?> externalKey = const Value.absent(),
+                Value<String?> slug = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> plan = const Value.absent(),
+                Value<DateTime?> planExpiresAt = const Value.absent(),
+                Value<String?> billingEmail = const Value.absent(),
+                Value<String?> settings = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
@@ -23001,9 +24928,17 @@ class $$TenantsTableTableManager
                 uuid: uuid,
                 name: name,
                 email: email,
+                phone: phone,
                 businessName: businessName,
                 businessAddress: businessAddress,
                 taxId: taxId,
+                externalKey: externalKey,
+                slug: slug,
+                status: status,
+                plan: plan,
+                planExpiresAt: planExpiresAt,
+                billingEmail: billingEmail,
+                settings: settings,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
@@ -23015,9 +24950,17 @@ class $$TenantsTableTableManager
                 required String uuid,
                 required String name,
                 Value<String?> email = const Value.absent(),
+                Value<String?> phone = const Value.absent(),
                 Value<String?> businessName = const Value.absent(),
                 Value<String?> businessAddress = const Value.absent(),
                 Value<String?> taxId = const Value.absent(),
+                Value<String?> externalKey = const Value.absent(),
+                Value<String?> slug = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> plan = const Value.absent(),
+                Value<DateTime?> planExpiresAt = const Value.absent(),
+                Value<String?> billingEmail = const Value.absent(),
+                Value<String?> settings = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
@@ -23027,9 +24970,17 @@ class $$TenantsTableTableManager
                 uuid: uuid,
                 name: name,
                 email: email,
+                phone: phone,
                 businessName: businessName,
                 businessAddress: businessAddress,
                 taxId: taxId,
+                externalKey: externalKey,
+                slug: slug,
+                status: status,
+                plan: plan,
+                planExpiresAt: planExpiresAt,
+                billingEmail: billingEmail,
+                settings: settings,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
@@ -23865,6 +25816,13 @@ typedef $$EmployeesTableCreateCompanionBuilder =
       Value<String> role,
       Value<String?> password,
       Value<bool> googleAuth,
+      Value<String?> avatarUrl,
+      Value<bool> isOwner,
+      Value<bool> isEmailVerified,
+      Value<String?> emailVerificationToken,
+      Value<DateTime?> emailVerificationExpires,
+      Value<String?> passwordResetToken,
+      Value<DateTime?> passwordResetExpires,
       required int tenantId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -23884,6 +25842,13 @@ typedef $$EmployeesTableUpdateCompanionBuilder =
       Value<String> role,
       Value<String?> password,
       Value<bool> googleAuth,
+      Value<String?> avatarUrl,
+      Value<bool> isOwner,
+      Value<bool> isEmailVerified,
+      Value<String?> emailVerificationToken,
+      Value<DateTime?> emailVerificationExpires,
+      Value<String?> passwordResetToken,
+      Value<DateTime?> passwordResetExpires,
       Value<int> tenantId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -23952,6 +25917,41 @@ class $$EmployeesTableFilterComposer
 
   ColumnFilters<bool> get googleAuth => $composableBuilder(
     column: $table.googleAuth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get avatarUrl => $composableBuilder(
+    column: $table.avatarUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isOwner => $composableBuilder(
+    column: $table.isOwner,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isEmailVerified => $composableBuilder(
+    column: $table.isEmailVerified,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get emailVerificationToken => $composableBuilder(
+    column: $table.emailVerificationToken,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get emailVerificationExpires => $composableBuilder(
+    column: $table.emailVerificationExpires,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get passwordResetToken => $composableBuilder(
+    column: $table.passwordResetToken,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get passwordResetExpires => $composableBuilder(
+    column: $table.passwordResetExpires,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -24045,6 +26045,41 @@ class $$EmployeesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get avatarUrl => $composableBuilder(
+    column: $table.avatarUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isOwner => $composableBuilder(
+    column: $table.isOwner,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isEmailVerified => $composableBuilder(
+    column: $table.isEmailVerified,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get emailVerificationToken => $composableBuilder(
+    column: $table.emailVerificationToken,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get emailVerificationExpires => $composableBuilder(
+    column: $table.emailVerificationExpires,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get passwordResetToken => $composableBuilder(
+    column: $table.passwordResetToken,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get passwordResetExpires => $composableBuilder(
+    column: $table.passwordResetExpires,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get tenantId => $composableBuilder(
     column: $table.tenantId,
     builder: (column) => ColumnOrderings(column),
@@ -24115,6 +26150,37 @@ class $$EmployeesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get avatarUrl =>
+      $composableBuilder(column: $table.avatarUrl, builder: (column) => column);
+
+  GeneratedColumn<bool> get isOwner =>
+      $composableBuilder(column: $table.isOwner, builder: (column) => column);
+
+  GeneratedColumn<bool> get isEmailVerified => $composableBuilder(
+    column: $table.isEmailVerified,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get emailVerificationToken => $composableBuilder(
+    column: $table.emailVerificationToken,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get emailVerificationExpires => $composableBuilder(
+    column: $table.emailVerificationExpires,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get passwordResetToken => $composableBuilder(
+    column: $table.passwordResetToken,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get passwordResetExpires => $composableBuilder(
+    column: $table.passwordResetExpires,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get tenantId =>
       $composableBuilder(column: $table.tenantId, builder: (column) => column);
 
@@ -24175,6 +26241,14 @@ class $$EmployeesTableTableManager
                 Value<String> role = const Value.absent(),
                 Value<String?> password = const Value.absent(),
                 Value<bool> googleAuth = const Value.absent(),
+                Value<String?> avatarUrl = const Value.absent(),
+                Value<bool> isOwner = const Value.absent(),
+                Value<bool> isEmailVerified = const Value.absent(),
+                Value<String?> emailVerificationToken = const Value.absent(),
+                Value<DateTime?> emailVerificationExpires =
+                    const Value.absent(),
+                Value<String?> passwordResetToken = const Value.absent(),
+                Value<DateTime?> passwordResetExpires = const Value.absent(),
                 Value<int> tenantId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -24192,6 +26266,13 @@ class $$EmployeesTableTableManager
                 role: role,
                 password: password,
                 googleAuth: googleAuth,
+                avatarUrl: avatarUrl,
+                isOwner: isOwner,
+                isEmailVerified: isEmailVerified,
+                emailVerificationToken: emailVerificationToken,
+                emailVerificationExpires: emailVerificationExpires,
+                passwordResetToken: passwordResetToken,
+                passwordResetExpires: passwordResetExpires,
                 tenantId: tenantId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -24211,6 +26292,14 @@ class $$EmployeesTableTableManager
                 Value<String> role = const Value.absent(),
                 Value<String?> password = const Value.absent(),
                 Value<bool> googleAuth = const Value.absent(),
+                Value<String?> avatarUrl = const Value.absent(),
+                Value<bool> isOwner = const Value.absent(),
+                Value<bool> isEmailVerified = const Value.absent(),
+                Value<String?> emailVerificationToken = const Value.absent(),
+                Value<DateTime?> emailVerificationExpires =
+                    const Value.absent(),
+                Value<String?> passwordResetToken = const Value.absent(),
+                Value<DateTime?> passwordResetExpires = const Value.absent(),
                 required int tenantId,
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -24228,6 +26317,13 @@ class $$EmployeesTableTableManager
                 role: role,
                 password: password,
                 googleAuth: googleAuth,
+                avatarUrl: avatarUrl,
+                isOwner: isOwner,
+                isEmailVerified: isEmailVerified,
+                emailVerificationToken: emailVerificationToken,
+                emailVerificationExpires: emailVerificationExpires,
+                passwordResetToken: passwordResetToken,
+                passwordResetExpires: passwordResetExpires,
                 tenantId: tenantId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -24271,14 +26367,26 @@ typedef $$InvoiceSettingsTableCreateCompanionBuilder =
       Value<String?> logoLocalPath,
       Value<Uint8List?> logoBytes,
       Value<int> thermalWidth,
+      Value<String?> bankName,
+      Value<String?> bankAccountNo,
+      Value<String?> bankIfsc,
+      Value<String?> upiId,
       Value<bool> showLogo,
       Value<bool> showTaxBreakdown,
       Value<bool> showAddress,
       Value<bool> showCustomerDetails,
       Value<bool> showFooter,
+      Value<bool> showBankDetails,
+      Value<bool> showUpiQr,
       Value<int?> tenantId,
       Value<String?> customConfig,
+      Value<String?> taxLabel,
+      Value<double?> taxRate,
+      Value<String?> termsAndConditions,
+      Value<String?> authorizedSignatory,
       Value<int> invoiceCounter,
+      Value<String> invoicePrefix,
+      Value<String> deviceCode,
       Value<DateTime> updatedAt,
     });
 typedef $$InvoiceSettingsTableUpdateCompanionBuilder =
@@ -24293,14 +26401,26 @@ typedef $$InvoiceSettingsTableUpdateCompanionBuilder =
       Value<String?> logoLocalPath,
       Value<Uint8List?> logoBytes,
       Value<int> thermalWidth,
+      Value<String?> bankName,
+      Value<String?> bankAccountNo,
+      Value<String?> bankIfsc,
+      Value<String?> upiId,
       Value<bool> showLogo,
       Value<bool> showTaxBreakdown,
       Value<bool> showAddress,
       Value<bool> showCustomerDetails,
       Value<bool> showFooter,
+      Value<bool> showBankDetails,
+      Value<bool> showUpiQr,
       Value<int?> tenantId,
       Value<String?> customConfig,
+      Value<String?> taxLabel,
+      Value<double?> taxRate,
+      Value<String?> termsAndConditions,
+      Value<String?> authorizedSignatory,
       Value<int> invoiceCounter,
+      Value<String> invoicePrefix,
+      Value<String> deviceCode,
       Value<DateTime> updatedAt,
     });
 
@@ -24363,6 +26483,26 @@ class $$InvoiceSettingsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get bankName => $composableBuilder(
+    column: $table.bankName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bankAccountNo => $composableBuilder(
+    column: $table.bankAccountNo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bankIfsc => $composableBuilder(
+    column: $table.bankIfsc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get upiId => $composableBuilder(
+    column: $table.upiId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<bool> get showLogo => $composableBuilder(
     column: $table.showLogo,
     builder: (column) => ColumnFilters(column),
@@ -24388,6 +26528,16 @@ class $$InvoiceSettingsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get showBankDetails => $composableBuilder(
+    column: $table.showBankDetails,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get showUpiQr => $composableBuilder(
+    column: $table.showUpiQr,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get tenantId => $composableBuilder(
     column: $table.tenantId,
     builder: (column) => ColumnFilters(column),
@@ -24398,8 +26548,38 @@ class $$InvoiceSettingsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get taxLabel => $composableBuilder(
+    column: $table.taxLabel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get taxRate => $composableBuilder(
+    column: $table.taxRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get termsAndConditions => $composableBuilder(
+    column: $table.termsAndConditions,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get authorizedSignatory => $composableBuilder(
+    column: $table.authorizedSignatory,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get invoiceCounter => $composableBuilder(
     column: $table.invoiceCounter,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get invoicePrefix => $composableBuilder(
+    column: $table.invoicePrefix,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceCode => $composableBuilder(
+    column: $table.deviceCode,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -24468,6 +26648,26 @@ class $$InvoiceSettingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get bankName => $composableBuilder(
+    column: $table.bankName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get bankAccountNo => $composableBuilder(
+    column: $table.bankAccountNo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get bankIfsc => $composableBuilder(
+    column: $table.bankIfsc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get upiId => $composableBuilder(
+    column: $table.upiId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get showLogo => $composableBuilder(
     column: $table.showLogo,
     builder: (column) => ColumnOrderings(column),
@@ -24493,6 +26693,16 @@ class $$InvoiceSettingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get showBankDetails => $composableBuilder(
+    column: $table.showBankDetails,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get showUpiQr => $composableBuilder(
+    column: $table.showUpiQr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get tenantId => $composableBuilder(
     column: $table.tenantId,
     builder: (column) => ColumnOrderings(column),
@@ -24503,8 +26713,38 @@ class $$InvoiceSettingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get taxLabel => $composableBuilder(
+    column: $table.taxLabel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get taxRate => $composableBuilder(
+    column: $table.taxRate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get termsAndConditions => $composableBuilder(
+    column: $table.termsAndConditions,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get authorizedSignatory => $composableBuilder(
+    column: $table.authorizedSignatory,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get invoiceCounter => $composableBuilder(
     column: $table.invoiceCounter,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get invoicePrefix => $composableBuilder(
+    column: $table.invoicePrefix,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceCode => $composableBuilder(
+    column: $table.deviceCode,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -24565,6 +26805,20 @@ class $$InvoiceSettingsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get bankName =>
+      $composableBuilder(column: $table.bankName, builder: (column) => column);
+
+  GeneratedColumn<String> get bankAccountNo => $composableBuilder(
+    column: $table.bankAccountNo,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get bankIfsc =>
+      $composableBuilder(column: $table.bankIfsc, builder: (column) => column);
+
+  GeneratedColumn<String> get upiId =>
+      $composableBuilder(column: $table.upiId, builder: (column) => column);
+
   GeneratedColumn<bool> get showLogo =>
       $composableBuilder(column: $table.showLogo, builder: (column) => column);
 
@@ -24588,6 +26842,14 @@ class $$InvoiceSettingsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get showBankDetails => $composableBuilder(
+    column: $table.showBankDetails,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get showUpiQr =>
+      $composableBuilder(column: $table.showUpiQr, builder: (column) => column);
+
   GeneratedColumn<int> get tenantId =>
       $composableBuilder(column: $table.tenantId, builder: (column) => column);
 
@@ -24596,8 +26858,34 @@ class $$InvoiceSettingsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get taxLabel =>
+      $composableBuilder(column: $table.taxLabel, builder: (column) => column);
+
+  GeneratedColumn<double> get taxRate =>
+      $composableBuilder(column: $table.taxRate, builder: (column) => column);
+
+  GeneratedColumn<String> get termsAndConditions => $composableBuilder(
+    column: $table.termsAndConditions,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get authorizedSignatory => $composableBuilder(
+    column: $table.authorizedSignatory,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get invoiceCounter => $composableBuilder(
     column: $table.invoiceCounter,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get invoicePrefix => $composableBuilder(
+    column: $table.invoicePrefix,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get deviceCode => $composableBuilder(
+    column: $table.deviceCode,
     builder: (column) => column,
   );
 
@@ -24652,14 +26940,26 @@ class $$InvoiceSettingsTableTableManager
                 Value<String?> logoLocalPath = const Value.absent(),
                 Value<Uint8List?> logoBytes = const Value.absent(),
                 Value<int> thermalWidth = const Value.absent(),
+                Value<String?> bankName = const Value.absent(),
+                Value<String?> bankAccountNo = const Value.absent(),
+                Value<String?> bankIfsc = const Value.absent(),
+                Value<String?> upiId = const Value.absent(),
                 Value<bool> showLogo = const Value.absent(),
                 Value<bool> showTaxBreakdown = const Value.absent(),
                 Value<bool> showAddress = const Value.absent(),
                 Value<bool> showCustomerDetails = const Value.absent(),
                 Value<bool> showFooter = const Value.absent(),
+                Value<bool> showBankDetails = const Value.absent(),
+                Value<bool> showUpiQr = const Value.absent(),
                 Value<int?> tenantId = const Value.absent(),
                 Value<String?> customConfig = const Value.absent(),
+                Value<String?> taxLabel = const Value.absent(),
+                Value<double?> taxRate = const Value.absent(),
+                Value<String?> termsAndConditions = const Value.absent(),
+                Value<String?> authorizedSignatory = const Value.absent(),
                 Value<int> invoiceCounter = const Value.absent(),
+                Value<String> invoicePrefix = const Value.absent(),
+                Value<String> deviceCode = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => InvoiceSettingsCompanion(
                 id: id,
@@ -24672,14 +26972,26 @@ class $$InvoiceSettingsTableTableManager
                 logoLocalPath: logoLocalPath,
                 logoBytes: logoBytes,
                 thermalWidth: thermalWidth,
+                bankName: bankName,
+                bankAccountNo: bankAccountNo,
+                bankIfsc: bankIfsc,
+                upiId: upiId,
                 showLogo: showLogo,
                 showTaxBreakdown: showTaxBreakdown,
                 showAddress: showAddress,
                 showCustomerDetails: showCustomerDetails,
                 showFooter: showFooter,
+                showBankDetails: showBankDetails,
+                showUpiQr: showUpiQr,
                 tenantId: tenantId,
                 customConfig: customConfig,
+                taxLabel: taxLabel,
+                taxRate: taxRate,
+                termsAndConditions: termsAndConditions,
+                authorizedSignatory: authorizedSignatory,
                 invoiceCounter: invoiceCounter,
+                invoicePrefix: invoicePrefix,
+                deviceCode: deviceCode,
                 updatedAt: updatedAt,
               ),
           createCompanionCallback:
@@ -24694,14 +27006,26 @@ class $$InvoiceSettingsTableTableManager
                 Value<String?> logoLocalPath = const Value.absent(),
                 Value<Uint8List?> logoBytes = const Value.absent(),
                 Value<int> thermalWidth = const Value.absent(),
+                Value<String?> bankName = const Value.absent(),
+                Value<String?> bankAccountNo = const Value.absent(),
+                Value<String?> bankIfsc = const Value.absent(),
+                Value<String?> upiId = const Value.absent(),
                 Value<bool> showLogo = const Value.absent(),
                 Value<bool> showTaxBreakdown = const Value.absent(),
                 Value<bool> showAddress = const Value.absent(),
                 Value<bool> showCustomerDetails = const Value.absent(),
                 Value<bool> showFooter = const Value.absent(),
+                Value<bool> showBankDetails = const Value.absent(),
+                Value<bool> showUpiQr = const Value.absent(),
                 Value<int?> tenantId = const Value.absent(),
                 Value<String?> customConfig = const Value.absent(),
+                Value<String?> taxLabel = const Value.absent(),
+                Value<double?> taxRate = const Value.absent(),
+                Value<String?> termsAndConditions = const Value.absent(),
+                Value<String?> authorizedSignatory = const Value.absent(),
                 Value<int> invoiceCounter = const Value.absent(),
+                Value<String> invoicePrefix = const Value.absent(),
+                Value<String> deviceCode = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => InvoiceSettingsCompanion.insert(
                 id: id,
@@ -24714,14 +27038,26 @@ class $$InvoiceSettingsTableTableManager
                 logoLocalPath: logoLocalPath,
                 logoBytes: logoBytes,
                 thermalWidth: thermalWidth,
+                bankName: bankName,
+                bankAccountNo: bankAccountNo,
+                bankIfsc: bankIfsc,
+                upiId: upiId,
                 showLogo: showLogo,
                 showTaxBreakdown: showTaxBreakdown,
                 showAddress: showAddress,
                 showCustomerDetails: showCustomerDetails,
                 showFooter: showFooter,
+                showBankDetails: showBankDetails,
+                showUpiQr: showUpiQr,
                 tenantId: tenantId,
                 customConfig: customConfig,
+                taxLabel: taxLabel,
+                taxRate: taxRate,
+                termsAndConditions: termsAndConditions,
+                authorizedSignatory: authorizedSignatory,
                 invoiceCounter: invoiceCounter,
+                invoicePrefix: invoicePrefix,
+                deviceCode: deviceCode,
                 updatedAt: updatedAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -24765,6 +27101,7 @@ typedef $$InvoicesTableCreateCompanionBuilder =
       Value<double> discount,
       required double total,
       Value<String?> paymentMethod,
+      Value<String> paymentStatus,
       Value<String?> signUrl,
       required int tenantId,
       Value<DateTime> createdAt,
@@ -24790,6 +27127,7 @@ typedef $$InvoicesTableUpdateCompanionBuilder =
       Value<double> discount,
       Value<double> total,
       Value<String?> paymentMethod,
+      Value<String> paymentStatus,
       Value<String?> signUrl,
       Value<int> tenantId,
       Value<DateTime> createdAt,
@@ -24860,6 +27198,11 @@ class $$InvoicesTableFilterComposer
 
   ColumnFilters<String> get paymentMethod => $composableBuilder(
     column: $table.paymentMethod,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get paymentStatus => $composableBuilder(
+    column: $table.paymentStatus,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -24983,6 +27326,11 @@ class $$InvoicesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get paymentStatus => $composableBuilder(
+    column: $table.paymentStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get signUrl => $composableBuilder(
     column: $table.signUrl,
     builder: (column) => ColumnOrderings(column),
@@ -25089,6 +27437,11 @@ class $$InvoicesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get paymentStatus => $composableBuilder(
+    column: $table.paymentStatus,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get signUrl =>
       $composableBuilder(column: $table.signUrl, builder: (column) => column);
 
@@ -25175,6 +27528,7 @@ class $$InvoicesTableTableManager
                 Value<double> discount = const Value.absent(),
                 Value<double> total = const Value.absent(),
                 Value<String?> paymentMethod = const Value.absent(),
+                Value<String> paymentStatus = const Value.absent(),
                 Value<String?> signUrl = const Value.absent(),
                 Value<int> tenantId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -25198,6 +27552,7 @@ class $$InvoicesTableTableManager
                 discount: discount,
                 total: total,
                 paymentMethod: paymentMethod,
+                paymentStatus: paymentStatus,
                 signUrl: signUrl,
                 tenantId: tenantId,
                 createdAt: createdAt,
@@ -25223,6 +27578,7 @@ class $$InvoicesTableTableManager
                 Value<double> discount = const Value.absent(),
                 required double total,
                 Value<String?> paymentMethod = const Value.absent(),
+                Value<String> paymentStatus = const Value.absent(),
                 Value<String?> signUrl = const Value.absent(),
                 required int tenantId,
                 Value<DateTime> createdAt = const Value.absent(),
@@ -25246,6 +27602,7 @@ class $$InvoicesTableTableManager
                 discount: discount,
                 total: total,
                 paymentMethod: paymentMethod,
+                paymentStatus: paymentStatus,
                 signUrl: signUrl,
                 tenantId: tenantId,
                 createdAt: createdAt,
@@ -25688,6 +28045,7 @@ typedef $$BrandsTableCreateCompanionBuilder =
       required int tenantId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
       Value<int> syncStatus,
       Value<bool> isDeleted,
     });
@@ -25701,6 +28059,7 @@ typedef $$BrandsTableUpdateCompanionBuilder =
       Value<int> tenantId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
       Value<int> syncStatus,
       Value<bool> isDeleted,
     });
@@ -25751,6 +28110,11 @@ class $$BrandsTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -25814,6 +28178,11 @@ class $$BrandsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => ColumnOrderings(column),
@@ -25859,6 +28228,9 @@ class $$BrandsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
   GeneratedColumn<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
@@ -25908,6 +28280,7 @@ class $$BrandsTableTableManager
                 Value<int> tenantId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
               }) => BrandsCompanion(
@@ -25919,6 +28292,7 @@ class $$BrandsTableTableManager
                 tenantId: tenantId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                deletedAt: deletedAt,
                 syncStatus: syncStatus,
                 isDeleted: isDeleted,
               ),
@@ -25932,6 +28306,7 @@ class $$BrandsTableTableManager
                 required int tenantId,
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
               }) => BrandsCompanion.insert(
@@ -25943,6 +28318,7 @@ class $$BrandsTableTableManager
                 tenantId: tenantId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                deletedAt: deletedAt,
                 syncStatus: syncStatus,
                 isDeleted: isDeleted,
               ),

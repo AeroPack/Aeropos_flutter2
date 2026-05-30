@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
 import 'connection/connection.dart' as impl;
 
 import 'tables/products_table.dart';
@@ -72,7 +73,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? e]) : super(e ?? impl.connect());
 
   @override
-  int get schemaVersion => 47;
+  int get schemaVersion => 52;
 
   Future<void> _addColumnIfNotExists(
     String table,
@@ -123,6 +124,7 @@ class AppDatabase extends _$AppDatabase {
           'CREATE INDEX IF NOT EXISTS idx_invoice_items_product_id ON invoice_items(product_id)',
           'CREATE INDEX IF NOT EXISTS idx_invoice_items_deleted ON invoice_items(is_deleted)',
           'CREATE INDEX IF NOT EXISTS idx_invoices_tenant_deleted_date ON invoices(tenant_id, is_deleted, date DESC)',
+          'CREATE INDEX IF NOT EXISTS idx_product_units_barcode ON product_units(barcode) WHERE barcode IS NOT NULL AND is_deleted = 0',
         ];
         for (final stmt in indexes) {
           try {
@@ -550,6 +552,45 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(invoiceSettings, invoiceSettings.logoLocalPath);
         }
 
+        // Migration 50: Add phone to tenants; add tax/footer fields to invoice_settings
+        if (from < 50) {
+          final cols50 = <String, String>{
+            'phone': 'ALTER TABLE tenants ADD COLUMN phone TEXT',
+            'tax_label': 'ALTER TABLE invoice_settings ADD COLUMN tax_label TEXT',
+            'tax_rate': 'ALTER TABLE invoice_settings ADD COLUMN tax_rate REAL',
+            'terms_and_conditions': 'ALTER TABLE invoice_settings ADD COLUMN terms_and_conditions TEXT',
+            'authorized_signatory': 'ALTER TABLE invoice_settings ADD COLUMN authorized_signatory TEXT',
+          };
+          for (final sql in cols50.values) {
+            try {
+              await customStatement(sql);
+            } catch (_) {}
+          }
+        }
+
+        // Migration 49: Add uuid column to product_units for sync support
+        if (from < 49) {
+          await _addColumnIfNotExists('product_units', 'uuid', 'TEXT');
+          final rows = await customStatement(
+            'SELECT id FROM product_units WHERE uuid IS NULL',
+          ) as List<Map<String, dynamic>>? ?? [];
+          for (final row in rows) {
+            final uuid = const Uuid().v4();
+            await customStatement(
+              "UPDATE product_units SET uuid = '$uuid' WHERE id = ${row['id']}",
+            );
+          }
+        }
+
+        // Migration 48: Add barcode index for fast product lookup
+        if (from < 48) {
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_product_units_barcode '
+            'ON product_units(barcode) '
+            'WHERE barcode IS NOT NULL AND is_deleted = 0',
+          );
+        }
+
         // Migration 46: Add join-columns and composite indexes for invoice queries
         if (from < 46) {
           final indexes = [
@@ -594,6 +635,57 @@ class AppDatabase extends _$AppDatabase {
             } catch (e) {
               // print('DRIFT: Index creation warning: $e');
             }
+          }
+        }
+
+        // Migration 51: Add backend columns to tenants, employees, and deletedAt fields
+        if (from < 51) {
+          // Tenants: backend SaaS/org fields
+          await _addColumnIfNotExists('tenants', 'external_key', 'TEXT');
+          await _addColumnIfNotExists('tenants', 'slug', 'TEXT');
+          await _addColumnIfNotExists('tenants', 'status',
+              'TEXT NOT NULL DEFAULT \'active\'');
+          await _addColumnIfNotExists('tenants', 'plan',
+              'TEXT NOT NULL DEFAULT \'free\'');
+          await _addColumnIfNotExists('tenants', 'plan_expires_at', 'TEXT');
+          await _addColumnIfNotExists('tenants', 'billing_email', 'TEXT');
+          await _addColumnIfNotExists('tenants', 'settings', 'TEXT');
+          // Required by $TenantsTable.map() non-null assertions
+          await _addColumnIfNotExists(
+              'tenants', 'sync_status', 'INTEGER NOT NULL DEFAULT 0');
+          await _addColumnIfNotExists(
+              'tenants', 'is_deleted', 'INTEGER NOT NULL DEFAULT 0');
+          await _addColumnIfNotExists('tenants', 'business_name', 'TEXT');
+          await _addColumnIfNotExists('tenants', 'business_address', 'TEXT');
+
+          // Employees: avatar, ownership, verification, password reset
+          await _addColumnIfNotExists('employees', 'avatar_url', 'TEXT');
+          await _addColumnIfNotExists('employees', 'is_owner', 'INTEGER NOT NULL DEFAULT 0');
+          await _addColumnIfNotExists('employees', 'is_email_verified', 'INTEGER NOT NULL DEFAULT 0');
+          await _addColumnIfNotExists('employees', 'email_verification_token', 'TEXT');
+          await _addColumnIfNotExists('employees', 'email_verification_expires', 'TEXT');
+          await _addColumnIfNotExists('employees', 'password_reset_token', 'TEXT');
+          await _addColumnIfNotExists('employees', 'password_reset_expires', 'TEXT');
+
+          // deletedAt on backend-matching tables for soft-delete timestamp
+          await _addColumnIfNotExists('products', 'deleted_at', 'TEXT');
+          await _addColumnIfNotExists('categories', 'deleted_at', 'TEXT');
+          await _addColumnIfNotExists('units', 'deleted_at', 'TEXT');
+          await _addColumnIfNotExists('brands', 'deleted_at', 'TEXT');
+        }
+
+        // Migration 52: Backfill missing non-nullable tenants columns for
+        // databases that went through v51 before sync_status/is_deleted were added.
+        if (from < 52) {
+          for (final sql in [
+            "ALTER TABLE tenants ADD COLUMN sync_status INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE tenants ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE tenants ADD COLUMN business_name TEXT",
+            "ALTER TABLE tenants ADD COLUMN business_address TEXT",
+          ]) {
+            try {
+              await customStatement(sql);
+            } catch (_) {}
           }
         }
       },
@@ -642,7 +734,12 @@ class AppDatabase extends _$AppDatabase {
   // Basic CRUD for Products
   Future<List<ProductEntity>> getAllProducts() => select(products).get();
   Stream<List<ProductEntity>> watchAllProducts() =>
-      (select(products)..where((tbl) => tbl.isDeleted.equals(false))).watch();
+      (select(products)
+        ..where((tbl) => tbl.isDeleted.equals(false))
+        ..orderBy([
+          (t) => OrderingTerm(expression: t.updatedAt, mode: OrderingMode.desc),
+        ])
+      ).watch();
 
   /// Returns products filtered by name/sku search and category, sorted by name.
   /// No client-side filtering needed — filtering happens in SQL.
@@ -710,8 +807,79 @@ class AppDatabase extends _$AppDatabase {
     final query = select(products).join([
       leftOuterJoin(categories, categories.id.equalsExp(products.categoryId)),
       leftOuterJoin(brands, brands.id.equalsExp(products.brandId)),
-    ])..where(products.isDeleted.equals(false));
+    ])
+      ..where(products.isDeleted.equals(false))
+      ..orderBy([OrderingTerm(expression: products.updatedAt, mode: OrderingMode.desc)]);
     return query.watch();
+  }
+
+  Future<({ProductEntity product, ProductUnitEntity unit})> insertQuickProduct({
+    required String barcode,
+    required String name,
+    required double sellingPrice,
+    required int defaultUnitId,
+    required int initialStock,
+  }) async {
+    return transaction(() async {
+      const uuidGen = Uuid();
+      final productUuid = uuidGen.v4();
+      final unitUuid = uuidGen.v4();
+      const tenantId = 1;
+      const syncStatus = 1;
+
+      final productId = await into(products).insert(
+        ProductsCompanion.insert(
+          uuid: productUuid,
+          tenantId: tenantId,
+          syncStatus: const Value(syncStatus),
+          name: name,
+          price: sellingPrice,
+          stockQuantity: Value(initialStock),
+          isDeleted: const Value(false),
+        ),
+      );
+
+      final unitId = await into(productUnits).insert(
+        ProductUnitsCompanion.insert(
+          uuid: unitUuid,
+          tenantId: tenantId,
+          syncStatus: const Value(syncStatus),
+          productId: productId,
+          unitId: defaultUnitId,
+          barcode: Value(barcode),
+          conversionFactor: 1.0,
+          sellingPrice: Value(sellingPrice),
+          isDefault: const Value(true),
+          isDeleted: const Value(false),
+        ),
+      );
+
+      final newProduct =
+          await (select(products)..where((t) => t.id.equals(productId))).getSingle();
+      final newUnit =
+          await (select(productUnits)..where((t) => t.id.equals(unitId))).getSingle();
+
+      return (product: newProduct, unit: newUnit);
+    });
+  }
+
+  /// Returns all active (non-deleted) product+unit matches for a barcode.
+  /// An empty list means no match. Length > 1 means duplicate barcodes.
+  Future<List<({ProductEntity product, ProductUnitEntity unit})>> getProductsByBarcode(
+    String barcode,
+  ) async {
+    final query = select(productUnits).join([
+      innerJoin(products, products.id.equalsExp(productUnits.productId)),
+    ])
+      ..where(productUnits.barcode.equals(barcode))
+      ..where(productUnits.isDeleted.equals(false))
+      ..where(products.isDeleted.equals(false));
+
+    final rows = await query.get();
+    return rows.map((row) => (
+      product: row.readTable(products),
+      unit: row.readTable(productUnits),
+    )).toList();
   }
 
   // Basic CRUD for Categories
@@ -760,6 +928,44 @@ class AppDatabase extends _$AppDatabase {
       into(tenants).insert(entry);
   Future<bool> updateTenant(TenantEntity entry) =>
       update(tenants).replace(entry);
+
+  /// Upserts a tenant row from company profile data received from the backend.
+  /// Called after login and after profile updates so the invoice hydration
+  /// always reads real data instead of template dummy fallbacks.
+  Future<void> upsertTenantFromCompany({
+    required int tenantId,
+    required String name,
+    String? email,
+    String? phone,
+    String? businessAddress,
+    String? taxId,
+  }) async {
+    final existing = await (select(tenants)
+          ..where((t) => t.id.equals(tenantId)))
+        .getSingleOrNull();
+
+    final companion = TenantsCompanion(
+      id: Value(tenantId),
+      uuid: existing != null
+          ? Value(existing.uuid)
+          : Value('tenant-$tenantId'),
+      name: Value(name),
+      email: Value(email),
+      phone: Value(phone),
+      businessName: Value(name),
+      businessAddress: Value(businessAddress),
+      taxId: Value(taxId),
+      updatedAt: Value(DateTime.now()),
+    );
+
+    if (existing == null) {
+      await into(tenants).insert(companion,
+          mode: InsertMode.insertOrReplace);
+    } else {
+      await (update(tenants)..where((t) => t.id.equals(tenantId)))
+          .write(companion);
+    }
+  }
 
   // Basic CRUD for Customers
   Future<List<CustomerEntity>> getAllCustomers() => select(customers).get();
@@ -974,11 +1180,8 @@ class AppDatabase extends _$AppDatabase {
     String? queryStr,
     int? tenantId,
   }) {
-    print(
-      'DEBUG: getInvoiceItemsDetailedPaginated called with tenantId=$tenantId',
-    );
-    final query = select(invoiceItems).join([
-      innerJoin(invoices, invoices.id.equalsExp(invoiceItems.invoiceId)),
+    final query = select(invoices).join([
+      leftOuterJoin(invoiceItems, invoiceItems.invoiceId.equalsExp(invoices.id)),
       leftOuterJoin(products, products.id.equalsExp(invoiceItems.productId)),
       leftOuterJoin(customers, customers.id.equalsExp(invoices.customerId)),
     ]);
@@ -996,14 +1199,9 @@ class AppDatabase extends _$AppDatabase {
       );
     }
 
-    query.where(
-      invoices.isDeleted.equals(false) & invoiceItems.isDeleted.equals(false),
-    );
+    query.where(invoices.isDeleted.equals(false));
 
-    query.orderBy([
-      OrderingTerm.desc(invoices.date),
-      OrderingTerm.desc(invoiceItems.id),
-    ]);
+    query.orderBy([OrderingTerm.desc(invoices.date)]);
 
     query.limit(limit, offset: offset);
 
@@ -1011,11 +1209,11 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<int> getInvoiceItemsCount({String? queryStr, int? tenantId}) async {
-    final countExp = invoiceItems.id.count();
-    final query = selectOnly(invoiceItems)..addColumns([countExp]);
+    final countExp = invoices.id.count(distinct: true);
+    final query = selectOnly(invoices)..addColumns([countExp]);
 
     query.join([
-      innerJoin(invoices, invoices.id.equalsExp(invoiceItems.invoiceId)),
+      leftOuterJoin(invoiceItems, invoiceItems.invoiceId.equalsExp(invoices.id)),
       leftOuterJoin(products, products.id.equalsExp(invoiceItems.productId)),
       leftOuterJoin(customers, customers.id.equalsExp(invoices.customerId)),
     ]);
@@ -1032,6 +1230,8 @@ class AppDatabase extends _$AppDatabase {
             customers.name.lower().contains(q),
       );
     }
+
+    query.where(invoices.isDeleted.equals(false));
 
     final result = await query.map((row) => row.read(countExp)).getSingle();
     return result ?? 0;
@@ -1142,6 +1342,23 @@ class AppDatabase extends _$AppDatabase {
     print('CLEAR DB: completed');
   }
 
+  Future<void> clearInvoiceData() async {
+    print('CLEAR INVOICE DATA: start');
+    try {
+      await delete(invoiceItems).go();
+      print('CLEAR INVOICE DATA: deleted invoiceItems');
+    } catch (e) {
+      print('CLEAR INVOICE DATA: FAILED on invoiceItems - $e');
+    }
+    try {
+      await delete(invoices).go();
+      print('CLEAR INVOICE DATA: deleted invoices');
+    } catch (e) {
+      print('CLEAR INVOICE DATA: FAILED on invoices - $e');
+    }
+    print('CLEAR INVOICE DATA: completed');
+  }
+
   // SKU Counter methods
   Future<SkuCounterEntity?> getSkuCounter(String deviceId) async {
     return await (select(
@@ -1228,25 +1445,25 @@ class AppDatabase extends _$AppDatabase {
 
     final defaultUnits = [
       UnitsCompanion.insert(
-        uuid: 'unit-gram',
+        uuid: Uuid().v4(),
         name: 'Gram',
         symbol: 'g',
         tenantId: 1,
       ),
       UnitsCompanion.insert(
-        uuid: 'unit-kg',
+        uuid: Uuid().v4(),
         name: 'Kilogram',
         symbol: 'kg',
         tenantId: 1,
       ),
       UnitsCompanion.insert(
-        uuid: 'unit-piece',
+        uuid: Uuid().v4(),
         name: 'Piece',
         symbol: 'pc',
         tenantId: 1,
       ),
       UnitsCompanion.insert(
-        uuid: 'unit-packet',
+        uuid: Uuid().v4(),
         name: 'Packet',
         symbol: 'pkt',
         tenantId: 1,

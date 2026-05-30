@@ -10,8 +10,8 @@ class Sale {
   final double tax;
   final double discount;
   final double total;
-  final String? paymentMethod; // Made nullable to fit generic usage if needed
-  final String? status;
+  final String? paymentMethod; // e.g. 'cash', 'card', 'upi'
+  final String? status; // Payment status: 'PENDING', 'COMPLETED', 'REJECTED'
   final String? notes;
   final DateTime createdAt;
   final SyncStatus syncStatus;
@@ -46,11 +46,10 @@ class Sale {
     'discount': discount,
     'total': total,
     'payment_method': paymentMethod,
-    'status': status,
+    'payment_status': status ?? 'COMPLETED',
     'notes': notes,
     'created_at': createdAt.toIso8601String(),
     'is_deleted': isDeleted,
-    'items': items.map((i) => i.toJson()).toList(),
   };
 }
 

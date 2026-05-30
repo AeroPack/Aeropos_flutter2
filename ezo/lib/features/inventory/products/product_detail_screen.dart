@@ -204,7 +204,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         children: [
           Text(label, style: const TextStyle(color: PosColors.textLight, fontSize: 14)),
           Text(
-            "\$${(price ?? 0.0).toStringAsFixed(2)}",
+            "Rs ${(price ?? 0.0).toStringAsFixed(2)}",
             style: const TextStyle(color: PosColors.textMain, fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ],

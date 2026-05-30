@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_barcode_listener/flutter_barcode_listener.dart';
 import 'package:aeropos/core/di/service_locator.dart';
 import 'package:aeropos/core/layout/pos_design_system.dart';
 import 'package:aeropos/core/widgets/generic_data_table.dart';
+import 'package:aeropos/core/widgets/pos_toast.dart';
 import 'package:aeropos/core/database/app_database.dart';
 import 'package:aeropos/core/widgets/delete_confirmation_dialog.dart';
+import 'package:aeropos/features/pos/services/barcode_service.dart';
+import 'package:aeropos/features/pos/state/barcode_state.dart';
 import 'package:intl/intl.dart';
 
 class PurchaseReceiptPage extends StatefulWidget {
@@ -17,11 +21,23 @@ class PurchaseReceiptPage extends StatefulWidget {
 class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
   final _viewModel = ServiceLocator.instance.purchaseReceiptViewModel;
   final Map<int, String> _supplierNames = {};
+  final _barcodeService = BarcodeService();
 
   @override
   void initState() {
     super.initState();
     _loadSupplierNames();
+  }
+
+  Future<void> _onBarcodeScanned(String rawCode) async {
+    final result = await _barcodeService.resolve(rawCode);
+    if (result case BarcodeMatched(:final product)) {
+      if (mounted) {
+        context.push('/purchase-receipt/add', extra: product);
+      }
+    } else if (mounted) {
+      PosToast.showError(context, 'Barcode not found: $rawCode');
+    }
   }
 
   Future<void> _loadSupplierNames() async {
@@ -43,7 +59,10 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: PosColors.background,
-      body: StreamBuilder<List<PurchaseReceiptEntity>>(
+      body: BarcodeKeyboardListener(
+        bufferDuration: const Duration(milliseconds: 80),
+        onBarcodeScanned: _onBarcodeScanned,
+        child: StreamBuilder<List<PurchaseReceiptEntity>>(
         stream: _viewModel.allReceipts,
         builder: (context, snapshot) {
           final receipts = snapshot.data ?? [];
@@ -102,6 +121,7 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
             ),
           );
         },
+      ),
       ),
     );
   }
@@ -276,7 +296,7 @@ class _PurchaseReceiptTableRow extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Text(
-              '₹${NumberFormat('#,###.00').format(receipt.totalAmount)}',
+              'Rs${NumberFormat('#,###.00').format(receipt.totalAmount)}',
               style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 13,

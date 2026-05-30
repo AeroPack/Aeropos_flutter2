@@ -392,77 +392,97 @@ class AuthController extends StateNotifier<AuthState> {
   ///   5. Fire one immediate pull in the background.
   ///   6. Set authenticated state.
   Future<void> _completeLogin() async {
-    final response = await ServiceLocator.instance.authRemoteDataSource
-        .getCurrentUser();
-    print('DEBUG: getCurrentUser response = $response');
+    try {
+      final response = await ServiceLocator.instance.authRemoteDataSource
+          .getCurrentUser();
+      print('DEBUG: getCurrentUser response = $response');
 
-    final user = User.fromJson(response['employee'] ?? response);
-    final company = response['company'] != null
-        ? Company.fromJson(response['company'])
-        : null;
+      final user = User.fromJson(response['employee'] ?? response);
+      final company = response['company'] != null
+          ? Company.fromJson(response['company'])
+          : null;
 
-    print('DEBUG: Parsed company.id = ${company?.id}');
+      print('DEBUG: Parsed company.id = ${company?.id}');
 
-    // Decode JWT for the authoritative tenantId
-    final token = await ServiceLocator.instance.secureStorage.read(
-      key: 'auth_token',
-    );
-    if (token == null) throw Exception('No auth token found');
+      // Decode JWT for the authoritative tenantId
+      final token = await ServiceLocator.instance.secureStorage
+          .read(key: 'auth_token')
+          .timeout(const Duration(seconds: 8));
+      if (token == null) throw Exception('No auth token found');
 
-    final jwtPayload = _decodeJwt(token);
-    final tenantIdFromJwt = int.parse(jwtPayload['tenant_id'].toString());
-    final companyIdFromJwt =
-        company?.id ?? int.parse(jwtPayload['company_id']?.toString() ?? '0');
+      final jwtPayload = _decodeJwt(token);
+      final tenantIdFromJwt = int.parse(jwtPayload['tenant_id'].toString());
+      final companyIdFromJwt =
+          company?.id ?? int.parse(jwtPayload['company_id']?.toString() ?? '0');
 
-    print('DEBUG: tenantId from JWT = $tenantIdFromJwt');
+      print('DEBUG: tenantId from JWT = $tenantIdFromJwt');
 
-    if (company != null &&
-        company.tenantId != null &&
-        company.tenantId != tenantIdFromJwt) {
-      print(
-        'DEBUG WARNING: Tenant mismatch - '
-        'JWT=$tenantIdFromJwt, company=${company.tenantId}',
+      if (company != null &&
+          company.tenantId != null &&
+          company.tenantId != tenantIdFromJwt) {
+        print(
+          'DEBUG WARNING: Tenant mismatch - '
+          'JWT=$tenantIdFromJwt, company=${company.tenantId}',
+        );
+      }
+
+      if (company != null) {
+        print(
+          'DEBUG: ABOUT TO CALL setTenantId with tenantIdFromJwt=$tenantIdFromJwt',
+        );
+        await ServiceLocator.instance.tenantService.setTenantId(tenantIdFromJwt);
+        print(
+          'DEBUG: AFTER setTenantId, current tenantId='
+          '${ServiceLocator.instance.tenantService.tenantId}',
+        );
+
+        // Persist company profile to local Tenants table so invoice
+        // generation reads real data instead of template dummy fallbacks.
+        await ServiceLocator.instance.database.upsertTenantFromCompany(
+          tenantId: tenantIdFromJwt,
+          name: company.businessName,
+          email: company.email,
+          phone: company.phone,
+          businessAddress: company.businessAddress,
+          taxId: company.taxId,
+        );
+
+        // BUG FIX #1: Activate SyncEngine HERE, with real credentials,
+        // AFTER we have confirmed the user is authenticated and have a
+        // valid tenantId and companyId. This replaces the old
+        // startAutoSync() call in ServiceLocator.initialize().
+        print(
+          'DEBUG: Activating SyncEngine '
+          '(tenantId=$tenantIdFromJwt, companyId=$companyIdFromJwt)',
+        );
+        await ServiceLocator.instance.activateSyncEngine(
+          tenantId: tenantIdFromJwt,
+          companyId: companyIdFromJwt,
+        );
+      } else {
+        print('DEBUG WARNING: company is NULL — SyncEngine NOT activated');
+      }
+
+      // Fire one background pull immediately after activation.
+      print('DEBUG: Scheduling background sync...');
+      unawaited(_runPostLoginSync());
+
+      final companies = await _authRepository.getMyCompanies();
+
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        user: user,
+        company: company,
+        companies: companies,
       );
+    } catch (e) {
+      print('_completeLogin FAILED: ${e.toString()}');
+      if (e is DioException) {
+        print('  status: ${e.response?.statusCode}');
+        print('  body: ${e.response?.data}');
+      }
+      rethrow;
     }
-
-    if (company != null) {
-      print(
-        'DEBUG: ABOUT TO CALL setTenantId with tenantIdFromJwt=$tenantIdFromJwt',
-      );
-      await ServiceLocator.instance.tenantService.setTenantId(tenantIdFromJwt);
-      print(
-        'DEBUG: AFTER setTenantId, current tenantId='
-        '${ServiceLocator.instance.tenantService.tenantId}',
-      );
-
-      // BUG FIX #1: Activate SyncEngine HERE, with real credentials,
-      // AFTER we have confirmed the user is authenticated and have a
-      // valid tenantId and companyId. This replaces the old
-      // startAutoSync() call in ServiceLocator.initialize().
-      print(
-        'DEBUG: Activating SyncEngine '
-        '(tenantId=$tenantIdFromJwt, companyId=$companyIdFromJwt)',
-      );
-      await ServiceLocator.instance.activateSyncEngine(
-        tenantId: tenantIdFromJwt,
-        companyId: companyIdFromJwt,
-      );
-    } else {
-      print('DEBUG WARNING: company is NULL — SyncEngine NOT activated');
-    }
-
-    // Fire one background pull immediately after activation.
-    print('DEBUG: Scheduling background sync...');
-    unawaited(_runPostLoginSync());
-
-    final companies = await _authRepository.getMyCompanies();
-
-    state = AuthState(
-      status: AuthStatus.authenticated,
-      user: user,
-      company: company,
-      companies: companies,
-    );
   }
 
   bool _isRunningPostLoginSync = false;

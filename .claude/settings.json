@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /home/dell/Documents/Aeropos/testing_barcode_impl/Aeropos_flutter2/ezo/.claude/plans)",
+      "Bash(node -e ' *)",
+      "Bash(dart run *)",
+      "Bash(grep -n \"dart analyze\\\\|flutter analyze\" /dev/null 2>/dev/null; cd /home/dell/Documents/Aeropos/testing_barcode_impl/Aeropos_flutter2/ezo && dart analyze lib/features/pos/ lib/features/purchase_receipt/ lib/features/barcode/ lib/features/inventory/products/barcode_label_generator.dart 2>&1 | head -40)",
+      "Read(//dev/**)",
+      "Bash(grep -n 'class TenantsCompanion\\\\|class $TenantsTable' /home/dell/Documents/Aeropos/testing_barcode_impl/Aeropos_flutter2/ezo/lib/core/database/app_database.g.dart)",
+      "Bash(grep -n 'class $TenantsTable\\\\|mapFromDatabase\\\\|toColumns' /home/dell/Documents/Aeropos/testing_barcode_impl/Aeropos_flutter2/ezo/lib/core/database/app_database.g.dart)",
+      "Bash(grep -n 'class $TenantsTable' /home/dell/Documents/Aeropos/testing_barcode_impl/Aeropos_flutter2/ezo/lib/core/database/app_database.g.dart)"
+    ],
+    "additionalDirectories": [
+      "/home/dell/Documents/Aeropos/testing_barcode_impl/Aeropos_flutter2/ezo/.claude"
+    ]
+  }
+}

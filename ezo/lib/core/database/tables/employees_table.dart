@@ -13,6 +13,13 @@ class Employees extends Table {
   TextColumn get role => text().withDefault(const Constant('employee'))();
   TextColumn get password => text().nullable()();
   BoolColumn get googleAuth => boolean().withDefault(const Constant(false))();
+  TextColumn get avatarUrl => text().nullable()();
+  BoolColumn get isOwner => boolean().withDefault(const Constant(false))();
+  BoolColumn get isEmailVerified => boolean().withDefault(const Constant(false))();
+  TextColumn get emailVerificationToken => text().nullable()();
+  DateTimeColumn get emailVerificationExpires => dateTime().nullable()();
+  TextColumn get passwordResetToken => text().nullable()();
+  DateTimeColumn get passwordResetExpires => dateTime().nullable()();
 
   IntColumn get tenantId => integer()();
 

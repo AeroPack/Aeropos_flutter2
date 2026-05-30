@@ -4,6 +4,7 @@ import 'package:aeropos/core/database/app_database.dart';
 import 'package:aeropos/core/models/product_unit.dart';
 import 'package:aeropos/core/di/service_locator.dart';
 import 'package:aeropos/core/theme/app_theme.dart';
+import 'package:barcode_widget/barcode_widget.dart' as bw;
 
 class QuantityWithUnitDialog extends StatefulWidget {
   final ProductEntity product;
@@ -190,32 +191,65 @@ class _QuantityWithUnitDialogState extends State<QuantityWithUnitDialog> {
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
-                    DropdownButtonFormField<UnitWithName>(
-                      initialValue: _selectedUnit,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                      ),
-                      items: _productUnits.map((u) {
-                        return DropdownMenuItem(
-                          value: u,
-                          child: Text(
-                            '${u.name ?? 'Unit'} (${u.symbol ?? ''})',
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _productUnits.map((u) {
+                        final isSelected =
+                            _selectedUnit?.entity.id == u.entity.id;
+                        final unitPrice = u.entity.sellingPrice ??
+                            widget.product.price * u.entity.conversionFactor;
+                        return GestureDetector(
+                          onTap: () => setState(() {
+                            _selectedUnit = u;
+                            _calculatePrice();
+                          }),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.accent
+                                  : AppColors.grey50,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppColors.accent
+                                    : AppColors.grey200,
+                                width: isSelected ? 2 : 1,
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  u.name ?? 'Unit',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : AppColors.grey700,
+                                  ),
+                                ),
+                                Text(
+                                  'Rs${unitPrice.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isSelected
+                                        ? Colors.white.withValues(alpha: 0.8)
+                                        : AppColors.grey500,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       }).toList(),
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedUnit = val;
-                          _calculatePrice();
-                        });
-                      },
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -313,7 +347,7 @@ class _QuantityWithUnitDialogState extends State<QuantityWithUnitDialog> {
                           ),
                         ),
                         Text(
-                          '₹${_calculatedPrice.toStringAsFixed(0)}',
+                          'Rs${_calculatedPrice.toStringAsFixed(0)}',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
@@ -324,6 +358,23 @@ class _QuantityWithUnitDialogState extends State<QuantityWithUnitDialog> {
                     ),
                   ),
                   const SizedBox(height: 24),
+
+                  if (_selectedUnit?.entity.barcode != null &&
+                      _selectedUnit!.entity.barcode!.trim().isNotEmpty) ...[
+                    Center(
+                      child: SizedBox(
+                        width: 200,
+                        height: 50,
+                        child: bw.BarcodeWidget(
+                          barcode: bw.Barcode.code128(),
+                          data: _selectedUnit!.entity.barcode!,
+                          drawText: true,
+                          style: const TextStyle(fontSize: 8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
                   Row(
                     children: [

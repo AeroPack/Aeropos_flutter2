@@ -4,6 +4,7 @@ import 'package:pdf/widgets.dart' as pw;
 import '../template_engine/invoice_template.dart';
 import '../helpers/thermal_utils.dart';
 import '../models.dart';
+import '../../../../core/utils/upi_qr.dart';
 
 class FreshMartGroceryTemplate extends InvoiceTemplate {
   @override
@@ -236,7 +237,17 @@ class FreshMartGroceryTemplate extends InvoiceTemplate {
               ),
               if (data.showNotes && data.notes.isNotEmpty)
                 pw.Text(data.notes, style: pw.TextStyle(fontSize: 8)),
-
+              if (data.showUpiQr && data.upiId.isNotEmpty) ...[
+                pw.SizedBox(height: 8),
+                pw.Text('UPI QR:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                pw.Container(
+                  width: 60, height: 60,
+                  child: pw.BarcodeWidget(
+                    barcode: pw.Barcode.qrCode(),
+                    data: buildUpiUri(upiId: data.upiId, amount: data.total, invoiceNo: data.invoiceNumber),
+                  ),
+                ),
+              ],
               pw.SizedBox(height: 20),
               pw.Text(
                 '--- Powering local stores ---',
@@ -521,6 +532,12 @@ class FreshMartGroceryTemplate extends InvoiceTemplate {
               color: Colors.black,
               margin: const EdgeInsets.symmetric(vertical: 6),
             ),
+            if (data.showUpiQr && data.upiId.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Text('UPI QR:', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              const Icon(Icons.qr_code_2, size: 48),
+            ],
             if (data.showNotes && data.notes.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(

@@ -1091,7 +1091,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
               Text('Bill split into $splitCount parts'),
               const SizedBox(height: 8),
               Text(
-                'Each part: ₹${splitAmount.toStringAsFixed(2)}',
+                'Each part: Rs${splitAmount.toStringAsFixed(2)}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -1255,7 +1255,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                   leading: const Icon(Icons.receipt),
                   title: Text('Order #${order.id}'),
                   subtitle: Text(
-                    '${order.items.length} items - ₹${order.total.toStringAsFixed(2)}',
+                    '${order.items.length} items - Rs${order.total.toStringAsFixed(2)}',
                   ),
                   trailing: Text(
                     _formatDateTime(order.createdAt),
@@ -1464,7 +1464,7 @@ class _SplitBillDialogState extends State<_SplitBillDialog> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Each part: ₹${(widget.total / _splitCount).toStringAsFixed(2)}',
+            'Each part: Rs${(widget.total / _splitCount).toStringAsFixed(2)}',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,

@@ -139,12 +139,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   // INVOICE & PAYMENT FIELDS
   late String invoiceNumber;
-  late DateTime invoiceDate;
-  late String clientPhone;
-  late String clientGstin;
   late String bankName;
   late String bankAccountNo;
   late String bankIfsc;
+  late String upiId;
+  late bool showBankDetails;
+  late bool showUpiQr;
+  late String termsAndConditions;
+  late String authorizedSignatory;
 
   final TextEditingController _businessNameController = TextEditingController();
   final TextEditingController _businessEmailController = TextEditingController();
@@ -164,11 +166,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   // INVOICE & PAYMENT CONTROLLERS
   final TextEditingController _invoiceNumberController = TextEditingController();
-  final TextEditingController _clientPhoneController = TextEditingController();
-  final TextEditingController _clientGstinController = TextEditingController();
   final TextEditingController _bankNameController = TextEditingController();
   final TextEditingController _bankAccountNoController = TextEditingController();
   final TextEditingController _bankIfscController = TextEditingController();
+  final TextEditingController _upiIdController = TextEditingController();
+  final TextEditingController _termsController = TextEditingController();
+  final TextEditingController _signatoryController = TextEditingController();
 
   final Map<String, TextEditingController> _itemDescControllers = {};
   final Map<String, TextEditingController> _itemQtyControllers = {};
@@ -265,12 +268,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
           // INITIALIZE INVOICE & PAYMENT FIELDS
           invoiceNumber = data.invoiceNumber;
-          invoiceDate = data.invoiceDate;
-          clientPhone = data.clientPhone;
-          clientGstin = data.clientGstin;
           bankName = data.bankName;
           bankAccountNo = data.bankAccountNo;
           bankIfsc = data.bankIfsc;
+          upiId = data.upiId;
+          showBankDetails = data.showBankDetails;
+          showUpiQr = data.showUpiQr;
+          termsAndConditions = data.termsAndConditions;
+          authorizedSignatory = data.authorizedSignatory;
 
           logoBytes = data.logoBytes;
           if (data.logoPath != null && data.logoPath!.isNotEmpty) {
@@ -315,11 +320,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
           // INIT INVOICE & PAYMENT CONTROLLERS
           _invoiceNumberController.text = invoiceNumber;
-          _clientPhoneController.text = clientPhone;
-          _clientGstinController.text = clientGstin;
           _bankNameController.text = bankName;
           _bankAccountNoController.text = bankAccountNo;
           _bankIfscController.text = bankIfsc;
+          _upiIdController.text = upiId;
+          _termsController.text = termsAndConditions;
+          _signatoryController.text = authorizedSignatory;
 
           for (var item in items) {
             _itemDescControllers[item.id] = TextEditingController(text: item.desc);
@@ -359,11 +365,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
     // DISPOSE INVOICE & PAYMENT CONTROLLERS
     _invoiceNumberController.dispose();
-    _clientPhoneController.dispose();
-    _clientGstinController.dispose();
     _bankNameController.dispose();
     _bankAccountNoController.dispose();
     _bankIfscController.dispose();
+    _upiIdController.dispose();
+    _termsController.dispose();
+    _signatoryController.dispose();
     
     for (var controller in _itemDescControllers.values) {
       controller.dispose();
@@ -378,7 +385,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   String formatCurrency(double amount) {
-    return '₹${amount.toStringAsFixed(2)}';
+    return 'Rs${amount.toStringAsFixed(2)}';
   }
 
   double calculateSubtotal() {
@@ -531,6 +538,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         showAddress: showBusinessAddress,
         showCustomerDetails: showClientContact,
         showFooter: showNotes,
+        bankName: bankName,
+        bankAccountNo: bankAccountNo,
+        bankIfsc: bankIfsc,
+        upiId: upiId,
+        showBankDetails: showBankDetails,
+        showUpiQr: showUpiQr,
+        taxLabel: taxLabel,
+        taxRate: taxRate,
+        termsAndConditions: termsAndConditions,
+        authorizedSignatory: authorizedSignatory,
       );
 
       try {
@@ -592,12 +609,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       discountAmount: discountAmount,
       // INVOICE & PAYMENT DATA
       invoiceNumber: invoiceNumber,
-      invoiceDate: invoiceDate,
-      clientPhone: clientPhone,
-      clientGstin: clientGstin,
       bankName: bankName,
       bankAccountNo: bankAccountNo,
       bankIfsc: bankIfsc,
+      upiId: upiId,
+      showBankDetails: showBankDetails,
+      showUpiQr: showUpiQr,
+      termsAndConditions: termsAndConditions,
+      authorizedSignatory: authorizedSignatory,
     );
   }
 
@@ -975,60 +994,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                     onChanged: (value) { clientAddress = value; _previewDebouncer.run(() => setState(() {})); },
                     controller: _clientAddressController,
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          decoration: const InputDecoration(hintText: 'Client Phone', border: OutlineInputBorder()),
-                          onChanged: (value) { clientPhone = value; _previewDebouncer.run(() => setState(() {})); },
-                          controller: _clientPhoneController,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          decoration: const InputDecoration(hintText: 'Client GSTIN', border: OutlineInputBorder()),
-                          onChanged: (value) { clientGstin = value; _previewDebouncer.run(() => setState(() {})); },
-                          controller: _clientGstinController,
-                        ),
-                      ),
-                    ],
-                  ),
                   const SizedBox(height: 16),
                   _buildSectionHeader('Invoice Details'),
-                  const SizedBox(height: 12),
-                  TextField(
-                    decoration: const InputDecoration(hintText: 'Invoice Number (e.g. INV-001)', border: OutlineInputBorder()),
-                    onChanged: (value) { invoiceNumber = value; _previewDebouncer.run(() => setState(() {})); },
-                    controller: _invoiceNumberController,
-                  ),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: invoiceDate,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime(2030),
-                      );
-                      if (picked != null) setState(() => invoiceDate = picked);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade400),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Invoice Date: ${invoiceDate.day}/${invoiceDate.month}/${invoiceDate.year}', style: const TextStyle(fontSize: 14)),
-                          const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                        ],
-                      ),
-                    ),
-                  ),
 
                   // DYNAMIC FIELDS
                   if (activeTemplate.supportsTableNumbers) ...[
@@ -1255,11 +1222,35 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               title: '5. Notes & Terms',
               icon: Icons.description,
               initiallyExpanded: false,
-              child: TextField(
-                decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Add warranty terms, payment notes, etc.'),
-                maxLines: 5,
-                onChanged: (value) { notes = value; _previewDebouncer.run(() => setState(() {})); },
-                controller: _notesController,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Internal Notes', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                  const SizedBox(height: 4),
+                  TextField(
+                    decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Add warranty terms, payment notes, etc.'),
+                    maxLines: 3,
+                    onChanged: (value) { notes = value; _previewDebouncer.run(() => setState(() {})); },
+                    controller: _notesController,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Terms & Conditions / Thank-you message', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                  const SizedBox(height: 4),
+                  TextField(
+                    decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'e.g. Thank you for your purchase!'),
+                    maxLines: 3,
+                    onChanged: (value) { termsAndConditions = value; _previewDebouncer.run(() => setState(() {})); },
+                    controller: _termsController,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Authorized Signatory', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                  const SizedBox(height: 4),
+                  TextField(
+                    decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'e.g. Manager / Owner name'),
+                    onChanged: (value) { authorizedSignatory = value; _previewDebouncer.run(() => setState(() {})); },
+                    controller: _signatoryController,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 8),
@@ -1287,12 +1278,30 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                     onChanged: (value) { bankIfsc = value; _previewDebouncer.run(() => setState(() {})); },
                     controller: _bankIfscController,
                   ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    decoration: const InputDecoration(hintText: 'UPI ID (e.g. name@upi)', border: OutlineInputBorder()),
+                    onChanged: (value) { upiId = value; _previewDebouncer.run(() => setState(() {})); },
+                    controller: _upiIdController,
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 8),
             _buildSidebarSection(
-              title: '7. Visibility Controls',
+              title: '7. Payment Visibility',
+              icon: Icons.payments,
+              initiallyExpanded: false,
+              child: Column(
+                children: [
+                  _buildCheckboxItem('Show Bank Details', showBankDetails, (v) => setState(() => showBankDetails = v)),
+                  _buildCheckboxItem('Show UPI QR', showUpiQr, (v) => setState(() => showUpiQr = v)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildSidebarSection(
+              title: '8. Visibility Controls',
               icon: Icons.visibility,
               initiallyExpanded: false,
               child: Column(

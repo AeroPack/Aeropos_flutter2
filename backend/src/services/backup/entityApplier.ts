@@ -238,7 +238,7 @@ async function handleDelete(
   const current = existing[0];
 
   if (isSoftDelete) {
-    const hasUpdatedAt = table !== 'invoice_items';
+    const hasUpdatedAt = !TABLES_WITHOUT_UPDATED_AT.has(table) || table === 'invoice_settings';
     const setClause = hasUpdatedAt
       ? `is_deleted = true, updated_at = $1`
       : `is_deleted = true`;

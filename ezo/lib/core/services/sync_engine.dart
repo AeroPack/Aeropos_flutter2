@@ -658,7 +658,8 @@ class SyncEngine implements ISyncService {
                   t.deviceId.equals(deviceId),
             ))
             .getSingleOrNull();
-    return state?.lastSyncAt;
+    if (state == null) return null;
+    return DateTime.fromMillisecondsSinceEpoch(state.lastServerVersion);
   }
 
   Future<void> _updateLastSyncTime(DateTime time) async {
@@ -733,6 +734,9 @@ class SyncEngine implements ISyncService {
       case 'invoices':
         await (db.delete(db.invoices)..where((t) => t.uuid.equals(uuid))).go();
         break;
+      case 'invoice_items':
+        await (db.delete(db.invoiceItems)..where((t) => t.uuid.equals(uuid))).go();
+        break;
       case 'purchase_receipts':
         await (db.delete(db.purchaseReceipts)..where((t) => t.uuid.equals(uuid))).go();
         break;
@@ -774,6 +778,9 @@ class SyncEngine implements ISyncService {
         break;
       case 'invoices':
         await _upsertInvoice(recordId, data);
+        break;
+      case 'invoice_items':
+        await _upsertInvoiceItem(recordId, data);
         break;
       case 'purchase_receipts':
         await _upsertPurchaseReceipt(recordId, data);
@@ -818,6 +825,22 @@ class SyncEngine implements ISyncService {
     if (uuid == null) return null;
     final row = await (db.select(
       db.customers,
+    )..where((t) => t.uuid.equals(uuid))).getSingleOrNull();
+    return row?.id;
+  }
+
+  Future<int?> _invoiceIdForUuid(String? uuid) async {
+    if (uuid == null) return null;
+    final row = await (db.select(
+      db.invoices,
+    )..where((t) => t.uuid.equals(uuid))).getSingleOrNull();
+    return row?.id;
+  }
+
+  Future<int?> _productIdForUuid(String? uuid) async {
+    if (uuid == null) return null;
+    final row = await (db.select(
+      db.products,
     )..where((t) => t.uuid.equals(uuid))).getSingleOrNull();
     return row?.id;
   }
@@ -1101,13 +1124,15 @@ await db
 
   Future<void> _upsertInvoice(String uuid, Map<String, dynamic> data) async {
     final customerId = await _customerIdForUuid(data['customer_uuid'] as String?);
+    final tenantIdInt = int.tryParse(tenantId) ?? 1;
+    final incomingNumber = data['invoice_number'] as String? ?? '';
     final existing = await (db.select(
       db.invoices,
     )..where((t) => t.uuid.equals(uuid))).getSingleOrNull();
     if (existing != null) {
       await (db.update(db.invoices)..where((t) => t.uuid.equals(uuid))).write(
         InvoicesCompanion(
-          invoiceNumber: Value(data['invoice_number'] as String? ?? ''),
+          invoiceNumber: Value(incomingNumber),
           customerId: Value(customerId),
           subtotal: Value((data['subtotal'] as num?)?.toDouble() ?? 0.0),
           tax: Value((data['tax'] as num?)?.toDouble() ?? 0.0),
@@ -1120,12 +1145,21 @@ await db
         ),
       );
     } else {
+      var finalNumber = incomingNumber;
+      final clash = await (db.select(db.invoices)
+        ..where((t) => t.invoiceNumber.equals(incomingNumber))
+        ..where((t) => t.tenantId.equals(tenantIdInt)))
+          .getSingleOrNull();
+      if (clash != null) {
+        final shortUuid = uuid.substring(0, 4).toUpperCase();
+        finalNumber = '$incomingNumber-$shortUuid';
+      }
       await db
           .into(db.invoices)
           .insert(
             InvoicesCompanion(
               uuid: Value(uuid),
-              invoiceNumber: Value(data['invoice_number'] as String? ?? ''),
+              invoiceNumber: Value(finalNumber),
               customerId: Value(customerId),
               date: Value(
                 data['date'] != null
@@ -1141,6 +1175,51 @@ await db
               ),
               total: Value((data['total'] as num?)?.toDouble() ?? 0.0),
               paymentMethod: Value(data['payment_method'] as String?),
+              tenantId: Value(tenantIdInt),
+              updatedAt: Value(DateTime.now()),
+              syncStatus: const Value(0),
+              isDeleted: Value(data['is_deleted'] as bool? ?? false),
+            ),
+          );
+    }
+  }
+
+  Future<void> _upsertInvoiceItem(String uuid, Map<String, dynamic> data) async {
+    final invoiceId = await _invoiceIdForUuid(data['invoice_uuid'] as String?);
+    final productId = await _productIdForUuid(data['product_uuid'] as String?);
+
+    final existing = await (db.select(
+      db.invoiceItems,
+    )..where((t) => t.uuid.equals(uuid))).getSingleOrNull();
+
+    if (existing != null) {
+      await (db.update(db.invoiceItems)..where((t) => t.uuid.equals(uuid))).write(
+        InvoiceItemsCompanion(
+          invoiceId: Value(invoiceId ?? existing.invoiceId),
+          productId: Value(productId ?? existing.productId),
+          quantity: Value((data['quantity'] as num?)?.toInt() ?? existing.quantity),
+          unitPrice: Value((data['unit_price'] as num?)?.toDouble() ?? existing.unitPrice),
+          discount: Value((data['discount'] as num?)?.toDouble() ?? existing.discount),
+          totalPrice: Value((data['total_price'] as num?)?.toDouble() ?? existing.totalPrice),
+          updatedAt: Value(DateTime.now()),
+          syncStatus: const Value(0),
+          isDeleted: Value(data['is_deleted'] as bool? ?? existing.isDeleted),
+        ),
+      );
+    } else {
+      final invoiceIdVal = invoiceId ?? 0;
+      final productIdVal = productId ?? 0;
+      await db
+          .into(db.invoiceItems)
+          .insert(
+            InvoiceItemsCompanion(
+              uuid: Value(uuid),
+              invoiceId: Value(invoiceIdVal),
+              productId: Value(productIdVal),
+              quantity: Value((data['quantity'] as num?)?.toInt() ?? 0),
+              unitPrice: Value((data['unit_price'] as num?)?.toDouble() ?? 0.0),
+              discount: Value((data['discount'] as num?)?.toDouble() ?? 0.0),
+              totalPrice: Value((data['total_price'] as num?)?.toDouble() ?? 0.0),
               tenantId: Value(int.tryParse(tenantId) ?? 1),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),

@@ -82,10 +82,13 @@ class InvoiceData {
   bool showBusinessAddress;
   bool showClientContact;
   bool showNotes;
+  bool showBankDetails;
+  bool showUpiQr;
   String? logoLocalPath;
   String? logoPath;
   Uint8List? logoBytes;
   String? paymentMethod;
+  String paymentStatus;
   String invoiceNumber;
   DateTime invoiceDate;
   DateTime? dueDate;
@@ -127,9 +130,12 @@ class InvoiceData {
     this.showBusinessAddress = true,
     this.showClientContact = false,
     this.showNotes = true,
+    this.showBankDetails = false,
+    this.showUpiQr = false,
     this.logoPath,
     this.logoBytes,
     this.paymentMethod,
+    this.paymentStatus = 'COMPLETED',
     this.invoiceNumber = '',
     DateTime? invoiceDate,
     this.dueDate,
@@ -149,7 +155,11 @@ class InvoiceData {
   }) : invoiceDate = invoiceDate ?? DateTime.now();
 
   double get subtotal => items.fold(0.0, (sum, item) => sum + item.amount);
-  double get taxAmount => subtotal * (taxRate / 100);
+  double get taxAmount {
+    final itemTax = cgstTotal + sgstTotal + igstTotal;
+    // Use per-item GST when products have rates set; fall back to company-level rate.
+    return itemTax > 0 ? itemTax : subtotal * (taxRate / 100);
+  }
   double get total => subtotal + taxAmount;
   double get cgstTotal => items.fold(0.0, (sum, item) => sum + item.cgstAmount);
   double get sgstTotal => items.fold(0.0, (sum, item) => sum + item.sgstAmount);

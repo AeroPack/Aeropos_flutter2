@@ -98,6 +98,11 @@ class _AppShellState extends ConsumerState<AppShell> {
           icon: Icons.branding_watermark_outlined,
           branchIndex: 5,
         ),
+        SidebarItem(
+          label: 'Generate Barcode',
+          icon: Icons.qr_code_scanner,
+          branchIndex: 20,
+        ),
       ],
     ),
 
