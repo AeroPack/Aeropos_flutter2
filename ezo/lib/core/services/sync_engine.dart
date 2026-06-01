@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
@@ -11,15 +11,15 @@ import '../di/service_locator.dart';
 import 'i_sync_service.dart';
 import 'sse_client.dart';
 
-const int MAX_BATCH_SIZE = 500;
-const int COMPRESSION_THRESHOLD = 10240;
-const Duration SYNC_INTERVAL = Duration(seconds: 10);
-const int MAX_RETRY_ATTEMPTS = 3;
-const Duration BASE_RETRY_DELAY = Duration(seconds: 2);
+const int maxBatchSize = 500;
+const int compressionThreshold = 10240;
+const Duration syncInterval = Duration(seconds: 10);
+const int maxRetryAttempts = 3;
+const Duration baseRetryDelay = Duration(seconds: 2);
 
 void _log(String event, Map<String, dynamic> fields) {
   final fieldsStr = fields.entries.map((e) => '${e.key}=${e.value}').join(' ');
-  print('SYNC_$event $fieldsStr');
+  debugPrint('SYNC_$event $fieldsStr');
 }
 
 class SyncOpType {
@@ -99,7 +99,7 @@ class SyncEngine implements ISyncService {
     // Reset the in-flight flag in case a hot reload interrupted _doSync,
     // leaving _isSyncing stuck at true and blocking all future syncs.
     _isSyncing = false;
-    print(
+    debugPrint(
       '[SyncEngine] reinitialized: tenantId=$tenantId companyId=$companyId',
     );
   }
@@ -127,7 +127,7 @@ class SyncEngine implements ISyncService {
   Future<void> _connectSse() async {
     // dart:io HttpClient is not available on web — rely on the 60s fallback.
     if (kIsWeb) {
-      print('[SyncEngine] SSE skipped on web — using polling fallback');
+      debugPrint('[SyncEngine] SSE skipped on web — using polling fallback');
       return;
     }
 
@@ -138,7 +138,7 @@ class SyncEngine implements ISyncService {
         .read(key: 'company_id')
         .timeout(const Duration(seconds: 5), onTimeout: () => null);
     if (token == null || companyIdStr == null) {
-      print('[SyncEngine] SSE skipped — no token or company_id in storage');
+      debugPrint('[SyncEngine] SSE skipped — no token or company_id in storage');
       return;
     }
 
@@ -150,10 +150,10 @@ class SyncEngine implements ISyncService {
       token: token,
       companyId: companyIdStr,
       onEvent: () {
-        print('[SyncEngine] SSE ping — pulling now');
+        debugPrint('[SyncEngine] SSE ping — pulling now');
         syncNow();
       },
-      onLog: (msg) => print(msg),
+      onLog: (msg) => debugPrint(msg),
     );
   }
 
@@ -303,8 +303,8 @@ class SyncEngine implements ISyncService {
   Future<T> _withRetry<T>({
     required Future<T> Function() operation,
     required String operationName,
-    int maxAttempts = MAX_RETRY_ATTEMPTS,
-    Duration baseDelay = BASE_RETRY_DELAY,
+    int maxAttempts = maxRetryAttempts,
+    Duration baseDelay = baseRetryDelay,
   }) async {
     int attempts = 0;
     while (attempts < maxAttempts) {
@@ -341,9 +341,9 @@ class SyncEngine implements ISyncService {
     final errors = <String>[];
 
     final outboxCheck = await _getPendingOutbox(100);
-    print('[ENGINE][OUTBOX] ${outboxCheck.length} items in outbox before sync');
+    debugPrint('[ENGINE][OUTBOX] ${outboxCheck.length} items in outbox before sync');
     for (final item in outboxCheck.take(5)) {
-      print(
+      debugPrint(
         '[ENGINE][OUTBOX] ${item['entity']}:${item['entityId']} '
         'opType=${item['opType']}',
       );
@@ -354,9 +354,9 @@ class SyncEngine implements ISyncService {
     await _retryFailedOutbox();
 
     while (true) {
-      final pending = await _getPendingOutbox(MAX_BATCH_SIZE);
-      print('[ENGINE][PUSH] Reading from sync_outbox...');
-      print('[ENGINE][PUSH] Found ${pending.length} pending operations');
+      final pending = await _getPendingOutbox(maxBatchSize);
+      debugPrint('[ENGINE][PUSH] Reading from sync_outbox...');
+      debugPrint('[ENGINE][PUSH] Found ${pending.length} pending operations');
       if (pending.isEmpty) break;
 
       final mappedOps = pending.map(_mapToApiFormat).toList();
@@ -369,7 +369,7 @@ class SyncEngine implements ISyncService {
         );
         totalAcked += (pushResult['acked'] as int?) ?? 0;
         totalRejected += (pushResult['rejected'] as int?) ?? 0;
-        print(
+        debugPrint(
           '[ENGINE][PUSH] Sent batch, server acknowledged '
           '${pushResult['acked'] ?? 0} ops, rejected ${pushResult['rejected'] ?? 0}',
         );
@@ -377,7 +377,7 @@ class SyncEngine implements ISyncService {
         errors.add('Push failed: ${e.toString()}');
       }
 
-      if (pending.length < MAX_BATCH_SIZE) break;
+      if (pending.length < maxBatchSize) break;
     }
 
     final lastPulledAt = await _getLastSyncTime();
@@ -411,17 +411,17 @@ class SyncEngine implements ISyncService {
     try {
       for (final op in operations) {
         try {
-          print(
+          debugPrint(
             '[ENGINE][PULL_APPLY] ${op['table']}:${op['recordId']} '
             'type=${op['type']}',
           );
           await _applyOperation(op);
           pulled++;
-          print(
+          debugPrint(
             '[ENGINE][PULL_APPLY] ✅ ${op['table']}:${op['recordId']} success',
           );
         } catch (e) {
-          print(
+          debugPrint(
             '[ENGINE][PULL_APPLY] ❌ ${op['table']}:${op['recordId']} '
             'error=$e',
           );
@@ -499,10 +499,10 @@ class SyncEngine implements ISyncService {
         return {'success': true, 'acked': acked, 'rejected': rejected};
       }
 
-      print('[PUSH] non-200 status=${response.statusCode} body=${response.data}');
+      debugPrint('[PUSH] non-200 status=${response.statusCode} body=${response.data}');
       return {'success': false, 'acked': 0, 'rejected': 0};
     } on DioException catch (e) {
-      print(
+      debugPrint(
         '[PUSH] DioException status=${e.response?.statusCode} '
         'body=${e.response?.data}',
       );
@@ -513,7 +513,7 @@ class SyncEngine implements ISyncService {
         'error': e.toString(),
       };
     } catch (e) {
-      print('[PUSH] unexpected error: $e');
+      debugPrint('[PUSH] unexpected error: $e');
       return {
         'success': false,
         'acked': 0,
@@ -561,7 +561,7 @@ class SyncEngine implements ISyncService {
         'operations': [],
       };
 
-      print('[ENGINE][PULL] Requesting since: ${body['lastPulledAt']}');
+      debugPrint('[ENGINE][PULL] Requesting since: ${body['lastPulledAt']}');
 
       // AuthInterceptor injects Authorization, X-Company-Id, X-Tenant-Id.
       final response = await dio.post('api/sync', data: body);
@@ -575,7 +575,7 @@ class SyncEngine implements ISyncService {
             [];
         final nextCursor = data['nextCursor'] as String?;
 
-        print(
+        debugPrint(
           '[ENGINE][PULL] Received ${operations.length} operations from server',
         );
 
@@ -629,7 +629,7 @@ class SyncEngine implements ISyncService {
           lastError: const Value(null),
         ),
       );
-      print(
+      debugPrint(
         '[ENGINE][RETRY] ${entry.entity}:${entry.entityId} '
         'retry=${entry.retryCount + 1}/$maxRetries',
       );
@@ -696,7 +696,7 @@ class SyncEngine implements ISyncService {
 
     // Server asks for a full re-sync (client cursor is too old).
     if (operation == 'FULL_RESYNC_REQUIRED') {
-      print('[SyncEngine] FULL_RESYNC_REQUIRED — clearing local DB');
+      debugPrint('[SyncEngine] FULL_RESYNC_REQUIRED — clearing local DB');
       await db.clearAllData();
       await _updateLastSyncTime(DateTime.fromMillisecondsSinceEpoch(0));
       return;
@@ -711,7 +711,7 @@ class SyncEngine implements ISyncService {
 
     // Skip INSERT/UPDATE ops where the server sent no data payload.
     if (data == null || data.isEmpty) {
-      print('[SyncEngine] SKIP $entity:$recordId — empty data payload');
+      debugPrint('[SyncEngine] SKIP $entity:$recordId — empty data payload');
       return;
     }
 
@@ -911,7 +911,7 @@ await db
   Future<void> _upsertCategory(String uuid, Map<String, dynamic> data) async {
     final name = data['name'] as String?;
     if (name == null || name.isEmpty) {
-      print('[SyncEngine] SKIP category:$uuid — missing name field');
+      debugPrint('[SyncEngine] SKIP category:$uuid — missing name field');
       return;
     }
     final existing = await (db.select(

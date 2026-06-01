@@ -35,11 +35,11 @@ class InvoiceSequenceService {
           updatedAt: Value(now),
         );
         await _db.into(_db.invoiceSettings).insert(companion);
-        return '$prefix-${code}$todayTag-0001';
+        return '$prefix-$code$todayTag-0001';
       }
 
       final lastDate = settings.updatedAt;
-      final nextCounter = (lastDate != null && _dateTag(lastDate) == todayTag)
+      final nextCounter = (_dateTag(lastDate) == todayTag)
           ? settings.invoiceCounter + 1
           : 1;
 
@@ -49,7 +49,7 @@ class InvoiceSequenceService {
       );
       await _db.upsertInvoiceSettings(companion);
 
-      return '$prefix-${code}$todayTag-${nextCounter.toString().padLeft(4, '0')}';
+      return '$prefix-$code$todayTag-${nextCounter.toString().padLeft(4, '0')}';
     });
   }
 
@@ -73,7 +73,7 @@ class InvoiceSequenceService {
       await _db.upsertInvoiceSettings(companion);
     }
 
-    return '$prefix-${code}$todayTag-${nextCounter.toString().padLeft(4, '0')}';
+    return '$prefix-$code$todayTag-${nextCounter.toString().padLeft(4, '0')}';
   }
 
   Future<int> getCurrentCounter(int tenantId) async {

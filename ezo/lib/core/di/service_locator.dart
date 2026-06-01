@@ -246,7 +246,7 @@ class ServiceLocator {
     // via the workaround of shadowing — if your SyncEngine supports
     // an updateCredentials() method, prefer that instead.
     // ignore: invalid_use_of_protected_member
-    syncEngine..reinitialize(
+    syncEngine.reinitialize(
       tenantId: tenantId.toString(),
       companyId: companyId.toString(),
       deviceId: deviceId,
@@ -263,7 +263,7 @@ class ServiceLocator {
     syncEngine.startAutoSync();
     syncEngine.clearPostSyncCallbacks();
     syncEngine.registerPostSyncCallback(productViewModel.syncPendingImages);
-    print(
+    debugPrint(
       '[ServiceLocator] SyncEngine activated: tenantId=$tenantId companyId=$companyId',
     );
   }

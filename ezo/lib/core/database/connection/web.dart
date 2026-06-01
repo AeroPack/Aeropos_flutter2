@@ -1,10 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/wasm.dart';
 
 DatabaseConnection connect() {
   return DatabaseConnection.delayed(
     Future(() async {
-      print('[DB-WEB] Starting WasmDatabase.open()...');
+      debugPrint('[DB-WEB] Starting WasmDatabase.open()...');
       
       try {
         final result = await WasmDatabase.open(
@@ -14,17 +15,17 @@ DatabaseConnection connect() {
         ).timeout(
           const Duration(seconds: 15),
           onTimeout: () {
-            print('[DB-WEB] TIMEOUT → worker or WASM not loading');
+            debugPrint('[DB-WEB] TIMEOUT → worker or WASM not loading');
             throw Exception('WASM/worker failed to initialize');
           },
         );
         
-        print('[DB-WEB] SUCCESS');
-        print('[DB-WEB] chosenImplementation=${result.chosenImplementation}');
+        debugPrint('[DB-WEB] SUCCESS');
+        debugPrint('[DB-WEB] chosenImplementation=${result.chosenImplementation}');
         return result.resolvedExecutor;
       } catch (e, st) {
-        print('[DB-WEB] ERROR: $e');
-        print('[DB-WEB] Stack: $st');
+        debugPrint('[DB-WEB] ERROR: $e');
+        debugPrint('[DB-WEB] Stack: $st');
         rethrow;
       }
     }),

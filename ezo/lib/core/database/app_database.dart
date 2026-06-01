@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 import 'connection/connection.dart' as impl;
@@ -90,7 +91,7 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration {
     return MigrationStrategy(
       onCreate: (m) async {
-        // print('DRIFT: Running onCreate - creating all tables');
+        // debugPrint('DRIFT: Running onCreate - creating all tables');
         await m.createAll();
 
         await _seedDefaultUnits();
@@ -137,7 +138,7 @@ class AppDatabase extends _$AppDatabase {
           }
         }
 
-        // print('DRIFT: onCreate complete');
+        // debugPrint('DRIFT: onCreate complete');
       },
 
       onUpgrade: (m, from, to) async {
@@ -369,91 +370,91 @@ class AppDatabase extends _$AppDatabase {
           await m.createTable(supplierTransactions);
         }
         if (from < 33) {
-          // print(
+          // debugPrint(
           //   'DRIFT: Running migration from < 33 - Creating Purchase Receipts tables',
           // );
           try {
             await m.createTable(purchaseReceipts);
             await m.createTable(purchaseReceiptItems);
-            // print('DRIFT: Purchase Receipts tables created');
+            // debugPrint('DRIFT: Purchase Receipts tables created');
           } catch (e) {
-            print('ERROR creating purchase_receipts tables: $e');
+            debugPrint('ERROR creating purchase_receipts tables: $e');
           }
         }
         if (from < 34) {
-          // print(
+          // debugPrint(
           //   'DRIFT: Running migration to 34 - Creating Purchase Receipts tables',
           // );
           try {
             await m.createTable(purchaseReceipts);
             await m.createTable(purchaseReceiptItems);
-            // print('DRIFT: Purchase Receipts tables created successfully');
+            // debugPrint('DRIFT: Purchase Receipts tables created successfully');
           } catch (e) {
-            // print('DRIFT: Tables may already exist or error: $e');
+            // debugPrint('DRIFT: Tables may already exist or error: $e');
           }
         }
 
         // Migration 38: Add version column to invoices table
         if (from < 38) {
-          // print(
+          // debugPrint(
           //   'DRIFT: Running migration to 38 - Adding version column to invoices',
           // );
           try {
             await customStatement(
               'ALTER TABLE invoices ADD COLUMN version INTEGER NOT NULL DEFAULT 1',
             );
-            // print('DRIFT: version column added to invoices');
+            // debugPrint('DRIFT: version column added to invoices');
           } catch (e) {
-            // print('DRIFT: version column may already exist: $e');
+            // debugPrint('DRIFT: version column may already exist: $e');
           }
         }
 
         // Migration 39: UUID backfill + sync improvements
         if (from < 39) {
-          // print(
+          // debugPrint(
           //   'DRIFT: Running migration 39 - UUID backfill + sync improvements',
           // );
 
           try {
             // UUID backfill for all tables
-            // print('DRIFT: Backfilling UUIDs for units');
+            // debugPrint('DRIFT: Backfilling UUIDs for units');
             await customStatement(
               "UPDATE units SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL OR uuid = ''",
             );
 
-            // print('DRIFT: Backfilling UUIDs for categories');
+            // debugPrint('DRIFT: Backfilling UUIDs for categories');
             await customStatement(
               "UPDATE categories SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL OR uuid = ''",
             );
 
-            // print('DRIFT: Backfilling UUIDs for brands');
+            // debugPrint('DRIFT: Backfilling UUIDs for brands');
             await customStatement(
               "UPDATE brands SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL OR uuid = ''",
             );
 
-            // print('DRIFT: Backfilling UUIDs for products');
+            // debugPrint('DRIFT: Backfilling UUIDs for products');
             await customStatement(
               "UPDATE products SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL OR uuid = ''",
             );
 
-            // print('DRIFT: Backfilling UUIDs for customers');
+            // debugPrint('DRIFT: Backfilling UUIDs for customers');
             await customStatement(
               "UPDATE customers SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL OR uuid = ''",
             );
 
-            // print('DRIFT: Backfilling UUIDs for suppliers');
+            // debugPrint('DRIFT: Backfilling UUIDs for suppliers');
             await customStatement(
               "UPDATE suppliers SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL OR uuid = ''",
             );
 
-            // print('DRIFT: Backfilling UUIDs for employees');
+            // debugPrint('DRIFT: Backfilling UUIDs for employees');
             await customStatement(
               "UPDATE employees SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL OR uuid = ''",
             );
 
             // Add columns to sync_outbox (if table exists)
             try {
-              // print('DRIFT: Adding retry columns to sync_outbox');
+              // debugPrint('DRIFT: Adding retry columns to sync_outbox');
               await customStatement(
                 "ALTER TABLE sync_outbox ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0",
               );
@@ -467,64 +468,64 @@ class AppDatabase extends _$AppDatabase {
                 "ALTER TABLE sync_outbox ADD COLUMN next_retry_at TEXT",
               );
             } catch (e) {
-              // print('DRIFT: sync_outbox columns may already exist: $e');
+              // debugPrint('DRIFT: sync_outbox columns may already exist: $e');
             }
 
-            // print('DRIFT: Migration 39 completed');
+            // debugPrint('DRIFT: Migration 39 completed');
           } catch (e) {
-            // print('DRIFT: Migration 39 error: $e');
+            // debugPrint('DRIFT: Migration 39 error: $e');
           }
         }
 
         // Migration 40: Add hsn column to products table
         if (from < 40) {
-          // print('DRIFT: Running migration 40 - Adding hsn column to products');
+          // debugPrint('DRIFT: Running migration 40 - Adding hsn column to products');
           try {
             await customStatement(
               "ALTER TABLE products ADD COLUMN hsn TEXT",
             );
-            // print('DRIFT: hsn column added to products');
+            // debugPrint('DRIFT: hsn column added to products');
           } catch (e) {
-            // print('DRIFT: hsn column may already exist: $e');
+            // debugPrint('DRIFT: hsn column may already exist: $e');
           }
         }
 
         // Migration 41: Add invoice_counter column to invoice_settings
         if (from < 41) {
-          // print('DRIFT: Running migration 41 - Adding invoice_counter to invoice_settings');
+          // debugPrint('DRIFT: Running migration 41 - Adding invoice_counter to invoice_settings');
           try {
             await customStatement(
               'ALTER TABLE invoice_settings ADD COLUMN invoice_counter INTEGER NOT NULL DEFAULT 0',
             );
-            // print('DRIFT: invoice_counter column added');
+            // debugPrint('DRIFT: invoice_counter column added');
           } catch (e) {
-            // print('DRIFT: invoice_counter column may already exist: $e');
+            // debugPrint('DRIFT: invoice_counter column may already exist: $e');
           }
         }
 
         // Migration 42: Add gstin column to customers table
         if (from < 42) {
-          // print('DRIFT: Running migration 42 - Adding gstin to customers');
+          // debugPrint('DRIFT: Running migration 42 - Adding gstin to customers');
           try {
             await customStatement(
               'ALTER TABLE customers ADD COLUMN gstin TEXT',
             );
-            // print('DRIFT: gstin column added to customers');
+            // debugPrint('DRIFT: gstin column added to customers');
           } catch (e) {
-            // print('DRIFT: gstin column may already exist: $e');
+            // debugPrint('DRIFT: gstin column may already exist: $e');
           }
         }
 
         // Migration 43: Add logo_bytes BLOB to invoice_settings
         if (from < 43) {
-          // print('DRIFT: Running migration 43 - Adding logo_bytes to invoice_settings');
+          // debugPrint('DRIFT: Running migration 43 - Adding logo_bytes to invoice_settings');
           try {
             await customStatement(
               'ALTER TABLE invoice_settings ADD COLUMN logo_bytes BLOB',
             );
-            // print('DRIFT: logo_bytes column added to invoice_settings');
+            // debugPrint('DRIFT: logo_bytes column added to invoice_settings');
           } catch (e) {
-            // print('DRIFT: logo_bytes column may already exist: $e');
+            // debugPrint('DRIFT: logo_bytes column may already exist: $e');
           }
         }
 
@@ -545,7 +546,7 @@ class AppDatabase extends _$AppDatabase {
             try {
               await customStatement(stmt);
             } catch (e) {
-              // print('DRIFT: Index creation warning: $e');
+              // debugPrint('DRIFT: Index creation warning: $e');
             }
           }
         }
@@ -606,7 +607,7 @@ class AppDatabase extends _$AppDatabase {
             try {
               await customStatement(stmt);
             } catch (e) {
-              // print('DRIFT: Migration 46 index creation warning: $e');
+              // debugPrint('DRIFT: Migration 46 index creation warning: $e');
             }
           }
         }
@@ -636,7 +637,7 @@ class AppDatabase extends _$AppDatabase {
             try {
               await customStatement(stmt);
             } catch (e) {
-              // print('DRIFT: Index creation warning: $e');
+              // debugPrint('DRIFT: Index creation warning: $e');
             }
           }
         }
@@ -1271,94 +1272,94 @@ class AppDatabase extends _$AppDatabase {
 
   // Clear all data from the database
   Future<void> clearAllData() async {
-    print('CLEAR DB: start');
+    debugPrint('CLEAR DB: start');
 
     // Delete child tables first (FK constraints), then parent tables
     // Each in try-catch to isolate failures
     try {
       await delete(invoiceItems).go();
-      print('CLEAR DB: deleted invoiceItems');
+      debugPrint('CLEAR DB: deleted invoiceItems');
     } catch (e) {
-      print('CLEAR DB: FAILED on invoiceItems - $e');
+      debugPrint('CLEAR DB: FAILED on invoiceItems - $e');
     }
 
     try {
       await delete(invoices).go();
-      print('CLEAR DB: deleted invoices');
+      debugPrint('CLEAR DB: deleted invoices');
     } catch (e) {
-      print('CLEAR DB: FAILED on invoices - $e');
+      debugPrint('CLEAR DB: FAILED on invoices - $e');
     }
 
     try {
       await delete(products).go();
-      print('CLEAR DB: deleted products');
+      debugPrint('CLEAR DB: deleted products');
     } catch (e) {
-      print('CLEAR DB: FAILED on products - $e');
+      debugPrint('CLEAR DB: FAILED on products - $e');
     }
 
     try {
       await delete(tenants).go();
-      print('CLEAR DB: deleted tenants');
+      debugPrint('CLEAR DB: deleted tenants');
     } catch (e) {
-      print('CLEAR DB: FAILED on tenants - $e');
+      debugPrint('CLEAR DB: FAILED on tenants - $e');
     }
 
     try {
       await delete(customers).go();
-      print('CLEAR DB: deleted customers');
+      debugPrint('CLEAR DB: deleted customers');
     } catch (e) {
-      print('CLEAR DB: FAILED on customers - $e');
+      debugPrint('CLEAR DB: FAILED on customers - $e');
     }
 
     try {
       await delete(suppliers).go();
-      print('CLEAR DB: deleted suppliers');
+      debugPrint('CLEAR DB: deleted suppliers');
     } catch (e) {
-      print('CLEAR DB: FAILED on suppliers - $e');
+      debugPrint('CLEAR DB: FAILED on suppliers - $e');
     }
 
     try {
       await delete(employees).go();
-      print('CLEAR DB: deleted employees');
+      debugPrint('CLEAR DB: deleted employees');
     } catch (e) {
-      print('CLEAR DB: FAILED on employees - $e');
+      debugPrint('CLEAR DB: FAILED on employees - $e');
     }
 
     try {
       await delete(brands).go();
-      print('CLEAR DB: deleted brands');
+      debugPrint('CLEAR DB: deleted brands');
     } catch (e) {
-      print('CLEAR DB: FAILED on brands - $e');
+      debugPrint('CLEAR DB: FAILED on brands - $e');
     }
 
     try {
       await delete(units).go();
-      print('CLEAR DB: deleted units');
+      debugPrint('CLEAR DB: deleted units');
     } catch (e) {
-      print('CLEAR DB: FAILED on units - $e');
+      debugPrint('CLEAR DB: FAILED on units - $e');
     }
 
     try {
       await delete(categories).go();
-      print('CLEAR DB: deleted categories');
+      debugPrint('CLEAR DB: deleted categories');
     } catch (e) {
-      print('CLEAR DB: FAILED on categories - $e');
+      debugPrint('CLEAR DB: FAILED on categories - $e');
     }
 
     try {
       await delete(syncMetadata).go();
-      print('CLEAR DB: deleted syncMetadata');
+      debugPrint('CLEAR DB: deleted syncMetadata');
     } catch (e) {
-      print('CLEAR DB: FAILED on syncMetadata - $e');
+      debugPrint('CLEAR DB: FAILED on syncMetadata - $e');
     }
 
     // Clear sync cursor so the next login always pulls from epoch
     // (avoiding a stale lastSyncAt that would skip historical data).
     try {
       await delete(syncState).go();
-      print('CLEAR DB: deleted syncState');
+      debugPrint('CLEAR DB: deleted syncState');
     } catch (e) {
-      print('CLEAR DB: FAILED on syncState - $e');
+      debugPrint('CLEAR DB: FAILED on syncState - $e');
     }
 
     // Clear any pending outbox entries from the previous session.
@@ -1366,29 +1367,29 @@ class AppDatabase extends _$AppDatabase {
     // data belongs to the session; a re-login starts fresh).
     try {
       await delete(syncOutbox).go();
-      print('CLEAR DB: deleted syncOutbox');
+      debugPrint('CLEAR DB: deleted syncOutbox');
     } catch (e) {
-      print('CLEAR DB: FAILED on syncOutbox - $e');
+      debugPrint('CLEAR DB: FAILED on syncOutbox - $e');
     }
 
-    print('CLEAR DB: completed');
+    debugPrint('CLEAR DB: completed');
   }
 
   Future<void> clearInvoiceData() async {
-    print('CLEAR INVOICE DATA: start');
+    debugPrint('CLEAR INVOICE DATA: start');
     try {
       await delete(invoiceItems).go();
-      print('CLEAR INVOICE DATA: deleted invoiceItems');
+      debugPrint('CLEAR INVOICE DATA: deleted invoiceItems');
     } catch (e) {
-      print('CLEAR INVOICE DATA: FAILED on invoiceItems - $e');
+      debugPrint('CLEAR INVOICE DATA: FAILED on invoiceItems - $e');
     }
     try {
       await delete(invoices).go();
-      print('CLEAR INVOICE DATA: deleted invoices');
+      debugPrint('CLEAR INVOICE DATA: deleted invoices');
     } catch (e) {
-      print('CLEAR INVOICE DATA: FAILED on invoices - $e');
+      debugPrint('CLEAR INVOICE DATA: FAILED on invoices - $e');
     }
-    print('CLEAR INVOICE DATA: completed');
+    debugPrint('CLEAR INVOICE DATA: completed');
   }
 
   // SKU Counter methods
