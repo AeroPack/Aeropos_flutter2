@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
@@ -193,7 +194,7 @@ class SyncService {
     dio.options.baseUrl = AppConfig.apiBaseUrl;
     dio.options.connectTimeout = const Duration(seconds: 10);
     dio.options.receiveTimeout = const Duration(seconds: 10);
-    print(
+    debugPrint(
       '[DEPRECATED] SyncService is deprecated. Use SyncEngine instead. Migration required.',
     );
     _initializeDeviceId();
@@ -207,19 +208,19 @@ class SyncService {
     if (deviceId == null) {
       deviceId = const Uuid().v4();
       await storage.write(key: 'device_id', value: deviceId);
-      print('[SYNC] Generated new device ID: $deviceId');
+      debugPrint('[SYNC] Generated new device ID: $deviceId');
     }
   }
 
   void startAutoSync({Duration interval = const Duration(minutes: 5)}) {
-    print('[DIAG][AUTO_SYNC_INIT] Starting with interval: $interval');
+    debugPrint('[DIAG][AUTO_SYNC_INIT] Starting with interval: $interval');
     _syncTimer?.cancel();
     _syncTimer = Timer.periodic(interval, (_) {
-      print('[DIAG][AUTO_SYNC_TIMER] Timer fired - calling sync()');
+      debugPrint('[DIAG][AUTO_SYNC_TIMER] Timer fired - calling sync()');
       sync();
     });
     Future.delayed(const Duration(seconds: 5), () {
-      print('[DIAG][AUTO_SYNC_INITIAL] Initial sync after 5s delay');
+      debugPrint('[DIAG][AUTO_SYNC_INITIAL] Initial sync after 5s delay');
       sync();
     });
   }
@@ -232,23 +233,23 @@ class SyncService {
   /// Debounced sync — coalesces rapid-fire calls into one execution
   Future<void> sync() async {
     // ===== DIAG LOG: Sync entry point =====
-    print('[DIAG][SYNC_ENTRY] sync() called, _isSyncing=$_isSyncing');
+    debugPrint('[DIAG][SYNC_ENTRY] sync() called, _isSyncing=$_isSyncing');
     
     if (_isSyncing) {
-      print('[DIAG][SYNC_ENTRY] Early exit - already syncing');
+      debugPrint('[DIAG][SYNC_ENTRY] Early exit - already syncing');
       return;
     }
 
     _syncDebounceTimer?.cancel();
     _syncDebounceTimer = Timer(const Duration(seconds: 2), () {
-      print('[DIAG][SYNC_ENTRY] Debounce timer fired - calling _doSync()');
+      debugPrint('[DIAG][SYNC_ENTRY] Debounce timer fired - calling _doSync()');
       _doSync();
     });
   }
 
   Future<void> _doSync() async {
     if (_isSyncing) {
-      print('[DIAG][SYNC_SKIP] Already syncing - returning early');
+      debugPrint('[DIAG][SYNC_SKIP] Already syncing - returning early');
       return;
     }
     _isSyncing = true;
@@ -257,29 +258,29 @@ class SyncService {
       final storage = ServiceLocator.instance.secureStorage;
       final token = await storage.read(key: 'auth_token');
       if (token == null || token.isEmpty) {
-        print('[DIAG][SYNC_SKIP] No auth token');
+        debugPrint('[DIAG][SYNC_SKIP] No auth token');
         return;
       }
 
       final tenantId = ServiceLocator.instance.tenantService.tenantIdOrNull;
       if (tenantId == null || tenantId <= 0) {
-        print('[DIAG][SYNC_SKIP] Invalid tenantId=$tenantId');
+        debugPrint('[DIAG][SYNC_SKIP] Invalid tenantId=$tenantId');
         return;
       }
 
-      print('[DIAG][SYNC_START] push() called');
+      debugPrint('[DIAG][SYNC_START] push() called');
       await push(); // Push local changes first
-      print('[DIAG][PUSH_DONE] Push completed');
+      debugPrint('[DIAG][PUSH_DONE] Push completed');
 
-      print('[DIAG][SYNC_START] pull() called');
+      debugPrint('[DIAG][SYNC_START] pull() called');
       await pull(); // Then fetch remote updates
-      print('[DIAG][PULL_DONE] Pull completed');
+      debugPrint('[DIAG][PULL_DONE] Pull completed');
     } on Object catch (e) {
       // ===== DIAG LOG: Was silently swallowed before! =====
-      print('[DIAG][SYNC_ERROR] Exception caught: $e');
+      debugPrint('[DIAG][SYNC_ERROR] Exception caught: $e');
     } finally {
       _isSyncing = false;
-      print('[DIAG][SYNC_FINISHED] _isSyncing set to false');
+      debugPrint('[DIAG][SYNC_FINISHED] _isSyncing set to false');
     }
   }
 
@@ -425,59 +426,59 @@ class SyncService {
   // ----------------------------------------------------------------------
   Future<void> pull() async {
     if (_isPulling) {
-      print('[SYNC] pull() already in progress, skipping');
+      debugPrint('[SYNC] pull() already in progress, skipping');
       return;
     }
 
     _isPulling = true;
-    print('[SYNC] pull() STARTING with tenantId=$_tenantId');
+    debugPrint('[SYNC] pull() STARTING with tenantId=$_tenantId');
 
     try {
       await _doPull();
     } catch (e) {
-      print('[SYNC] pull() ERROR: $e');
+      debugPrint('[SYNC] pull() ERROR: $e');
       rethrow;
     } finally {
       _isPulling = false;
-      print('[SYNC] pull() finished, flag reset');
+      debugPrint('[SYNC] pull() finished, flag reset');
     }
   }
 
   Future<void> _doPull() async {
-    print('[DIAG] 1: enter _doPull');
+    debugPrint('[DIAG] 1: enter _doPull');
 
     final currentTenantId =
         ServiceLocator.instance.tenantService.tenantIdOrNull;
     if (currentTenantId == null || currentTenantId <= 0) {
-      print('[SYNC] Invalid tenantId=$currentTenantId - skipping pull');
+      debugPrint('[SYNC] Invalid tenantId=$currentTenantId - skipping pull');
       return;
     }
 
     final storage = ServiceLocator.instance.secureStorage;
     final token = await storage.read(key: 'auth_token');
     if (token == null || token.isEmpty) {
-      print('[SYNC] No auth token - skipping pull');
+      debugPrint('[SYNC] No auth token - skipping pull');
       return;
     }
 
     String? companyId = await storage.read(key: 'company_id');
     if (companyId == null || companyId.isEmpty) {
-      print('[SYNC] Warning: company_id not found in storage.');
+      debugPrint('[SYNC] Warning: company_id not found in storage.');
     }
 
-    print('[DIAG] 2: before deviceId');
+    debugPrint('[DIAG] 2: before deviceId');
     String? deviceId = await storage.read(key: 'device_id');
     if (deviceId == null) {
       deviceId = const Uuid().v4();
       await storage.write(key: 'device_id', value: deviceId);
-      print('[SYNC] Generated new device ID: $deviceId');
+      debugPrint('[SYNC] Generated new device ID: $deviceId');
     }
-    print('[DIAG] 3: after deviceId: $deviceId');
+    debugPrint('[DIAG] 3: after deviceId: $deviceId');
 
-    print('[DIAG] 4: before lastSyncTime');
+    debugPrint('[DIAG] 4: before lastSyncTime');
     final lastSyncTime = await _getLastSyncTime();
     final lastCursor = await _getLastSyncCursor();
-    print('[DIAG] 5: after lastSyncTime: $lastSyncTime, lastCursor: $lastCursor');
+    debugPrint('[DIAG] 5: after lastSyncTime: $lastSyncTime, lastCursor: $lastCursor');
 
     // Prefer cursor over timestamp — cursor is more precise
     final String syncFrom = lastCursor 
@@ -485,21 +486,21 @@ class SyncService {
         ?? '2020-01-01T00:00:00.000Z';
 
     // ===== DIAG LOG 1: When pull is triggered =====
-    print('[DIAG][PULL_TRIGGER] syncFrom=$syncFrom (cursor: $lastCursor, timestamp: ${lastSyncTime?.toIso8601String()})');
+    debugPrint('[DIAG][PULL_TRIGGER] syncFrom=$syncFrom (cursor: $lastCursor, timestamp: ${lastSyncTime?.toIso8601String()})');
 
-    print('[DIAG] 6: before payload');
+    debugPrint('[DIAG] 6: before payload');
     final syncPayload = {
       'deviceId': deviceId,
       'lastPulledAt': syncFrom,
       'operations': <Map<String, dynamic>>[],
     };
-    print('[SYNC][PULL] Payload: ${jsonEncode(syncPayload)}');
-    print(
+    debugPrint('[SYNC][PULL] Payload: ${jsonEncode(syncPayload)}');
+    debugPrint(
       '[SYNC][PULL] Requesting since: $syncFrom',
     );
-    print('[SYNC][PULL] Tenant: $_tenantId');
+    debugPrint('[SYNC][PULL] Tenant: $_tenantId');
 
-    print('[DIAG] 7: about to call dio.post');
+    debugPrint('[DIAG] 7: about to call dio.post');
     final response = await dio
         .post(
           'api/sync',
@@ -514,7 +515,7 @@ class SyncService {
           onTimeout: () => throw TimeoutException('Sync request timed out'),
         );
 
-    print('[SYNC][PULL] Response status: ${response.statusCode}');
+    debugPrint('[SYNC][PULL] Response status: ${response.statusCode}');
 
     if (response.statusCode == 200) {
       final responseData = response.data as Map<String, dynamic>;
@@ -522,40 +523,40 @@ class SyncService {
       final operations = responseData['operations'] as List<dynamic>?;
 
       // ===== DIAG LOG 2: When server response arrives =====
-      print('[DIAG][PULL_RECORDS] ${operations?.length ?? 0} records received from server');
+      debugPrint('[DIAG][PULL_RECORDS] ${operations?.length ?? 0} records received from server');
 
       if (operations != null && operations.isNotEmpty) {
-        print('[SYNC][PULL] Received ${operations.length} operations');
+        debugPrint('[SYNC][PULL] Received ${operations.length} operations');
 
         for (var op in operations) {
           // ===== DIAG LOG 3: When each pulled record is upserted =====
-          print('[DIAG][PULL_UPSERT] ${op['table']}:${op['recordId']} type=${op['type']}');
+          debugPrint('[DIAG][PULL_UPSERT] ${op['table']}:${op['recordId']} type=${op['type']}');
           await _processOperation(op);
         }
       } else {
-        print('[SYNC][PULL] No operations to process');
+        debugPrint('[SYNC][PULL] No operations to process');
       }
 
       final nextCursor = responseData['nextCursor'] as String?;
       if (nextCursor != null) {
         await _updateLastSyncCursor(nextCursor);
-        print('[DIAG][CURSOR_SAVED] nextCursor=$nextCursor');
+        debugPrint('[DIAG][CURSOR_SAVED] nextCursor=$nextCursor');
       }
 
       // Use server's time to avoid local clock drift
       final serverTime = responseData['serverTime'] as String?;
       if (serverTime != null) {
         await _updateLastSyncTime(DateTime.parse(serverTime).toLocal());
-        print('[DIAG][SYNC_TIME_UPDATED] serverTime=$serverTime -> local=${DateTime.parse(serverTime).toLocal().toIso8601String()}');
+        debugPrint('[DIAG][SYNC_TIME_UPDATED] serverTime=$serverTime -> local=${DateTime.parse(serverTime).toLocal().toIso8601String()}');
       } else {
         await _updateLastSyncTime(DateTime.now());
       }
       
       // ===== DIAG LOG 4: When sync completes =====
-      print('[DIAG][PULL_COMPLETE] Success - all records upserted');
-      print('[SYNC][PULL] ✓ Completed');
+      debugPrint('[DIAG][PULL_COMPLETE] Success - all records upserted');
+      debugPrint('[SYNC][PULL] ✓ Completed');
     } else {
-      print('[DIAG][PULL_ERROR] Server returned status: ${response.statusCode}');
+      debugPrint('[DIAG][PULL_ERROR] Server returned status: ${response.statusCode}');
     }
   }
 
@@ -566,11 +567,11 @@ class SyncService {
     final recordId = op['recordId'] as String?;
 
     if (table == null || type == null) {
-      print('[SYNC][PULL] Skipping op - missing table or type');
+      debugPrint('[SYNC][PULL] Skipping op - missing table or type');
       return;
     }
 
-    print('[SYNC][PULL] $type on $table (recordId: $recordId)');
+    debugPrint('[SYNC][PULL] $type on $table (recordId: $recordId)');
 
     switch (table) {
       case 'units':
@@ -598,7 +599,7 @@ class SyncService {
         await _upsertInvoice(data);
         break;
       default:
-        print('[SYNC][PULL] Unknown table: $table');
+        debugPrint('[SYNC][PULL] Unknown table: $table');
     }
   }
 
@@ -1015,10 +1016,10 @@ class SyncService {
       if (deviceId == null) {
         deviceId = const Uuid().v4();
         await storage.write(key: 'device_id', value: deviceId);
-        print('[SYNC] Generated new device ID: $deviceId');
+        debugPrint('[SYNC] Generated new device ID: $deviceId');
       }
 
-      print('[SYNC][FORCE PULL] Starting full sync with deviceId: $deviceId');
+      debugPrint('[SYNC][FORCE PULL] Starting full sync with deviceId: $deviceId');
 
       final response = await dio
           .post(
@@ -1042,18 +1043,18 @@ class SyncService {
         final responseData = response.data as Map<String, dynamic>;
         final updates = responseData['updates'] as Map<String, dynamic>?;
         if (updates != null) {
-          print('[SYNC][FORCE PULL] Applying updates...');
+          debugPrint('[SYNC][FORCE PULL] Applying updates...');
           await _applyUpdates(updates);
-          print('[SYNC][FORCE PULL] ✓ Full sync completed');
+          debugPrint('[SYNC][FORCE PULL] ✓ Full sync completed');
         }
         await _updateLastSyncTime(DateTime.now());
       } else {
-        print(
+        debugPrint(
           '[SYNC][FORCE PULL] Unexpected status code: ${response.statusCode}',
         );
       }
     } catch (e) {
-      print('[SYNC][FORCE PULL] ERROR - $e');
+      debugPrint('[SYNC][FORCE PULL] ERROR - $e');
       rethrow;
     }
   }
@@ -1062,7 +1063,7 @@ class SyncService {
   // PUSH – NOW USES UNIFIED /api/sync ENDPOINT
   // ----------------------------------------------------------------------
   Future<SyncResult> push() async {
-    print('DEBUG SYNC: push() STARTING with tenantId=$_tenantId');
+    debugPrint('DEBUG SYNC: push() STARTING with tenantId=$_tenantId');
     final syncedCounts = <String, int>{
       'categories': 0,
       'units': 0,
@@ -1089,7 +1090,7 @@ class SyncService {
       // 1. Collect all pending local operations (syncStatus = 1)
       final pending = await _collectAllPendingOperations();
       if (pending.isEmpty) {
-        print('[SYNC][PUSH] No local changes to push.');
+        debugPrint('[SYNC][PUSH] No local changes to push.');
         return SyncResult(
           success: true,
           syncedCounts: syncedCounts,
@@ -1126,7 +1127,7 @@ class SyncService {
       final deviceId = await storage.read(key: 'device_id') ?? '';
       final lastSyncTime = await _getLastSyncTime() ?? DateTime.utc(2026);
 
-      print('[SYNC][PUSH] Sending ${operations.length} operations');
+      debugPrint('[SYNC][PUSH] Sending ${operations.length} operations');
       final response = await dio.post(
         '/api/sync',
         data: {
@@ -1167,12 +1168,12 @@ class SyncService {
         }
       }
 
-      print(
+      debugPrint(
         '[SYNC][PUSH] ✓ Completed. Synced: $syncedCounts, Failed: $failedCounts',
       );
     } catch (e, st) {
       errors.add('Unexpected push error: $e');
-      print('[SYNC][PUSH] ERROR: $e\n$st');
+      debugPrint('[SYNC][PUSH] ERROR: $e\n$st');
     }
 
     final hasFailures = failedCounts.values.any((c) => c > 0);

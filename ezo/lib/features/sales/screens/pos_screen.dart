@@ -260,6 +260,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
               address,
               required creditLimit,
             }) async {
+              final dialogContext = context;
               final customer = await ServiceLocator.instance.customerViewModel
                   .addCustomer(
                     name: name,
@@ -269,9 +270,9 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                     address: address,
                     creditLimit: creditLimit,
                   );
-              if (!context.mounted) return;
+        if (!dialogContext.mounted) return;
               ref.read(cartProvider.notifier).setCustomer(customer);
-              PosToast.showSuccess(context, "Customer created and selected");
+              PosToast.showSuccess(dialogContext, "Customer created and selected");
             },
       ),
     );
@@ -1028,9 +1029,10 @@ class _PosScreenState extends ConsumerState<PosScreen> {
       // If multiple units, show dialog first; if single unit, add directly
       if (productUnits.length > 1) {
         // Show QuantityWithUnitDialog for multi-unit products
-        if (!context.mounted) return;
+        final buildContext = context;
+        if (!buildContext.mounted) return;
         showDialog(
-          context: context,
+          context: buildContext,
           barrierDismissible: true,
           builder: (dialogCtx) => QuantityWithUnitDialog(
             product: product,
