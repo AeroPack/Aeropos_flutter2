@@ -73,7 +73,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? e]) : super(e ?? impl.connect());
 
   @override
-  int get schemaVersion => 53;
+  int get schemaVersion => 54;
 
   Future<void> _addColumnIfNotExists(
     String table,
@@ -702,6 +702,23 @@ class AppDatabase extends _$AppDatabase {
               'tenants', 'is_deleted', 'INTEGER NOT NULL DEFAULT 0');
           await _addColumnIfNotExists('tenants', 'business_name', 'TEXT');
           await _addColumnIfNotExists('tenants', 'business_address', 'TEXT');
+        }
+
+        // Migration 54: Add invoice columns that existed in the Drift schema
+        // but were never added via ALTER TABLE for users upgrading from older DBs.
+        if (from < 54) {
+          await _addColumnIfNotExists(
+              'invoices', 'payment_status', "TEXT NOT NULL DEFAULT 'PENDING'");
+          await _addColumnIfNotExists('invoices', 'sign_url', 'TEXT');
+          await _addColumnIfNotExists('invoices', 'transaction_id', 'TEXT');
+          await _addColumnIfNotExists('invoices', 'deleted_at', 'TEXT');
+          await _addColumnIfNotExists('invoices', 'deleted_by', 'INTEGER');
+          await _addColumnIfNotExists('invoices', 'delete_reason', 'TEXT');
+          await _addColumnIfNotExists(
+              'invoices', 'sync_status', 'INTEGER NOT NULL DEFAULT 0');
+          await _addColumnIfNotExists(
+              'invoices', 'is_deleted', 'INTEGER NOT NULL DEFAULT 0');
+          await _addColumnIfNotExists('invoices', 'idempotency_key', 'TEXT');
         }
       },
       beforeOpen: (details) async {
