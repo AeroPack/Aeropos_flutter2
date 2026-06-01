@@ -73,13 +73,16 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? e]) : super(e ?? impl.connect());
 
   @override
-  int get schemaVersion => 52;
+  int get schemaVersion => 53;
 
   Future<void> _addColumnIfNotExists(
     String table,
     String column,
     String definition,
   ) async {
+    final rows = await customSelect('PRAGMA table_info($table)').get();
+    final exists = rows.any((r) => r.read<String>('name') == column);
+    if (exists) return;
     await customStatement('ALTER TABLE $table ADD COLUMN $column $definition');
   }
 
@@ -687,6 +690,18 @@ class AppDatabase extends _$AppDatabase {
               await customStatement(sql);
             } catch (_) {}
           }
+        }
+
+        // Migration 53: Re-run same columns with the now-safe _addColumnIfNotExists
+        // to fix the duplicate-column crash on Flutter web where the try/catch in
+        // migration 52 leaked before the Future resolved.
+        if (from < 53) {
+          await _addColumnIfNotExists(
+              'tenants', 'sync_status', 'INTEGER NOT NULL DEFAULT 0');
+          await _addColumnIfNotExists(
+              'tenants', 'is_deleted', 'INTEGER NOT NULL DEFAULT 0');
+          await _addColumnIfNotExists('tenants', 'business_name', 'TEXT');
+          await _addColumnIfNotExists('tenants', 'business_address', 'TEXT');
         }
       },
       beforeOpen: (details) async {

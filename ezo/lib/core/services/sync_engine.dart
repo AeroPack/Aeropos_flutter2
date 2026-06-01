@@ -63,6 +63,7 @@ class SyncEngine implements ISyncService {
   Timer? _syncTimer;
   Timer? _debounceTimer;
   bool _isSyncing = false;
+  bool _syncPending = false;
   final _postSyncCallbacks = <Future<void> Function()>[];
 
   void registerPostSyncCallback(Future<void> Function() callback) {
@@ -103,10 +104,14 @@ class SyncEngine implements ISyncService {
     );
   }
 
-  void startAutoSync({Duration interval = const Duration(seconds: 60)}) {
+  void startAutoSync({Duration? interval}) {
+    // On web, SSE is unavailable so the fallback timer is the primary
+    // real-time mechanism — use 10s. On native, 60s is fine (SSE handles
+    // real-time; the timer is just a safety net).
+    final effectiveInterval = interval ??
+        (kIsWeb ? const Duration(seconds: 10) : const Duration(seconds: 60));
     _syncTimer?.cancel();
-    // 60-second fallback poll fires even when SSE is active (safety net).
-    _syncTimer = Timer.periodic(interval, (_) => sync());
+    _syncTimer = Timer.periodic(effectiveInterval, (_) => sync());
     // Initial pull after 2s — lets auth settle before first request.
     Future.delayed(const Duration(seconds: 2), syncNow);
     // Open SSE stream for real-time push notifications.
@@ -169,7 +174,10 @@ class SyncEngine implements ISyncService {
   }
 
   Future<void> sync() async {
-    if (_isSyncing) return;
+    if (_isSyncing) {
+      _syncPending = true;
+      return;
+    }
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(seconds: 2), () => _doSync());
   }
@@ -247,6 +255,10 @@ class SyncEngine implements ISyncService {
       return SyncEngineResult(success: false, errors: [e.toString()]);
     } finally {
       _isSyncing = false;
+      if (_syncPending) {
+        _syncPending = false;
+        unawaited(sync());
+      }
     }
   }
 
