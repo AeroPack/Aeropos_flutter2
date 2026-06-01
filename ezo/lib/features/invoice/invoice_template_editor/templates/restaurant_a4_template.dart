@@ -678,7 +678,7 @@ class RestaurantA4InvoiceTemplate extends InvoiceTemplate {
                         ),
                         Expanded(
                           child: Container(
-                            color: primaryColor.withOpacity(0.1),
+                            color: primaryColor.withValues(alpha: 0.1),
                             child: _flutterCalcRow(
                               'Total :',
                               data.total.toStringAsFixed(2),

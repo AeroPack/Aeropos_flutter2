@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' as drift;
 import '../database/app_database.dart';
@@ -224,7 +225,7 @@ class ProductViewModel {
       await _syncService.push();
       await syncPendingImages();
     } catch (e) {
-      print('ProductViewModel syncPendingProducts error: $e');
+      debugPrint('ProductViewModel syncPendingProducts error: $e');
     }
   }
 
@@ -260,7 +261,7 @@ class ProductViewModel {
         }
       }
     } catch (e) {
-      print('ProductViewModel uploadProductImage error: $e');
+      debugPrint('ProductViewModel uploadProductImage error: $e');
     }
   }
 
@@ -281,7 +282,7 @@ class ProductViewModel {
     try {
       await _syncService.pull();
     } catch (e) {
-      print('ProductViewModel fetchAndSync error: $e');
+      debugPrint('ProductViewModel fetchAndSync error: $e');
     }
   }
 

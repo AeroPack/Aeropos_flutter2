@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
@@ -25,14 +26,14 @@ class AuthRepositoryImpl implements AuthRepository {
     );
     // Only store token if login is complete (not company selection)
     final token = response['token'];
-    print(
+    debugPrint(
       'DEBUG [AuthRepository] Login response token: ${token != null ? "${token.substring(0, 20)}..." : "NULL"}',
     );
     if (token != null) {
-      print('[AUTH][STORE] Writing auth_token, storage hashCode: ${_storage.hashCode}');
+      debugPrint('[AUTH][STORE] Writing auth_token, storage hashCode: ${_storage.hashCode}');
       await _storage.write(key: 'auth_token', value: token);
-      print('[AUTH][STORE] Verified read-back: ${await _storage.read(key: 'auth_token') != null}');
-      print('DEBUG [AuthRepository] Token written to storage');
+      debugPrint('[AUTH][STORE] Verified read-back: ${await _storage.read(key: 'auth_token') != null}');
+      debugPrint('DEBUG [AuthRepository] Token written to storage');
 
       // Store company.id for X-Company-Id header
       final company = response['company'] as Map<String, dynamic>?;
@@ -40,7 +41,7 @@ class AuthRepositoryImpl implements AuthRepository {
         final companyId = company['id']?.toString();
         if (companyId != null) {
           await _storage.write(key: 'company_id', value: companyId);
-          print('DEBUG [AuthRepository] Company ID written to storage: $companyId');
+          debugPrint('DEBUG [AuthRepository] Company ID written to storage: $companyId');
         }
       }
     }

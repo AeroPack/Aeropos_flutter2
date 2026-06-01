@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:aeropos/core/database/app_database.dart';
 import '../services/i_sync_service.dart';
@@ -83,7 +84,7 @@ class CategoryViewModel {
     try {
       await _syncService.push();
     } catch (e) {
-      print('CategoryViewModel syncPendingCategories error: $e');
+      debugPrint('CategoryViewModel syncPendingCategories error: $e');
     }
   }
 
@@ -91,7 +92,7 @@ class CategoryViewModel {
     try {
       await _syncService.pull();
     } catch (e) {
-      print('CategoryViewModel fetchAndSync error: $e');
+      debugPrint('CategoryViewModel fetchAndSync error: $e');
     }
   }
 }

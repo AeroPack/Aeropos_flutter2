@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class TenantService {
@@ -18,25 +19,25 @@ class TenantService {
   }
 
   Future<void> initialize() async {
-    print('DEBUG TenantService: initialize() STARTING');
+    debugPrint('DEBUG TenantService: initialize() STARTING');
     final storedIdStr = await _storage.read(key: 'tenant_id');
-    print('DEBUG TenantService: initialize() storedIdStr=$storedIdStr');
+    debugPrint('DEBUG TenantService: initialize() storedIdStr=$storedIdStr');
     if (storedIdStr != null) {
       _tenantId = int.tryParse(storedIdStr);
-      print('DEBUG TenantService: initialize() LOADED tenantId=$_tenantId');
+      debugPrint('DEBUG TenantService: initialize() LOADED tenantId=$_tenantId');
     } else {
-      print(
+      debugPrint(
         'DEBUG TenantService: initialize() NO stored, tenantId remains null',
       );
     }
   }
 
   Future<void> setTenantId(int id) async {
-    print(
+    debugPrint(
       'DEBUG TenantService: setTenantId CALLED with id=$id (previous=$_tenantId)',
     );
     _tenantId = id;
     await _storage.write(key: 'tenant_id', value: id.toString());
-    print('DEBUG TenantService: tenantId UPDATED to=$_tenantId');
+    debugPrint('DEBUG TenantService: tenantId UPDATED to=$_tenantId');
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:aeropos/core/database/app_database.dart';
 import '../services/i_sync_service.dart';
 import '../repositories/supplier_repository.dart';
@@ -72,7 +73,7 @@ class SupplierViewModel {
     try {
       await _syncService.push();
     } catch (e) {
-      print('SupplierViewModel syncPendingSuppliers error: $e');
+      debugPrint('SupplierViewModel syncPendingSuppliers error: $e');
     }
   }
 
@@ -80,7 +81,7 @@ class SupplierViewModel {
     try {
       await _syncService.pull();
     } catch (e) {
-      print('SupplierViewModel fetchAndSync error: $e');
+      debugPrint('SupplierViewModel fetchAndSync error: $e');
     }
   }
 }

@@ -58,6 +58,7 @@ dependencies:
   barcode_widget: ^2.0.4
   gs1_barcode_parser: ^1.0.0
   audioplayers: ^6.1.0
+  js: ^0.7.2
 
 dev_dependencies:
   flutter_test:

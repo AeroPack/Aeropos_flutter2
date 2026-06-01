@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:aeropos/core/database/app_database.dart';
 import '../services/i_sync_service.dart';
 import '../repositories/employee_repository.dart';
@@ -85,7 +86,7 @@ class EmployeeViewModel {
     try {
       await _syncService.push();
     } catch (e) {
-      print('EmployeeViewModel syncPendingEmployees error: $e');
+      debugPrint('EmployeeViewModel syncPendingEmployees error: $e');
     }
   }
 
@@ -93,7 +94,7 @@ class EmployeeViewModel {
     try {
       await _syncService.pull();
     } catch (e) {
-      print('EmployeeViewModel fetchAndSync error: $e');
+      debugPrint('EmployeeViewModel fetchAndSync error: $e');
     }
   }
 }

@@ -28,7 +28,7 @@ class _SelectedItem {
 }
 
 class BarcodeGenerationScreen extends StatefulWidget {
-  const BarcodeGenerationScreen({Key? key}) : super(key: key);
+  const BarcodeGenerationScreen({super.key});
 
   @override
   State<BarcodeGenerationScreen> createState() =>
@@ -90,14 +90,6 @@ class _BarcodeGenerationScreenState extends State<BarcodeGenerationScreen> {
 
   int get _totalLabels =>
       _selectedItems.fold(0, (sum, i) => sum + i.batchQuantity);
-
-  int _labelIndex(int itemIndex, int copyIndex) {
-    int idx = 0;
-    for (int i = 0; i < itemIndex; i++) {
-      idx += _selectedItems[i].batchQuantity;
-    }
-    return idx + copyIndex;
-  }
 
   bw.Barcode _mapBarcode(String key) {
     switch (key) {
@@ -461,7 +453,7 @@ class _BarcodeGenerationScreenState extends State<BarcodeGenerationScreen> {
                   });
                 },
                 backgroundColor: _bgColor,
-                selectedColor: _primaryColor.withOpacity(0.1),
+                selectedColor: _primaryColor.withValues(alpha: 0.1),
                 checkmarkColor: _primaryColor,
                 side: BorderSide(
                   color: selected ? _primaryColor : _borderColor,
@@ -597,7 +589,7 @@ class _BarcodeGenerationScreenState extends State<BarcodeGenerationScreen> {
             style: TextStyle(fontSize: 12, color: Colors.grey)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _selectedBarcodeTypeKey,
+          initialValue: _selectedBarcodeTypeKey,
           icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
           decoration: InputDecoration(
             contentPadding:
@@ -671,7 +663,7 @@ class _BarcodeGenerationScreenState extends State<BarcodeGenerationScreen> {
             style: TextStyle(fontSize: 12, color: Colors.grey)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _selectedLayout,
+          initialValue: _selectedLayout,
           icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
           decoration: InputDecoration(
             contentPadding:
@@ -707,7 +699,7 @@ class _BarcodeGenerationScreenState extends State<BarcodeGenerationScreen> {
             style: TextStyle(fontSize: 12, color: Colors.grey)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _selectedTemplateKey,
+          initialValue: _selectedTemplateKey,
           icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
           decoration: InputDecoration(
             contentPadding:
@@ -797,11 +789,12 @@ class _BarcodeGenerationScreenState extends State<BarcodeGenerationScreen> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
-                headingRowColor: MaterialStateProperty.all(
+                headingRowColor: WidgetStateProperty.all(
                     const Color(0xFFFAFAFB)),
                 columnSpacing: mobile ? 24 : 48,
                 horizontalMargin: 20,
-                dataRowHeight: 70,
+                dataRowMinHeight: 70,
+                dataRowMaxHeight: 70,
                 columns: const [
                   DataColumn(
                       label: Text('S.No',

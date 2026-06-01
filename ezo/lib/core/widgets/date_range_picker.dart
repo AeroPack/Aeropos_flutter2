@@ -5,7 +5,7 @@ class DateRangePickerDialog extends StatefulWidget {
   final DateTimeRange? initialRange;
   final bool isMobile;
 
-  const DateRangePickerDialog({this.initialRange, this.isMobile = false});
+  const DateRangePickerDialog({super.key, this.initialRange, this.isMobile = false});
 
   @override
   State<DateRangePickerDialog> createState() => DateRangePickerDialogState();

@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aeropos/core/database/app_database.dart';
 import 'package:aeropos/core/di/service_locator.dart';
 import 'package:aeropos/core/repositories/sync_repository.dart';
-import 'package:aeropos/core/services/invoice_sequence_service.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 import 'package:aeropos/features/invoice/state/invoice_history_state.dart';

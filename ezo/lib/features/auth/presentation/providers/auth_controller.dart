@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -182,7 +183,7 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   Future<void> switchCompany(int companyId) async {
-    print(
+    debugPrint(
       'DEBUG switchCompany: CALLED with companyId=$companyId '
       '(current tenantId=${ServiceLocator.instance.tenantService.tenantId})',
     );
@@ -395,14 +396,14 @@ class AuthController extends StateNotifier<AuthState> {
     try {
       final response = await ServiceLocator.instance.authRemoteDataSource
           .getCurrentUser();
-      print('DEBUG: getCurrentUser response = $response');
+      debugPrint('DEBUG: getCurrentUser response = $response');
 
       final user = User.fromJson(response['employee'] ?? response);
       final company = response['company'] != null
           ? Company.fromJson(response['company'])
           : null;
 
-      print('DEBUG: Parsed company.id = ${company?.id}');
+      debugPrint('DEBUG: Parsed company.id = ${company?.id}');
 
       // Decode JWT for the authoritative tenantId
       final token = await ServiceLocator.instance.secureStorage
@@ -415,23 +416,23 @@ class AuthController extends StateNotifier<AuthState> {
       final companyIdFromJwt =
           company?.id ?? int.parse(jwtPayload['company_id']?.toString() ?? '0');
 
-      print('DEBUG: tenantId from JWT = $tenantIdFromJwt');
+      debugPrint('DEBUG: tenantId from JWT = $tenantIdFromJwt');
 
       if (company != null &&
           company.tenantId != null &&
           company.tenantId != tenantIdFromJwt) {
-        print(
+        debugPrint(
           'DEBUG WARNING: Tenant mismatch - '
           'JWT=$tenantIdFromJwt, company=${company.tenantId}',
         );
       }
 
       if (company != null) {
-        print(
+        debugPrint(
           'DEBUG: ABOUT TO CALL setTenantId with tenantIdFromJwt=$tenantIdFromJwt',
         );
         await ServiceLocator.instance.tenantService.setTenantId(tenantIdFromJwt);
-        print(
+        debugPrint(
           'DEBUG: AFTER setTenantId, current tenantId='
           '${ServiceLocator.instance.tenantService.tenantId}',
         );
@@ -451,7 +452,7 @@ class AuthController extends StateNotifier<AuthState> {
         // AFTER we have confirmed the user is authenticated and have a
         // valid tenantId and companyId. This replaces the old
         // startAutoSync() call in ServiceLocator.initialize().
-        print(
+        debugPrint(
           'DEBUG: Activating SyncEngine '
           '(tenantId=$tenantIdFromJwt, companyId=$companyIdFromJwt)',
         );
@@ -460,11 +461,11 @@ class AuthController extends StateNotifier<AuthState> {
           companyId: companyIdFromJwt,
         );
       } else {
-        print('DEBUG WARNING: company is NULL — SyncEngine NOT activated');
+        debugPrint('DEBUG WARNING: company is NULL — SyncEngine NOT activated');
       }
 
       // Fire one background pull immediately after activation.
-      print('DEBUG: Scheduling background sync...');
+      debugPrint('DEBUG: Scheduling background sync...');
       unawaited(_runPostLoginSync());
 
       final companies = await _authRepository.getMyCompanies();
@@ -476,10 +477,10 @@ class AuthController extends StateNotifier<AuthState> {
         companies: companies,
       );
     } catch (e) {
-      print('_completeLogin FAILED: ${e.toString()}');
+      debugPrint('_completeLogin FAILED: ${e.toString()}');
       if (e is DioException) {
-        print('  status: ${e.response?.statusCode}');
-        print('  body: ${e.response?.data}');
+        debugPrint('  status: ${e.response?.statusCode}');
+        debugPrint('  body: ${e.response?.data}');
       }
       rethrow;
     }
@@ -489,13 +490,13 @@ class AuthController extends StateNotifier<AuthState> {
 
   Future<void> _runPostLoginSync() async {
     if (_isRunningPostLoginSync) {
-      print('DEBUG: Post-login sync already running — skipping');
+      debugPrint('DEBUG: Post-login sync already running — skipping');
       return;
     }
 
     _isRunningPostLoginSync = true;
     try {
-      print(
+      debugPrint(
         '[DIAG][${DateTime.now().toIso8601String()}] _runPostLoginSync: STARTING',
       );
 
@@ -503,23 +504,23 @@ class AuthController extends StateNotifier<AuthState> {
       // push+pull cycle before returning, so the log below is accurate.
       final result = await ServiceLocator.instance.syncEngine.syncNow();
 
-      print(
+      debugPrint(
         '[DIAG][${DateTime.now().toIso8601String()}] _runPostLoginSync: COMPLETED '
         '(pulled=${result.pulled} pushed=${result.pushed} '
         'errors=${result.errors.length})',
       );
       if (result.errors.isNotEmpty) {
-        print('[DIAG] Sync errors: ${result.errors}');
+        debugPrint('[DIAG] Sync errors: ${result.errors}');
       }
 
       final productsResult = await ServiceLocator.instance.database
           .getAllProducts();
-      print(
+      debugPrint(
         '[DIAG][${DateTime.now().toIso8601String()}] '
         'Products in DB after sync: ${productsResult.length}',
       );
     } catch (e) {
-      print(
+      debugPrint(
         '[DIAG][${DateTime.now().toIso8601String()}] _runPostLoginSync: ERROR — $e',
       );
     } finally {

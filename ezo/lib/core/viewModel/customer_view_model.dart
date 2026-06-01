@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:aeropos/core/database/app_database.dart';
 import '../services/i_sync_service.dart';
 import '../repositories/customer_repository.dart';
@@ -80,7 +81,7 @@ class CustomerViewModel {
     try {
       await _syncService.push();
     } catch (e) {
-      print('CustomerViewModel syncPendingCustomers error: $e');
+      debugPrint('CustomerViewModel syncPendingCustomers error: $e');
     }
   }
 
@@ -88,7 +89,7 @@ class CustomerViewModel {
     try {
       await _syncService.pull();
     } catch (e) {
-      print('CustomerViewModel fetchAndSync error: $e');
+      debugPrint('CustomerViewModel fetchAndSync error: $e');
     }
   }
 }

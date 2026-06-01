@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:aeropos/core/database/app_database.dart';
 import '../services/i_sync_service.dart';
@@ -77,7 +78,7 @@ class BrandViewModel {
     try {
       await _syncService.push();
     } catch (e) {
-      print('BrandViewModel syncPendingBrands error: $e');
+      debugPrint('BrandViewModel syncPendingBrands error: $e');
     }
   }
 
@@ -85,7 +86,7 @@ class BrandViewModel {
     try {
       await _syncService.pull();
     } catch (e) {
-      print('BrandViewModel fetchAndSync error: $e');
+      debugPrint('BrandViewModel fetchAndSync error: $e');
     }
   }
 }

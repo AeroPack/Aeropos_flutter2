@@ -230,7 +230,7 @@ class _CustomerBulkImportDialogState extends State<CustomerBulkImportDialog> {
   void _showTemplateInfoDialog() {
     final headers = _excelService.templateHeaders;
     final sampleData = _excelService.sampleData;
-    final csvContent = headers.join(',') + '\n' + sampleData.join(',');
+    final csvContent = '${headers.join(',')}\n${sampleData.join(',')}';
 
     showDialog(
       context: context,

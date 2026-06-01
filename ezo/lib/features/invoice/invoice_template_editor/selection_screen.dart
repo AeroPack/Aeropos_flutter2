@@ -304,7 +304,7 @@ class _SelectionScreenState extends ConsumerState<SelectionScreen> {
                 boxShadow: isActive
                     ? [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
+                          color: Colors.black.withValues(alpha: 0.04),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -370,12 +370,13 @@ class _SelectionScreenState extends ConsumerState<SelectionScreen> {
 
   Widget _buildTemplateGrid(double width) {
     int crossAxisCount = 4;
-    if (width < 600)
+    if (width < 600) {
       crossAxisCount = 1;
-    else if (width < 900)
+    } else if (width < 900) {
       crossAxisCount = 2;
-    else if (width < 1300)
+    } else if (width < 1300) {
       crossAxisCount = 3;
+    }
 
     final items = paginatedTemplates;
 
@@ -462,7 +463,7 @@ class _SelectionScreenState extends ConsumerState<SelectionScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -515,7 +516,7 @@ class _SelectionScreenState extends ConsumerState<SelectionScreen> {
                           ],
                         ),
                         Material(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           shape: const CircleBorder(),
                           child: InkWell(
                             onTap: () {
@@ -584,7 +585,7 @@ class _SelectionScreenState extends ConsumerState<SelectionScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withOpacity(0.1),
+                            color: const Color(0xFF10B981).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(
@@ -623,7 +624,7 @@ class _SelectionScreenState extends ConsumerState<SelectionScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.9),
+        color: color.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
