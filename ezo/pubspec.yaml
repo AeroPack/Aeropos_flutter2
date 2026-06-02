@@ -42,7 +42,7 @@ dependencies:
   shared_preferences: ^2.2.0
   
   # Rich Text Editor
-  flutter_quill: ^11.5.0
+  flutter_quill: ^11.5.1
   flutter_quill_extensions: ^11.0.0
   google_sign_in: ^6.2.2
   firebase_core: ^4.4.0
