@@ -285,6 +285,7 @@ authRouter.post("/login", async (req, res) => {
                     logoUrl: company.logoUrl,
                     role: emp.role,
                     isOwner: emp.isOwner,
+                    taxId: company.taxId,
                 });
             }
         }

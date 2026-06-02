@@ -47,6 +47,7 @@ companyRouter.get("/my", async (req: AuthRequest, res) => {
                 phone: companies.phone,
                 email: companies.email,
                 logoUrl: companies.logoUrl,
+                taxId: companies.taxId,
                 createdByEmployeeId: companies.createdByEmployeeId,
             })
             .from(employees)
@@ -68,6 +69,7 @@ companyRouter.get("/my", async (req: AuthRequest, res) => {
             phone: record.phone,
             email: record.email,
             logoUrl: record.logoUrl,
+            taxId: record.taxId,
             role: record.role,
             isOwner: record.isOwner,
             isCurrent: record.companyId === req.companyId,

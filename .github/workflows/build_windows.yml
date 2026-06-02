@@ -23,6 +23,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:  # Pinned to match your local Flutter version
+          flutter-version: "3.44.0"
           channel: "stable"
           cache: true                 # Caches Flutter SDK between runs (faster)
 
