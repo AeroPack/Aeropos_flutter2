@@ -57,7 +57,7 @@ jobs:
       #           defaultValue: 'http://localhost:5004',
       #         );
       - name: Build Windows release
-        run: flutter build windows --release --dart-define=BACKEND_URL=http://localhost:5004
+        run: flutter build windows --release --dart-define=BACKEND_URL=https://flutterbackend.aeropackpos.in
 
       # ── 8. Copy docker-compose.yml into the Release folder ─────────────────
       #       Colleague runs `docker compose up -d` in this folder to start
