@@ -29,6 +29,7 @@ class InvoiceSequenceService {
       if (settings == null) {
         final companion = InvoiceSettingsCompanion(
           tenantId: Value(tenantId),
+          layout: const Value('thermal'),
           invoiceCounter: const Value(1),
           invoicePrefix: const Value('INV'),
           deviceCode: const Value('A'),

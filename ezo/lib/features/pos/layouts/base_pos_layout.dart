@@ -26,6 +26,12 @@ abstract class BasePosLayout extends ConsumerStatefulWidget {
   final VoidCallback onReset;
   final VoidCallback onBack;
 
+
+
+
+
+
+
   const BasePosLayout({
     super.key,
     required this.cartState,

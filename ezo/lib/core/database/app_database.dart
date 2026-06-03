@@ -553,7 +553,7 @@ class AppDatabase extends _$AppDatabase {
 
         // Migration 47: Add logo_local_path column for file-system based logo storage
         if (from < 47) {
-          await m.addColumn(invoiceSettings, invoiceSettings.logoLocalPath);
+          await _addColumnIfNotExists('invoice_settings', 'logo_local_path', 'TEXT');
         }
 
         // Migration 50: Add phone to tenants; add tax/footer fields to invoice_settings
