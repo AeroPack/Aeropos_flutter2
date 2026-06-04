@@ -52,8 +52,6 @@ class _RetailLayoutState extends BasePosLayoutState<RetailLayout> {
   late final TextEditingController _customerSearchController;
   late final String _invoiceRef;
 
-  // Saved at initState so dispose() never touches ref (Riverpod invalidates
-  // ref before calling dispose, making ref.read in dispose throw).
   StateController<String>? _searchNotifier;
 
   @override
@@ -80,7 +78,6 @@ class _RetailLayoutState extends BasePosLayoutState<RetailLayout> {
     super.dispose();
   }
 
-  // Add directly — no dialog. Loads default unit from DB, then inserts row with qty=1.
   void _addToCartDirect(ProductEntity product) {
     _doAdd(product);
   }
@@ -96,7 +93,6 @@ class _RetailLayoutState extends BasePosLayoutState<RetailLayout> {
         return;
       }
 
-      // Enrich every unit with its name/symbol so the unit dropdown can display them.
       final db = ServiceLocator.instance.database;
       final enriched = <ProductUnit>[];
       for (final u in rawUnits) {
@@ -125,58 +121,58 @@ class _RetailLayoutState extends BasePosLayoutState<RetailLayout> {
       );
       widget.cartNotifier.addProduct(product, quantity: 1.0, selectedUnit: defaultUnit);
     } catch (_) {
-      // Unit lookup failed — add with no unit so the item always lands in the cart.
       if (mounted) widget.cartNotifier.addProduct(product, quantity: 1.0);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 900;
+
     return Scaffold(
       backgroundColor: surfaceColor,
-      body: Row(
+      endDrawer: isSmallScreen
+          ? Drawer(
+              width: 350,
+              child: SafeArea(child: _buildInvoiceSidebar()),
+            )
+          : null,
+      body: Column(
         children: [
+          _buildIndustrialHeader(isSmallScreen),
           Expanded(
-            flex: 3,
-            child: Column(
+            child: Row(
               children: [
-                _buildIndustrialHeader(),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: ProductSearchBar(
-                                onProductSelected: _addToCartDirect,
-                                onBarcodeInput: widget.onBarcodeScanned,
+                        if (isSmallScreen) ...[
+                          ProductSearchBar(
+                            onProductSelected: _addToCartDirect,
+                            onBarcodeInput: widget.onBarcodeScanned,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildCustomerSection(),
+                        ] else ...[
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: ProductSearchBar(
+                                  onProductSelected: _addToCartDirect,
+                                  onBarcodeInput: widget.onBarcodeScanned,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(child: _buildCustomerSearchBar()),
-                                      const SizedBox(width: 8),
-                                      _buildAddCustomerButton(),
-                                    ],
-                                  ),
-                                  if (_customerSearchController.text.isNotEmpty) ...[
-                                    const SizedBox(height: 4),
-                                    _buildCustomerDropdown(),
-                                  ],
-                                ],
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildCustomerSection(),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
+                        ],
                         const SizedBox(height: 16),
                         Expanded(
                           child: CartTableWidget(
@@ -202,47 +198,84 @@ class _RetailLayoutState extends BasePosLayoutState<RetailLayout> {
                     ),
                   ),
                 ),
+                if (!isSmallScreen)
+                  Container(
+                    width: 360,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(left: BorderSide(color: onSurface, width: 2)),
+                    ),
+                    child: _buildInvoiceSidebar(),
+                  ),
               ],
             ),
-          ),
-          Container(
-            width: 400,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(left: BorderSide(color: onSurface, width: 2)),
-            ),
-            child: _buildInvoiceSidebar(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildIndustrialHeader() {
+  Widget _buildCustomerSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Expanded(child: _buildCustomerSearchBar()),
+            const SizedBox(width: 8),
+            _buildAddCustomerButton(),
+          ],
+        ),
+        if (_customerSearchController.text.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          _buildCustomerDropdown(),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildIndustrialHeader(bool isSmallScreen) {
+    List<Widget> headerItems = [
+      const Text(
+        'RETAIL POS',
+        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: -0.5),
+      ),
+      const SizedBox(width: 16),
+      _navItem("POS", isActive: true),
+      _navItem("Orders", onTap: () => context.go('/sales-history')),
+      _navItem("Customers", onTap: () => context.go('/customers')),
+      _navItem("Reports", onTap: () => context.go('/reports')),
+      if (!isSmallScreen) const Spacer(),
+      IconButton(onPressed: () => ServiceLocator.instance.syncEngine.pull(), icon: const Icon(Icons.refresh, size: 20)),
+      IconButton(onPressed: widget.cartState.items.isEmpty ? null : () => _showInvoiceModal(context), icon: const Icon(Icons.print, size: 20)),
+      IconButton(onPressed: widget.onOpenInvoiceSettings, icon: const Icon(Icons.settings, size: 20)),
+      if (isSmallScreen)
+        Builder(
+          builder: (context) => IconButton(
+            onPressed: () => Scaffold.of(context).openEndDrawer(),
+            icon: const Icon(Icons.shopping_cart, size: 20),
+            color: const Color(0xFF006B5E),
+          ),
+        ),
+    ];
+
     return Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: isSmallScreen ? null : 48,
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: isSmallScreen ? 12 : 0),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: outlineColor)),
       ),
-      child: Row(
-        children: [
-          const Text(
-            'RETAIL POS',
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: -0.5),
-          ),
-          const SizedBox(width: 32),
-          _navItem("POS", isActive: true),
-          _navItem("Orders", onTap: () => context.go('/sales-history')),
-          _navItem("Customers", onTap: () => context.go('/customers')),
-          _navItem("Reports", onTap: () => context.go('/reports')),
-          const Spacer(),
-          IconButton(onPressed: () => ServiceLocator.instance.syncEngine.pull(), icon: const Icon(Icons.refresh, size: 20)),
-          IconButton(onPressed: widget.cartState.items.isEmpty ? null : () => _showInvoiceModal(context), icon: const Icon(Icons.print, size: 20)),
-          IconButton(onPressed: widget.onOpenInvoiceSettings, icon: const Icon(Icons.settings, size: 20)),
-        ],
-      ),
+      child: isSmallScreen
+          ? Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: headerItems,
+            )
+          : Row(children: headerItems),
     );
   }
 
@@ -451,91 +484,95 @@ class _RetailLayoutState extends BasePosLayoutState<RetailLayout> {
               ),
             ),
           ] else ...[
-            SizedBox(
-              width: 160,
-              height: 36,
-              child: TextField(
-                controller: nameController,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                decoration: InputDecoration(
-                  hintText: "Charge name",
-                  hintStyle: TextStyle(fontSize: 11, color: Colors.grey[400]),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  isDense: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(color: outlineColor),
+            Expanded(
+              flex: 3,
+              child: SizedBox(
+                height: 36,
+                child: TextField(
+                  controller: nameController,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                  decoration: InputDecoration(
+                    hintText: "Charge name",
+                    hintStyle: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    isDense: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide(color: outlineColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide(color: outlineColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: Color(0xFF006B5E), width: 1.5),
+                    ),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(color: outlineColor),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(color: Color(0xFF006B5E), width: 1.5),
-                  ),
-                ),
-                onChanged: (val) {
-                  _savedCharges.remove(name);
-                  final oldName = name;
-                  final newName = val.trim();
-                  if (newName.isNotEmpty && newName != oldName) {
-                    final amount = double.tryParse(controller.text) ?? 0.0;
-                    if (amount > 0) {
-                      widget.cartNotifier.setAdditionalCharge(oldName, 0);
-                      widget.cartNotifier.setAdditionalCharge(newName, amount);
+                  onChanged: (val) {
+                    _savedCharges.remove(name);
+                    final oldName = name;
+                    final newName = val.trim();
+                    if (newName.isNotEmpty && newName != oldName) {
+                      final amount = double.tryParse(controller.text) ?? 0.0;
+                      if (amount > 0) {
+                        widget.cartNotifier.setAdditionalCharge(oldName, 0);
+                        widget.cartNotifier.setAdditionalCharge(newName, amount);
+                      }
+                      _chargeControllers[newName] = _chargeControllers.remove(oldName)!;
+                      _chargeNameControllers[newName] = _chargeNameControllers.remove(oldName)!;
+                      setState(() {
+                        final idx = _chargeTypes.indexOf(oldName);
+                        if (idx != -1) _chargeTypes[idx] = newName;
+                      });
                     }
-                    _chargeControllers[newName] = _chargeControllers.remove(oldName)!;
-                    _chargeNameControllers[newName] = _chargeNameControllers.remove(oldName)!;
-                    setState(() {
-                      final idx = _chargeTypes.indexOf(oldName);
-                      if (idx != -1) _chargeTypes[idx] = newName;
-                    });
-                  }
-                },
+                  },
+                ),
               ),
             ),
             const SizedBox(width: 8),
-            SizedBox(
-              width: 160,
-              height: 36,
-              child: TextField(
-                controller: controller,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
-                textAlign: TextAlign.right,
-                style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
-                decoration: InputDecoration(
-                  prefixText: 'Rs',
-                  prefixStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  isDense: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(color: outlineColor),
+            Expanded(
+              flex: 3,
+              child: SizedBox(
+                height: 36,
+                child: TextField(
+                  controller: controller,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
+                  decoration: InputDecoration(
+                    prefixText: 'Rs',
+                    prefixStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    isDense: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide(color: outlineColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide(color: outlineColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: Color(0xFF006B5E), width: 1.5),
+                    ),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(color: outlineColor),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(color: Color(0xFF006B5E), width: 1.5),
-                  ),
+                  onChanged: (val) {
+                    _savedCharges.remove(name);
+                    final amount = double.tryParse(val) ?? 0.0;
+                    widget.cartNotifier.setAdditionalCharge(name, amount);
+                  },
+                  onSubmitted: (val) {
+                    final enteredName = nameController.text.trim();
+                    final enteredAmount = double.tryParse(val) ?? 0.0;
+                    if (enteredName.isNotEmpty && enteredAmount > 0) {
+                      widget.cartNotifier.setAdditionalCharge(name, enteredAmount);
+                      setState(() => _savedCharges.add(name));
+                    }
+                  },
                 ),
-                onChanged: (val) {
-                  _savedCharges.remove(name);
-                  final amount = double.tryParse(val) ?? 0.0;
-                  widget.cartNotifier.setAdditionalCharge(name, amount);
-                },
-                onSubmitted: (val) {
-                  final enteredName = nameController.text.trim();
-                  final enteredAmount = double.tryParse(val) ?? 0.0;
-                  if (enteredName.isNotEmpty && enteredAmount > 0) {
-                    widget.cartNotifier.setAdditionalCharge(name, enteredAmount);
-                    setState(() => _savedCharges.add(name));
-                  }
-                },
               ),
             ),
           ],
@@ -825,13 +862,17 @@ class _RetailInvoiceModalState extends State<_RetailInvoiceModal> {
   @override
   Widget build(BuildContext context) {
     final customer = widget.cartState.selectedCustomer;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: screenWidth > 600 ? 24 : 12, 
+        vertical: 24
+      ),
       child: Center(
         child: Container(
-          width: 540,
+          width: screenWidth > 600 ? 540 : screenWidth * 0.95,
           constraints: const BoxConstraints(maxHeight: 720),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -855,7 +896,7 @@ class _RetailInvoiceModalState extends State<_RetailInvoiceModal> {
                       _buildCustomerSection(customer),
                       _buildItemsSection(),
                       _buildTotalsSection(),
-                      _buildPaymentSection(),
+                      _buildPaymentSection(screenWidth < 500),
                     ],
                   ),
                 ),
@@ -1047,9 +1088,10 @@ class _RetailInvoiceModalState extends State<_RetailInvoiceModal> {
     );
   }
 
-  Widget _buildPaymentSection() {
+  Widget _buildPaymentSection(bool isSmallScreen) {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      width: double.infinity,
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(color: _outline.withValues(alpha: 0.4)),
@@ -1064,50 +1106,60 @@ class _RetailInvoiceModalState extends State<_RetailInvoiceModal> {
             style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: _paymentOptions.map((opt) {
-              final selected = _selectedPayment == opt.value;
-              final isLast = opt == _paymentOptions.last;
-              return Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(right: isLast ? 0 : 8),
-                  child: InkWell(
-                    onTap: () => setState(() => _selectedPayment = opt.value),
-                    borderRadius: BorderRadius.circular(8),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: selected ? _green : Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: selected ? _green : _outline,
-                          width: selected ? 2 : 1,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(opt.icon, size: 20, color: selected ? Colors.white : Colors.grey[600]),
-                          const SizedBox(height: 4),
-                          Text(
-                            opt.label,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: selected ? Colors.white : Colors.grey[600],
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
+          isSmallScreen 
+            ? Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _paymentOptions.map((opt) => _buildPaymentOptionButton(opt)).toList(),
+              )
+            : Row(
+                children: _paymentOptions.map((opt) {
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(right: opt == _paymentOptions.last ? 0 : 8),
+                      child: _buildPaymentOptionButton(opt),
                     ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
+                  );
+                }).toList(),
+              ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentOptionButton(({String value, IconData icon, String label}) opt) {
+    final selected = _selectedPayment == opt.value;
+    return InkWell(
+      onTap: () => setState(() => _selectedPayment = opt.value),
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 100, 
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? _green : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected ? _green : _outline,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(opt.icon, size: 20, color: selected ? Colors.white : Colors.grey[600]),
+            const SizedBox(height: 4),
+            Text(
+              opt.label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: selected ? Colors.white : Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

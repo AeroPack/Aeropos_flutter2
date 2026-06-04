@@ -8,7 +8,8 @@
       "Read(//dev/**)",
       "Bash(grep -n 'class TenantsCompanion\\\\|class $TenantsTable' /home/dell/Documents/Aeropos/testing_barcode_impl/Aeropos_flutter2/ezo/lib/core/database/app_database.g.dart)",
       "Bash(grep -n 'class $TenantsTable\\\\|mapFromDatabase\\\\|toColumns' /home/dell/Documents/Aeropos/testing_barcode_impl/Aeropos_flutter2/ezo/lib/core/database/app_database.g.dart)",
-      "Bash(grep -n 'class $TenantsTable' /home/dell/Documents/Aeropos/testing_barcode_impl/Aeropos_flutter2/ezo/lib/core/database/app_database.g.dart)"
+      "Bash(grep -n 'class $TenantsTable' /home/dell/Documents/Aeropos/testing_barcode_impl/Aeropos_flutter2/ezo/lib/core/database/app_database.g.dart)",
+      "Bash(grep \"\\\\.dart$\")"
     ],
     "additionalDirectories": [
       "/home/dell/Documents/Aeropos/testing_barcode_impl/Aeropos_flutter2/ezo/.claude"

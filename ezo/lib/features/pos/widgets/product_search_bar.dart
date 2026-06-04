@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -173,7 +173,7 @@ class _ProductSearchBarState extends ConsumerState<ProductSearchBar> {
               suffixIcon: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (Platform.isIOS || Platform.isMacOS)
+                  if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS))
                     IconButton(
                       icon: const Icon(Icons.qr_code_scanner, size: 20),
                       onPressed: () => showModalBottomSheet(
