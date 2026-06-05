@@ -172,7 +172,7 @@ class SyncService {
   final UnitRepository unitRepo;
   final BrandRepository brandRepo;
 
-  int get _tenantId => ServiceLocator.instance.tenantService.tenantId;
+  int get _companyId => ServiceLocator.instance.sessionService.companyId;
 
   Timer? _syncTimer;
   Timer? _syncDebounceTimer;
@@ -262,9 +262,9 @@ class SyncService {
         return;
       }
 
-      final tenantId = ServiceLocator.instance.tenantService.tenantIdOrNull;
-      if (tenantId == null || tenantId <= 0) {
-        debugPrint('[DIAG][SYNC_SKIP] Invalid tenantId=$tenantId');
+      final companyId = ServiceLocator.instance.sessionService.companyIdOrNull;
+      if (companyId == null || companyId <= 0) {
+        debugPrint('[DIAG][SYNC_SKIP] Invalid companyId=$companyId');
         return;
       }
 
@@ -431,7 +431,7 @@ class SyncService {
     }
 
     _isPulling = true;
-    debugPrint('[SYNC] pull() STARTING with tenantId=$_tenantId');
+    debugPrint('[SYNC] pull() STARTING with companyId=$_companyId');
 
     try {
       await _doPull();
@@ -448,9 +448,9 @@ class SyncService {
     debugPrint('[DIAG] 1: enter _doPull');
 
     final currentTenantId =
-        ServiceLocator.instance.tenantService.tenantIdOrNull;
+        ServiceLocator.instance.sessionService.companyIdOrNull;
     if (currentTenantId == null || currentTenantId <= 0) {
-      debugPrint('[SYNC] Invalid tenantId=$currentTenantId - skipping pull');
+      debugPrint('[SYNC] Invalid companyId=$currentTenantId - skipping pull');
       return;
     }
 
@@ -498,7 +498,7 @@ class SyncService {
     debugPrint(
       '[SYNC][PULL] Requesting since: $syncFrom',
     );
-    debugPrint('[SYNC][PULL] Tenant: $_tenantId');
+    debugPrint('[SYNC][PULL] Tenant: $_companyId');
 
     debugPrint('[DIAG] 7: about to call dio.post');
     final response = await dio
@@ -623,7 +623,7 @@ class SyncService {
               name: Value(data['name'] as String? ?? ''),
               symbol: Value(data['symbol'] as String? ?? ''),
               isActive: Value(data['is_active'] as bool? ?? true),
-              tenantId: Value(data['company_id'] as int? ?? _tenantId),
+              companyId: Value(data['company_id'] as int? ?? _companyId),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -636,7 +636,7 @@ class SyncService {
           name: Value(data['name'] as String? ?? ''),
           symbol: Value(data['symbol'] as String? ?? ''),
           isActive: Value(data['is_active'] as bool? ?? true),
-          tenantId: Value(data['company_id'] as int? ?? _tenantId),
+          companyId: Value(data['company_id'] as int? ?? _companyId),
           updatedAt: Value(DateTime.now()),
           syncStatus: const Value(0),
           isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -665,7 +665,7 @@ class SyncService {
               subcategory: Value(data['subcategory'] as String?),
               description: Value(data['description'] as String?),
               isActive: Value(data['is_active'] as bool? ?? true),
-              tenantId: Value(data['company_id'] as int? ?? _tenantId),
+              companyId: Value(data['company_id'] as int? ?? _companyId),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -679,7 +679,7 @@ class SyncService {
           subcategory: Value(data['subcategory'] as String?),
           description: Value(data['description'] as String?),
           isActive: Value(data['is_active'] as bool? ?? true),
-          tenantId: Value(data['company_id'] as int? ?? _tenantId),
+          companyId: Value(data['company_id'] as int? ?? _companyId),
           updatedAt: Value(DateTime.now()),
           syncStatus: const Value(0),
           isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -707,7 +707,7 @@ class SyncService {
               name: Value(data['name'] as String? ?? ''),
               description: Value(data['description'] as String?),
               isActive: Value(data['is_active'] as bool? ?? true),
-              tenantId: Value(data['company_id'] as int? ?? _tenantId),
+              companyId: Value(data['company_id'] as int? ?? _companyId),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -720,7 +720,7 @@ class SyncService {
           name: Value(data['name'] as String? ?? ''),
           description: Value(data['description'] as String?),
           isActive: Value(data['is_active'] as bool? ?? true),
-          tenantId: Value(data['company_id'] as int? ?? _tenantId),
+          companyId: Value(data['company_id'] as int? ?? _companyId),
           updatedAt: Value(DateTime.now()),
           syncStatus: const Value(0),
           isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -753,7 +753,7 @@ class SyncService {
               cost: Value((data['cost'] as num?)?.toDouble()),
               stockQuantity: Value(data['stock_quantity'] as int? ?? 0),
               isActive: Value(data['is_active'] as bool? ?? true),
-              tenantId: Value(data['company_id'] as int? ?? _tenantId),
+              companyId: Value(data['company_id'] as int? ?? _companyId),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -770,7 +770,7 @@ class SyncService {
           cost: Value((data['cost'] as num?)?.toDouble()),
           stockQuantity: Value(data['stock_quantity'] as int? ?? 0),
           isActive: Value(data['is_active'] as bool? ?? true),
-          tenantId: Value(data['company_id'] as int? ?? _tenantId),
+          companyId: Value(data['company_id'] as int? ?? _companyId),
           updatedAt: Value(DateTime.now()),
           syncStatus: const Value(0),
           isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -805,7 +805,7 @@ class SyncService {
               currentBalance: Value(
                 (data['current_balance'] as num?)?.toDouble() ?? 0.0,
               ),
-              tenantId: Value(data['company_id'] as int? ?? _tenantId),
+              companyId: Value(data['company_id'] as int? ?? _companyId),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -825,7 +825,7 @@ class SyncService {
           currentBalance: Value(
             (data['current_balance'] as num?)?.toDouble() ?? 0.0,
           ),
-          tenantId: Value(data['company_id'] as int? ?? _tenantId),
+          companyId: Value(data['company_id'] as int? ?? _companyId),
           updatedAt: Value(DateTime.now()),
           syncStatus: const Value(0),
           isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -854,7 +854,7 @@ class SyncService {
               phone: Value(data['phone'] as String?),
               email: Value(data['email'] as String?),
               address: Value(data['address'] as String?),
-              tenantId: Value(data['company_id'] as int? ?? _tenantId),
+              companyId: Value(data['company_id'] as int? ?? _companyId),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -868,7 +868,7 @@ class SyncService {
           phone: Value(data['phone'] as String?),
           email: Value(data['email'] as String?),
           address: Value(data['address'] as String?),
-          tenantId: Value(data['company_id'] as int? ?? _tenantId),
+          companyId: Value(data['company_id'] as int? ?? _companyId),
           updatedAt: Value(DateTime.now()),
           syncStatus: const Value(0),
           isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -899,7 +899,7 @@ class SyncService {
               address: Value(data['address'] as String?),
               role: Value(data['role'] as String? ?? 'employee'),
               password: Value(data['password'] as String?),
-              tenantId: Value(data['company_id'] as int? ?? _tenantId),
+              companyId: Value(data['company_id'] as int? ?? _companyId),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -915,7 +915,7 @@ class SyncService {
           address: Value(data['address'] as String?),
           role: Value(data['role'] as String? ?? 'employee'),
           password: Value(data['password'] as String?),
-          tenantId: Value(data['company_id'] as int? ?? _tenantId),
+          companyId: Value(data['company_id'] as int? ?? _companyId),
           updatedAt: Value(DateTime.now()),
           syncStatus: const Value(0),
           isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -952,7 +952,7 @@ class SyncService {
               discount: Value((data['discount'] as num?)?.toDouble() ?? 0.0),
               total: Value((data['total'] as num?)?.toDouble() ?? 0.0),
               paymentMethod: Value(data['payment_method'] as String?),
-              tenantId: Value(data['company_id'] as int? ?? _tenantId),
+              companyId: Value(data['company_id'] as int? ?? _companyId),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -974,7 +974,7 @@ class SyncService {
           discount: Value((data['discount'] as num?)?.toDouble() ?? 0.0),
           total: Value((data['total'] as num?)?.toDouble() ?? 0.0),
           paymentMethod: Value(data['payment_method'] as String?),
-          tenantId: Value(data['company_id'] as int? ?? _tenantId),
+          companyId: Value(data['company_id'] as int? ?? _companyId),
           updatedAt: Value(DateTime.now()),
           syncStatus: const Value(0),
           isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -1063,7 +1063,7 @@ class SyncService {
   // PUSH – NOW USES UNIFIED /api/sync ENDPOINT
   // ----------------------------------------------------------------------
   Future<SyncResult> push() async {
-    debugPrint('DEBUG SYNC: push() STARTING with tenantId=$_tenantId');
+    debugPrint('DEBUG SYNC: push() STARTING with companyId=$_companyId');
     final syncedCounts = <String, int>{
       'categories': 0,
       'units': 0,
@@ -1260,7 +1260,7 @@ final productUuid = (await (db.select(db.products)
   Map<String, dynamic> _sanitizeData(Map<String, dynamic> data) {
     final sanitized = Map<String, dynamic>.from(data);
     sanitized.remove('id');
-    sanitized.remove('tenantId');
+    sanitized.remove('companyId');
     sanitized.remove('companyId'); // Server uses X-Company-Id header
     sanitized.remove('syncStatus');
     sanitized.remove('updatedAt');
@@ -1370,7 +1370,7 @@ final productUuid = (await (db.select(db.products)
             final map = Map<String, dynamic>.from(item);
             map['syncStatus'] = 0;
             if (map.containsKey('companyId') && map['companyId'] != null) {
-              map['tenantId'] = map['companyId'];
+              map['companyId'] = map['companyId'];
             }
             if (!map.containsKey('updatedAt') || map['updatedAt'] == null) {
               map['updatedAt'] =

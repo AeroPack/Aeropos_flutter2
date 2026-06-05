@@ -108,7 +108,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
       _skuController.text = p.sku ?? '';
       _priceController.text = p.price.toString();
       _costController.text = p.cost?.toString() ?? '';
-      _descController.text = '';
+      _descController.text = p.description ?? '';
       _selectedBrandId = p.brandId;
       _selectedCategoryId = p.categoryId;
       _selectedUnitId = p.unitId;
@@ -141,6 +141,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
         .get();
     final unitMap = {for (var u in allUnits) u.id: u};
 
+    if (!mounted) return;
     setState(() {
       _productUnits = units.map((pu) {
         final u = unitMap[pu.unitId];
@@ -427,7 +428,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                 sellingPrice: drift.Value(unit.sellingPrice),
                 barcode: drift.Value(resolvedBarcode),
                 isDefault: drift.Value(unit.isDefault),
-                tenantId: 1,
+                companyId: ServiceLocator.instance.sessionService.companyId,
               ),
             );
             if (unit.isDefault) {
@@ -699,7 +700,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                 CategoriesCompanion.insert(
                   uuid: uuid,
                   name: name,
-                  tenantId: 1,
+                  companyId: ServiceLocator.instance.sessionService.companyId,
                   description: drift.Value(
                     description.isNotEmpty ? description : null,
                   ),
@@ -726,7 +727,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                 BrandsCompanion.insert(
                   uuid: uuid,
                   name: name,
-                  tenantId: 1,
+                  companyId: ServiceLocator.instance.sessionService.companyId,
                   description: drift.Value(
                     description.isNotEmpty ? description : null,
                   ),
@@ -754,7 +755,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   uuid: uuid,
                   name: name,
                   symbol: symbol,
-                  tenantId: 1,
+                  companyId: ServiceLocator.instance.sessionService.companyId,
                 ),
               );
           if (context.mounted) {
@@ -928,6 +929,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                           child: PosDropdown<int>(
                             label: "Unit",
                             isRequired: true,
+                            value: _selectedUnitId,
                             hint: "Select Unit",
                             items: units
                                 .map(

@@ -47,7 +47,7 @@ class CustomerRepository {
         address: Value(user.address),
         creditLimit: Value(user.creditLimit),
         currentBalance: Value(user.currentBalance),
-        tenantId: 1,
+        companyId: ServiceLocator.instance.sessionService.companyId,
         isDeleted: Value(user.isDeleted),
       );
       final id = await _database.into(_database.customers).insert(companion);
@@ -78,7 +78,7 @@ class CustomerRepository {
         address: Value(user.address),
         creditLimit: Value(user.creditLimit),
         currentBalance: Value(user.currentBalance),
-        tenantId: const Value(1),
+        companyId: Value(ServiceLocator.instance.sessionService.companyId),
         updatedAt: Value(now),
         isDeleted: Value(user.isDeleted),
       );

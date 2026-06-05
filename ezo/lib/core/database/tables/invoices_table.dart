@@ -18,7 +18,7 @@ class Invoices extends Table {
       text().withDefault(const Constant('PENDING'))();
   TextColumn get signUrl => text().nullable()();
 
-  IntColumn get tenantId => integer()();
+  IntColumn get companyId => integer()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
@@ -38,6 +38,6 @@ class Invoices extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-    {invoiceNumber, tenantId},
+    {invoiceNumber, companyId},
   ];
 }

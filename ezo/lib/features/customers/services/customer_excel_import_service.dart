@@ -179,7 +179,7 @@ class CustomerExcelImportService {
                       : const Value.absent(),
                   creditLimit: Value(creditLimit),
                   currentBalance: Value(currentBalance),
-                  tenantId: const Value(1),
+                  companyId: Value(ServiceLocator.instance.sessionService.companyId),
                   syncStatus: const Value(1),
                   isDeleted: const Value(false),
                   createdAt: Value(DateTime.now()),

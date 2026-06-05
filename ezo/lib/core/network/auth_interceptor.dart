@@ -31,10 +31,10 @@ class AuthInterceptor extends Interceptor {
         options.headers['X-Company-Id'] = companyId;
       }
 
-      // 3. Tenant ID header (from tenant service)
-      final tenantId = ServiceLocator.instance.tenantService.tenantIdOrNull;
-      if (tenantId != null) {
-        options.headers['X-Tenant-Id'] = tenantId.toString();
+      // 3. Tenant ID header (from session service)
+      final sessionCompanyId = ServiceLocator.instance.sessionService.companyIdOrNull;
+      if (sessionCompanyId != null) {
+        options.headers['X-Tenant-Id'] = sessionCompanyId.toString();
       }
 
       handler.next(options);

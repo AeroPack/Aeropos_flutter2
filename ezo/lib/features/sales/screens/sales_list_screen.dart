@@ -1069,7 +1069,7 @@ class _SalesListScreenState extends ConsumerState<SalesListScreen> {
   }
 
   Future<void> _viewInvoice(InvoiceEntity invoice) async {
-    final tenantId = ref.read(tenantIdProvider);
+    final companyId = ref.read(companyIdProvider);
     final repo = ref.read(invoiceTemplateRepositoryProvider);
 
     // Show loading immediately
@@ -1100,7 +1100,7 @@ class _SalesListScreenState extends ConsumerState<SalesListScreen> {
         ? ServiceLocator.instance.customerRepository
             .getCustomerById(invoice.customerId!)
         : Future<User?>.value(null);
-    final hydratedFuture = repo.getHydratedInvoiceData(tenantId, null);
+    final hydratedFuture = repo.getHydratedInvoiceData(companyId, null);
 
     final items = await itemsFuture;
     final customer = await customerFuture;

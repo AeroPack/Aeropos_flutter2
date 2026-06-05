@@ -58,8 +58,8 @@ class SaleRepository {
   }
 
   Stream<List<TypedResult>> watchSalesWithCustomer() {
-    final tenantId = ServiceLocator.instance.tenantService.tenantId;
-    return _db.watchInvoicesWithCustomer(tenantId: tenantId);
+    final companyId = ServiceLocator.instance.sessionService.companyId;
+    return _db.watchInvoicesWithCustomer(companyId: companyId);
   }
 
   Future<Sale?> getSaleById(int id) async {
@@ -73,7 +73,7 @@ class SaleRepository {
 
   Future<int> createSale(Sale sale) async {
     final syncRepo = ServiceLocator.instance.syncRepository;
-    final tenantId = ServiceLocator.instance.tenantService.tenantId;
+    final companyId = ServiceLocator.instance.sessionService.companyId;
 
     return await _db.transaction(() async {
       // 1. Insert Invoice header
@@ -90,7 +90,7 @@ class SaleRepository {
           customerId: Value(sale.customerId),
           isDeleted: Value(false),
           updatedAt: Value(DateTime.now()),
-          tenantId: tenantId,
+          companyId: companyId,
         ),
       );
 
@@ -107,7 +107,7 @@ class SaleRepository {
               uuid: item.uuid.isEmpty ? const Uuid().v4() : item.uuid,
               isDeleted: Value(false),
               updatedAt: Value(DateTime.now()),
-              tenantId: tenantId,
+              companyId: companyId,
             ),
           )
           .toList();

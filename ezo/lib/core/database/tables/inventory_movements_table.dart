@@ -12,7 +12,7 @@ class InventoryMovements extends Table {
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
-  IntColumn get tenantId => integer()();
+  IntColumn get companyId => integer()();
 
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
 

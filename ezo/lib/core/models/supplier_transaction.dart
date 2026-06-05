@@ -5,21 +5,25 @@ class SupplierTransaction {
   final String id;
   final String supplierId;
   final String supplierName;
+  final String? supplierPhone;
   final double amount;
   final TransactionType type;
   final String? remarks;
   final DateTime createdAt;
   final SyncStatus syncStatus;
+  final double runningBalance;
 
   SupplierTransaction({
     required this.id,
     required this.supplierId,
     required this.supplierName,
+    this.supplierPhone,
     required this.amount,
     required this.type,
     this.remarks,
     required this.createdAt,
     this.syncStatus = SyncStatus.pending,
+    this.runningBalance = 0.0,
   });
 }
 

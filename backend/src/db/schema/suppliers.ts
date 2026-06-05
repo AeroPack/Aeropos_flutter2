@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, timestamp, serial, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, timestamp, serial, boolean, integer , doublePrecision} from "drizzle-orm/pg-core";
 import { companies } from "./companies";
 
 export const suppliers = pgTable("suppliers", {
@@ -7,6 +7,7 @@ export const suppliers = pgTable("suppliers", {
     name: text("name").notNull(),
     phone: text("phone"),
     email: text("email"),
+    currentBalance: doublePrecision("current_balance").default(0.0).notNull(),
     address: text("address"),
     companyId: integer("company_id")
         .notNull()

@@ -735,8 +735,8 @@ class _RecentTransactionsState extends State<_RecentTransactions> {
   Future<void> _load() async {
     try {
       final db = ServiceLocator.instance.database;
-      final tenantId = ServiceLocator.instance.tenantService.tenantId;
-      final results = await db.getTopInvoices(limit: 5, tenantId: tenantId);
+      final companyId = ServiceLocator.instance.sessionService.companyId;
+      final results = await db.getTopInvoices(limit: 5, companyId: companyId);
       if (mounted) setState(() { _invoices = results; _loading = false; });
     } catch (e) {
       if (mounted) setState(() { _error = e; _loading = false; });

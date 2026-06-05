@@ -62,7 +62,7 @@ class SupplierTransactionRepositoryImpl
       amount: Value(transaction.amount),
       type: Value(transaction.type.name),
       remarks: Value(transaction.remarks),
-      tenantId: const Value(1),
+      companyId: Value(ServiceLocator.instance.sessionService.companyId),
       syncStatus: Value(SyncStatus.pending.value),
     );
     await _dao.insert(companion);
@@ -147,6 +147,7 @@ class SupplierTransactionRepositoryImpl
       id: entity.id.toString(),
       supplierId: entity.supplierId.toString(),
       supplierName: supplier?.name ?? 'Unknown',
+      supplierPhone: supplier?.phone,
       amount: entity.amount,
       type: entity.type == 'credit'
           ? TransactionType.credit

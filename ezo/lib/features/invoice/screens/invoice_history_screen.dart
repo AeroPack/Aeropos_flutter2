@@ -298,7 +298,6 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
       'Invoice #',
       'Date',
       'Time',
-      'Product',
       'Customer',
       'Amount',
       'Payment Method',
@@ -310,7 +309,6 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
       try {
         final res = state.items[i];
         final invoice = res.readTable(db.invoices);
-        final prod = res.readTableOrNull(db.products);
         final cust = res.readTableOrNull(db.customers);
         final serialNumber = (state.page * state.limit) + i + 1;
         exportRows.add([
@@ -318,7 +316,6 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
           invoice.invoiceNumber,
           DateFormat('yyyy-MM-dd').format(invoice.date),
           DateFormat('HH:mm:ss').format(invoice.date),
-          prod?.name ?? 'Deleted Product',
           cust?.name ?? 'Walk-in',
           invoice.total.toStringAsFixed(2),
           invoice.paymentMethod ?? 'N/A',
@@ -454,7 +451,6 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
           if (showSerialNo) _headerCell('S.No', flex: 1),
           _headerCell('Invoice #', flex: 2),
           _headerCell('Date & Time', flex: 2),
-          _headerCell('Product', flex: 3),
           if (showCustomer) _headerCell('Customer', flex: 2),
           _headerCell('Amount', flex: 2, align: TextAlign.center),
           _headerCell('Sync', flex: 1, align: TextAlign.center),
@@ -495,9 +491,6 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
       final res = state.items[index];
       final invoice = res.readTable(ServiceLocator.instance.database.invoices);
       final item = res.readTableOrNull(ServiceLocator.instance.database.invoiceItems);
-      final prod = res.readTableOrNull(
-        ServiceLocator.instance.database.products,
-      );
       final cust = res.readTableOrNull(
         ServiceLocator.instance.database.customers,
       );
@@ -555,40 +548,6 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
                         style: const TextStyle(
                           fontSize: 11,
                           color: Color(0xFF717786),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  flex: 3,
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD8E3FB),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.inventory_2_outlined,
-                            size: 16,
-                            color: Color(0xFF0058BC),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          prod?.name ?? 'Deleted Product',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12,
-                            color: Color(0xFF0B1C30),
-                          ),
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -1019,9 +978,6 @@ switch (value) {
               final item = res.readTableOrNull(
                 ServiceLocator.instance.database.invoiceItems,
               );
-              final prod = res.readTableOrNull(
-                ServiceLocator.instance.database.products,
-              );
               final cust = res.readTableOrNull(
                 ServiceLocator.instance.database.customers,
               );
@@ -1043,7 +999,6 @@ switch (value) {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -1064,6 +1019,17 @@ switch (value) {
                             ),
                           ),
                         ),
+                        const Spacer(),
+                        Text(
+                          'Rs ${invoice.total.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: Color(0xFF0058BC),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
                         if (invoice.paymentMethod != null)
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -1083,37 +1049,6 @@ switch (value) {
                               ),
                             ),
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.inventory_2_outlined,
-                          size: 14,
-                          color: Color(0xFF717786),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            prod?.name ?? 'Deleted Product',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 13,
-                              color: Color(0xFF0B1C30),
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Text(
-                          'Rs ${invoice.total.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontFamily: 'monospace',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                            color: Color(0xFF0058BC),
-                          ),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 6),

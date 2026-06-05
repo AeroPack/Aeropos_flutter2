@@ -46,7 +46,7 @@ class EmployeeRepository {
         role: Value(user.role),
         password: Value(user.password),
         googleAuth: Value(authMethod == 'google'),
-        tenantId: 1,
+        companyId: ServiceLocator.instance.sessionService.companyId,
         isDeleted: Value(user.isDeleted),
       );
       final id = await _database.into(_database.employees).insert(companion);

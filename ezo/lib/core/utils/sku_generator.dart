@@ -10,7 +10,7 @@ class SkuGenerator {
 
   /// Generate SKU using the existing database method
   Future<String> generateNextSku() async {
-    final tenantId = await getCurrentTenantId();
+    final companyId = await getCurrentTenantId();
     final db = ServiceLocator.instance.database;
     final deviceId = await _getDeviceId();
 
@@ -25,15 +25,15 @@ class SkuGenerator {
       _trackLocalUsage(sku);
       return sku;
     } catch (e) {
-      return await _generateOfflineSku(tenantId);
+      return await _generateOfflineSku(companyId);
     }
   }
 
-  Future<String> _generateOfflineSku(int tenantId) async {
+  Future<String> _generateOfflineSku(int companyId) async {
     final deviceId = await _getDeviceId();
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final random = (timestamp % 1000000).toString().padLeft(6, '0');
-    final sku = 'OFFLINE-$tenantId-$deviceId-$random';
+    final sku = 'OFFLINE-$companyId-$deviceId-$random';
 
     await _storeOfflineSku(sku);
     _trackLocalUsage(sku);

@@ -3,7 +3,7 @@ import 'package:aeropos/core/database/app_database.dart';
 abstract class PurchaseReceiptRepository {
   Future<int> insertPurchaseReceipt(PurchaseReceiptsCompanion entry);
   Future<List<PurchaseReceiptEntity>> getAllPurchaseReceipts();
-  Stream<List<PurchaseReceiptEntity>> watchAllPurchaseReceipts(int tenantId);
+  Stream<List<PurchaseReceiptEntity>> watchAllPurchaseReceipts(int companyId);
   Future<void> deletePurchaseReceipt(int id);
   Future<void> updatePurchaseReceipt(PurchaseReceiptEntity entry);
 

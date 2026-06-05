@@ -13,7 +13,7 @@ class Customers extends Table {
   RealColumn get creditLimit => real().withDefault(const Constant(0.0))();
   RealColumn get currentBalance => real().withDefault(const Constant(0.0))();
 
-  IntColumn get tenantId => integer()();
+  IntColumn get companyId => integer()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();

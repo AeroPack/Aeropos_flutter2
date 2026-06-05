@@ -9,7 +9,7 @@ class Categories extends Table {
   TextColumn get description => text().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
 
-  IntColumn get tenantId => integer()();
+  IntColumn get companyId => integer()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();

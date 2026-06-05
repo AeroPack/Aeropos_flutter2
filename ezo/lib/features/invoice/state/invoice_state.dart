@@ -80,9 +80,9 @@ class InvoiceNotifier extends StateNotifier<InvoiceState> {
   }
 
   Future<void> _initInvoiceNumber() async {
-    final tenantId = ServiceLocator.instance.tenantService.tenantId;
+    final companyId = ServiceLocator.instance.sessionService.companyId;
     final seq = ServiceLocator.instance.invoiceSequenceService;
-    final number = await seq.getNextInvoiceNumber(tenantId);
+    final number = await seq.getNextInvoiceNumber(companyId);
     state = state.copyWith(invoiceNumber: number);
   }
 
@@ -127,17 +127,17 @@ class InvoiceNotifier extends StateNotifier<InvoiceState> {
     final db = ServiceLocator.instance.database;
     final syncRepo = ServiceLocator.instance.syncRepository;
     final seq = ServiceLocator.instance.invoiceSequenceService;
-    final tenantId = ServiceLocator.instance.tenantService.tenantId;
+    final companyId = ServiceLocator.instance.sessionService.companyId;
     final invoiceUuid = const Uuid().v4();
 
     // Pre-save duplicate check scoped to tenant
     var finalNumber = state.invoiceNumber;
     final existing = await (db.select(db.invoices)
       ..where((t) => t.invoiceNumber.equals(finalNumber))
-      ..where((t) => t.tenantId.equals(tenantId)))
+      ..where((t) => t.companyId.equals(companyId)))
         .getSingleOrNull();
     if (existing != null) {
-      finalNumber = await seq.regenerateOnConflict(tenantId, finalNumber);
+      finalNumber = await seq.regenerateOnConflict(companyId, finalNumber);
       state = state.copyWith(invoiceNumber: finalNumber);
     }
 
@@ -151,7 +151,7 @@ class InvoiceNotifier extends StateNotifier<InvoiceState> {
       total: Value(state.total),
       paymentStatus: Value(state.paymentStatus),
       syncStatus: const Value(1), // Pending
-      tenantId: Value(tenantId),
+      companyId: Value(companyId),
     );
 
     final itemCompanions = state.items
@@ -163,7 +163,7 @@ class InvoiceNotifier extends StateNotifier<InvoiceState> {
             bonus: Value(item.bonus),
             unitPrice: Value(item.unitPrice),
             totalPrice: Value(item.totalPrice),
-            tenantId: Value(tenantId),
+            companyId: Value(companyId),
           ),
         )
         .toList();
@@ -219,12 +219,12 @@ final customerListProvider = StreamProvider.autoDispose<List<CustomerEntity>>((r
 
 final invoiceHistoryProvider = StreamProvider.autoDispose<List<TypedResult>>((ref) {
   final database = ServiceLocator.instance.database;
-  final tenantId = ServiceLocator.instance.tenantService.tenantId;
-  return database.watchInvoicesWithCustomer(tenantId: tenantId);
+  final companyId = ServiceLocator.instance.sessionService.companyId;
+  return database.watchInvoicesWithCustomer(companyId: companyId);
 });
 
 final detailedInvoiceItemsProvider = StreamProvider.autoDispose<List<TypedResult>>((ref) {
   final database = ServiceLocator.instance.database;
-  final tenantId = ServiceLocator.instance.tenantService.tenantId;
-  return database.watchInvoiceItemsDetailed(tenantId: tenantId);
+  final companyId = ServiceLocator.instance.sessionService.companyId;
+  return database.watchInvoiceItemsDetailed(companyId: companyId);
 });

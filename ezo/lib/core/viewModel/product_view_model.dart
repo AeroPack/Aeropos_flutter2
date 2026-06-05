@@ -80,7 +80,7 @@ class ProductViewModel {
       discount: drift.Value(discount),
       isPercentDiscount: drift.Value(isPercentDiscount),
       isActive: const drift.Value(true),
-      tenantId: const drift.Value(1),
+      companyId: drift.Value(ServiceLocator.instance.sessionService.companyId),
       syncStatus: const drift.Value(1),
       isDeleted: const drift.Value(false),
       createdAt: drift.Value(DateTime.now()),

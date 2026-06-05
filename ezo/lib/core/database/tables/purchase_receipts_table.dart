@@ -17,7 +17,7 @@ class PurchaseReceipts extends Table {
   TextColumn get createdBy => text().nullable()();
   DateTimeColumn get date => dateTime()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
-  IntColumn get tenantId => integer()();
+  IntColumn get companyId => integer()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();

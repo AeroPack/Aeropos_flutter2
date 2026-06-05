@@ -20,7 +20,7 @@ class Products extends Table {
   IntColumn get stockQuantity => integer().withDefault(const Constant(0))();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
 
-  IntColumn get tenantId => integer()();
+  IntColumn get companyId => integer()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();

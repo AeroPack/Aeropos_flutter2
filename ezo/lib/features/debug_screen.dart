@@ -18,7 +18,7 @@ class DatabaseDebugScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text('Tenant ID (Current): ${ServiceLocator.instance.tenantService.tenantId}'),
+              Text('Tenant ID (Current): ${ServiceLocator.instance.sessionService.companyId}'),
               const Divider(),
               ...counts.entries.map((e) => ListTile(
                 title: Text(e.key),
@@ -51,8 +51,8 @@ class DatabaseDebugScreen extends ConsumerWidget {
       'Invoice Items (Total)': items.length,
       'Products (Total)': products.length,
       'Customers (Total)': customers.length,
-      'Invoices (Tenant 1)': invoices.where((i) => i.tenantId == 1).length,
-      'Invoices (Tenant 2)': invoices.where((i) => i.tenantId == 2).length,
+      'Invoices (Tenant 1)': invoices.where((i) => i.companyId == 1).length,
+      'Invoices (Tenant 2)': invoices.where((i) => i.companyId == 2).length,
     };
   }
 }

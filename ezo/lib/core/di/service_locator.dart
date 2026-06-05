@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../utils/sku_generator.dart';
-import '../services/tenant_service.dart';
+import '../services/session_service.dart';
 import '../../config/app_config.dart';
 import '../services/sync_engine.dart';
 import '../services/device_id_service.dart';
@@ -77,7 +77,7 @@ class ServiceLocator {
   // BUG FIX #3: SyncService field removed. SyncEngine is the only sync system.
   late final SyncEngine syncEngine;
   late SyncRepository syncRepository;
-  late final TenantService tenantService;
+  late final SessionService sessionService;
   late final SkuGenerator skuGenerator;
   late final DeviceIdService deviceIdService;
   late final InvoiceSequenceService invoiceSequenceService;
@@ -138,8 +138,8 @@ class ServiceLocator {
     );
 
     // Initialize services
-    tenantService = TenantService(secureStorage);
-    await tenantService.initialize();
+    sessionService = SessionService(secureStorage);
+    await sessionService.initialize();
 
     // Device ID for multi-device sync
     deviceIdService = DeviceIdService(database);
@@ -227,7 +227,7 @@ class ServiceLocator {
   }
 
   /// Called by AuthController after a confirmed login.
-  /// Reinitialises SyncEngine with the real tenantId and companyId
+  /// Reinitialises SyncEngine with the real companyId and companyId
   /// from the JWT, then starts the auto-sync timer.
   ///
   /// Safe to call multiple times (e.g. on company switch): it stops

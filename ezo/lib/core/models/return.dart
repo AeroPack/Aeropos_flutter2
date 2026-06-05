@@ -11,7 +11,7 @@ class Return {
   final String? notes;
   final int? newSaleId;
   final bool restock;
-  final int tenantId;
+  final int companyId;
   final SyncStatus syncStatus;
   final String transactionId;
   final String idempotencyKey;
@@ -28,7 +28,7 @@ class Return {
     this.notes,
     this.newSaleId,
     this.restock = true,
-    required this.tenantId,
+    required this.companyId,
     this.syncStatus = SyncStatus.synced,
     required this.transactionId,
     required this.idempotencyKey,
@@ -46,7 +46,7 @@ class Return {
     'notes': notes,
     'new_sale_id': newSaleId,
     'restock': restock,
-    'tenant_id': tenantId,
+    'tenant_id': companyId,
     'sync_status': syncStatus.index,
     'transaction_id': transactionId,
     'idempotency_key': idempotencyKey,
@@ -64,7 +64,7 @@ class ReturnItem {
   final String condition;
   final bool restock;
   final int? originalInvoiceItemId;
-  final int tenantId;
+  final int companyId;
   final SyncStatus syncStatus;
   final String transactionId;
   final String idempotencyKey;
@@ -79,7 +79,7 @@ class ReturnItem {
     this.condition = 'good',
     this.restock = true,
     this.originalInvoiceItemId,
-    required this.tenantId,
+    required this.companyId,
     this.syncStatus = SyncStatus.synced,
     required this.transactionId,
     required this.idempotencyKey,
@@ -97,7 +97,7 @@ class ReturnItem {
     'condition': condition,
     'restock': restock,
     'original_invoice_item_id': originalInvoiceItemId,
-    'tenant_id': tenantId,
+    'tenant_id': companyId,
     'sync_status': syncStatus.index,
     'transaction_id': transactionId,
     'idempotency_key': idempotencyKey,

@@ -21,7 +21,7 @@ class Employees extends Table {
   TextColumn get passwordResetToken => text().nullable()();
   DateTimeColumn get passwordResetExpires => dateTime().nullable()();
 
-  IntColumn get tenantId => integer()();
+  IntColumn get companyId => integer()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();

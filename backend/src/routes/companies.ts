@@ -107,6 +107,14 @@ companyRouter.post("/", async (req: AuthRequest, res) => {
             return;
         }
 
+        // Get admin's current company to inherit its tenantId
+        const [adminCompany] = await db
+            .select()
+            .from(companies)
+            .where(eq(companies.id, currentEmployee.companyId));
+
+        const adminTenantId = adminCompany?.tenantId || null;
+
         const {
             businessName,
             businessAddress,
@@ -127,6 +135,7 @@ companyRouter.post("/", async (req: AuthRequest, res) => {
             taxId: taxId || null,
             phone: companyPhone || null,
             email: companyEmail || null,
+            tenantId: adminTenantId,
             createdByEmployeeId: currentEmployee.id,
             createdAt: new Date(),
             updatedAt: new Date(),

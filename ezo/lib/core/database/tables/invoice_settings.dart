@@ -43,7 +43,7 @@ class InvoiceSettings extends Table {
       boolean().withDefault(const Constant(false))();
 
   // Multi-tenant Link
-  IntColumn get tenantId => integer().nullable()();
+  IntColumn get companyId => integer().nullable()();
 
   // Custom Template Configuration (JSON)
   TextColumn get customConfig => text().nullable()();

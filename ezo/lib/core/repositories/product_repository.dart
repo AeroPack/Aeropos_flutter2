@@ -154,7 +154,7 @@ class ProductRepository {
       cost: Value(product.cost),
       stockQuantity: Value(product.stockQuantity),
       isActive: Value(product.isActive),
-      tenantId: const Value(1), // Default tenant ID
+      companyId: Value(ServiceLocator.instance.sessionService.companyId),
       createdAt: Value(product.createdAt),
       updatedAt: Value(product.updatedAt),
       syncStatus: Value(product.syncStatus.value),

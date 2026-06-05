@@ -13,7 +13,7 @@ class Returns extends Table {
   IntColumn get newSaleId => integer().nullable()();
   BoolColumn get restock => boolean().withDefault(const Constant(true))();
 
-  IntColumn get tenantId => integer()();
+  IntColumn get companyId => integer()();
 
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
 

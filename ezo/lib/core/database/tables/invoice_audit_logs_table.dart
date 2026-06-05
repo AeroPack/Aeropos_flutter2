@@ -19,7 +19,7 @@ class InvoiceAuditLogs extends Table {
   TextColumn get reason => text().nullable()();
   TextColumn get metadata => text().nullable()(); // JSON
 
-  IntColumn get tenantId => integer()();
+  IntColumn get companyId => integer()();
 
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
 

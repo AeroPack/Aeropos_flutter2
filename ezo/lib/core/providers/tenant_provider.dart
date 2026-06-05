@@ -3,7 +3,7 @@ import 'package:aeropos/core/di/service_locator.dart';
 
 /// Provider for the tenant ID.
 /// In a real app, this would be set after login.
-final tenantIdProvider = StateProvider<int>((ref) {
+final companyIdProvider = StateProvider<int>((ref) {
   // Access the singleton service locator's tenant service
-  return ServiceLocator.instance.tenantService.tenantId;
+  return ServiceLocator.instance.sessionService.companyId;
 });

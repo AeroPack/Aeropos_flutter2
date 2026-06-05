@@ -81,8 +81,8 @@ class InvoiceTemplateNotifier extends Notifier<InvoiceTemplate> {
   }
 
   Future<void> _loadFromDb() async {
-    final tenantId = ref.read(tenantIdProvider);
-    final entity = await _db.getInvoiceSettingsForTenant(tenantId);
+    final companyId = ref.read(companyIdProvider);
+    final entity = await _db.getInvoiceSettingsForTenant(companyId);
     if (entity != null) {
       state = InvoiceTemplate.fromEntity(entity);
     }
@@ -113,11 +113,11 @@ class InvoiceTemplateNotifier extends Notifier<InvoiceTemplate> {
 
     state = newState;
 
-    final tenantId = ref.read(tenantIdProvider);
+    final companyId = ref.read(companyIdProvider);
     final repo = ref.read(invoiceTemplateRepositoryProvider);
 
     await repo.saveTemplateSelection(
-      tenantId: tenantId,
+      companyId: companyId,
       templateId: newState.layout.name,
       accentColorHex: newState.accentColor,
       fontFamily: newState.fontFamily,

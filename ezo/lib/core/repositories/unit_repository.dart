@@ -40,7 +40,7 @@ class UnitRepository {
         name: unit.name,
         symbol: unit.symbol,
         isActive: Value(unit.isActive),
-        tenantId: 1,
+        companyId: ServiceLocator.instance.sessionService.companyId,
         isDeleted: Value(unit.isDeleted),
       );
       final id = await _database.into(_database.units).insert(companion);

@@ -65,14 +65,45 @@ class SupplierTransactionViewModel extends ChangeNotifier {
       }
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
-        if (!t.supplierName.toLowerCase().contains(query)) {
-          return false;
-        }
+        final nameMatch = t.supplierName.toLowerCase().contains(query);
+        final phoneMatch =
+            t.supplierPhone?.toLowerCase().contains(query) ?? false;
+        if (!nameMatch && !phoneMatch) return false;
       }
       return true;
     }).toList();
 
+    // Compute running balance grouped by supplier, sorted by date ascending
     list.sort((a, b) {
+      final cmp = a.supplierId.compareTo(b.supplierId);
+      return cmp != 0 ? cmp : a.createdAt.compareTo(b.createdAt);
+    });
+
+    final withBalance = <SupplierTransaction>[];
+    double running = 0;
+    String? lastSupplierId;
+
+    for (final t in list) {
+      if (lastSupplierId != null && t.supplierId != lastSupplierId) {
+        running = 0;
+      }
+      running += t.type == TransactionType.credit ? t.amount : -t.amount;
+      lastSupplierId = t.supplierId;
+      withBalance.add(SupplierTransaction(
+        id: t.id,
+        supplierId: t.supplierId,
+        supplierName: t.supplierName,
+        supplierPhone: t.supplierPhone,
+        amount: t.amount,
+        type: t.type,
+        remarks: t.remarks,
+        createdAt: t.createdAt,
+        syncStatus: t.syncStatus,
+        runningBalance: running,
+      ));
+    }
+
+    withBalance.sort((a, b) {
       int comparison;
       switch (_sortField) {
         case SortField.supplierName:
@@ -87,7 +118,7 @@ class SupplierTransactionViewModel extends ChangeNotifier {
       return _sortOrder == SortOrder.ascending ? comparison : -comparison;
     });
 
-    return list;
+    return withBalance;
   }
 
   List<SupplierTransaction> get paginatedTransactions {

@@ -13,7 +13,7 @@ class InvoiceItems extends Table {
   RealColumn get discount => real().withDefault(const Constant(0.0))();
   RealColumn get totalPrice => real()();
 
-  IntColumn get tenantId => integer()();
+  IntColumn get companyId => integer()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();

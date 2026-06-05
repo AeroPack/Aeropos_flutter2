@@ -9,7 +9,7 @@ class WalletTransaction {
   final String referenceType;
   final int? referenceId;
   final DateTime createdAt;
-  final int tenantId;
+  final int companyId;
   final SyncStatus syncStatus;
   final String transactionId;
   final String idempotencyKey;
@@ -23,7 +23,7 @@ class WalletTransaction {
     required this.referenceType,
     this.referenceId,
     required this.createdAt,
-    required this.tenantId,
+    required this.companyId,
     this.syncStatus = SyncStatus.synced,
     required this.transactionId,
     required this.idempotencyKey,
@@ -41,7 +41,7 @@ class WalletTransaction {
     'reference_type': referenceType,
     'reference_id': referenceId,
     'created_at': createdAt.toIso8601String(),
-    'tenant_id': tenantId,
+    'tenant_id': companyId,
     'sync_status': syncStatus.index,
     'transaction_id': transactionId,
     'idempotency_key': idempotencyKey,

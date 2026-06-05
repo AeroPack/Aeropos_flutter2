@@ -9,7 +9,7 @@ class Suppliers extends Table {
   TextColumn get phone => text().nullable()();
   TextColumn get address => text().nullable()();
 
-  IntColumn get tenantId => integer()();
+  IntColumn get companyId => integer()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();

@@ -17,14 +17,14 @@ class InvoiceTemplateRepository {
 
   final Map<int, Uint8List?> _logoBytesCache = {};
 
-  void invalidateLogoCache(int tenantId) {
-    _logoBytesCache.remove(tenantId);
+  void invalidateLogoCache(int companyId) {
+    _logoBytesCache.remove(companyId);
   }
 
-  Future<InvoiceTemplate> getSelectedTemplate(int tenantId) async {
+  Future<InvoiceTemplate> getSelectedTemplate(int companyId) async {
     final settings = await (_db.select(
       _db.invoiceSettings,
-    )..where((t) => t.tenantId.equals(tenantId))).getSingleOrNull();
+    )..where((t) => t.companyId.equals(companyId))).getSingleOrNull();
 
     if (settings == null) {
       return TemplateRegistry.getTemplateById('default_a4');
@@ -32,9 +32,9 @@ class InvoiceTemplateRepository {
     return TemplateRegistry.getTemplateById(settings.layout);
   }
 
-  Stream<InvoiceTemplate> watchSelectedTemplate(int tenantId) {
+  Stream<InvoiceTemplate> watchSelectedTemplate(int companyId) {
     return (_db.select(_db.invoiceSettings)
-          ..where((t) => t.tenantId.equals(tenantId)))
+          ..where((t) => t.companyId.equals(companyId)))
         .watchSingleOrNull()
         .map((settings) {
           if (settings == null) {
@@ -45,7 +45,7 @@ class InvoiceTemplateRepository {
   }
 
   Future<void> saveTemplateSelection({
-    required int tenantId,
+    required int companyId,
     required String templateId,
     String? accentColorHex,
     String? fontFamily,
@@ -73,7 +73,7 @@ class InvoiceTemplateRepository {
   }) async {
     final existing = await (_db.select(
       _db.invoiceSettings,
-    )..where((t) => t.tenantId.equals(tenantId))).getSingleOrNull();
+    )..where((t) => t.companyId.equals(companyId))).getSingleOrNull();
 
     if (existing == null) {
       await _db
@@ -139,14 +139,14 @@ class InvoiceTemplateRepository {
               authorizedSignatory: authorizedSignatory != null
                   ? Value(authorizedSignatory)
                   : const Value.absent(),
-              tenantId: Value(tenantId),
+              companyId: Value(companyId),
               updatedAt: Value(DateTime.now()),
             ),
           );
     } else {
       await (_db.update(
         _db.invoiceSettings,
-      )..where((t) => t.tenantId.equals(tenantId))).write(
+      )..where((t) => t.companyId.equals(companyId))).write(
         InvoiceSettingsCompanion(
           layout: Value(templateId),
           accentColor: accentColorHex != null
@@ -207,20 +207,20 @@ class InvoiceTemplateRepository {
     }
 
     if (logoLocalPath != null || logoBytes != null) {
-      invalidateLogoCache(tenantId);
+      invalidateLogoCache(companyId);
     }
   }
 
   Future<({InvoiceData data, String templateId})> getHydratedInvoiceData(
-    int tenantId,
+    int companyId,
     String? templateId,
   ) async {
     // Fetch tenant + settings in parallel to halve the sequential DB latency.
     final results = await Future.wait([
-      (_db.select(_db.tenants)..where((t) => t.id.equals(tenantId)))
+      (_db.select(_db.tenants)..where((t) => t.id.equals(companyId)))
           .getSingleOrNull(),
       (_db.select(_db.invoiceSettings)
-            ..where((t) => t.tenantId.equals(tenantId)))
+            ..where((t) => t.companyId.equals(companyId)))
           .getSingleOrNull(),
     ]);
     final tenant = results[0] as dynamic;
@@ -291,7 +291,7 @@ class InvoiceTemplateRepository {
       }
 
       if (settings.showLogo) {
-        final cached = _logoBytesCache[tenantId];
+        final cached = _logoBytesCache[companyId];
         if (cached != null) {
           defaultData.logoBytes = cached;
         } else {
@@ -327,7 +327,7 @@ class InvoiceTemplateRepository {
           }
 
           if (storedBytes != null) {
-            _logoBytesCache[tenantId] = storedBytes;
+            _logoBytesCache[companyId] = storedBytes;
             defaultData.logoBytes = storedBytes;
           }
         }
@@ -337,8 +337,8 @@ class InvoiceTemplateRepository {
     return (data: defaultData, templateId: activeId);
   }
 
-  void seedLogoCache(int tenantId, Uint8List bytes) {
-    _logoBytesCache[tenantId] = bytes;
+  void seedLogoCache(int companyId, Uint8List bytes) {
+    _logoBytesCache[companyId] = bytes;
   }
 
 }
@@ -351,6 +351,6 @@ final invoiceTemplateRepositoryProvider = Provider<InvoiceTemplateRepository>((
 
 final activeTemplateProvider = StreamProvider.autoDispose<InvoiceTemplate>((ref) {
   final repo = ref.watch(invoiceTemplateRepositoryProvider);
-  final tenantId = ref.watch(tenantIdProvider);
-  return repo.watchSelectedTemplate(tenantId);
+  final companyId = ref.watch(companyIdProvider);
+  return repo.watchSelectedTemplate(companyId);
 });

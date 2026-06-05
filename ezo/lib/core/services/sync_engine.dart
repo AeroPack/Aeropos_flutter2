@@ -221,7 +221,7 @@ class SyncEngine implements ISyncService {
     }
 
     _isSyncing = true;
-    _log('START', {'device': deviceId, 'tenant': tenantId});
+    _log('START', {'device': deviceId, 'tenantId': tenantId, 'companyId': companyId});
 
     try {
       final sw = Stopwatch()..start();
@@ -334,7 +334,7 @@ class SyncEngine implements ISyncService {
   }
 
   Future<SyncEngineResult> _sync() async {
-    _log('SYNC_START', {'device': deviceId, 'tenant': tenantId});
+    _log('SYNC_START', {'device': deviceId, 'tenantId': tenantId, 'companyId': companyId});
 
     int totalAcked = 0;
     int totalRejected = 0;
@@ -899,7 +899,7 @@ await db
               stockQuantity: Value((data['stock_quantity'] as num?)?.toInt() ?? 0),
               isActive: Value(data['is_active'] as bool? ?? true),
               imageUrl: Value(data['image_url'] as String?),
-              tenantId: Value(int.tryParse(tenantId) ?? 1),
+              companyId: Value(int.tryParse(companyId) ?? 1),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -939,7 +939,7 @@ await db
               subcategory: Value(data['subcategory'] as String?),
               description: Value(data['description'] as String?),
               isActive: Value(data['is_active'] as bool? ?? true),
-              tenantId: Value(int.tryParse(tenantId) ?? 1),
+              companyId: Value(int.tryParse(companyId) ?? 1),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -972,7 +972,7 @@ await db
               name: Value(data['name'] as String? ?? ''),
               symbol: Value(data['symbol'] as String? ?? ''),
               isActive: Value(data['is_active'] as bool? ?? true),
-              tenantId: Value(int.tryParse(tenantId) ?? 1),
+              companyId: Value(int.tryParse(companyId) ?? 1),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -1005,7 +1005,7 @@ await db
               name: Value(data['name'] as String? ?? ''),
               description: Value(data['description'] as String?),
               isActive: Value(data['is_active'] as bool? ?? true),
-              tenantId: Value(int.tryParse(tenantId) ?? 1),
+              companyId: Value(int.tryParse(companyId) ?? 1),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -1052,7 +1052,7 @@ await db
               currentBalance: Value(
                 (data['current_balance'] as num?)?.toDouble() ?? 0.0,
               ),
-              tenantId: Value(int.tryParse(tenantId) ?? 1),
+              companyId: Value(int.tryParse(companyId) ?? 1),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -1087,7 +1087,7 @@ await db
               phone: Value(data['phone'] as String?),
               email: Value(data['email'] as String?),
               address: Value(data['address'] as String?),
-              tenantId: Value(int.tryParse(tenantId) ?? 1),
+              companyId: Value(int.tryParse(companyId) ?? 1),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -1125,7 +1125,7 @@ await db
               address: Value(data['address'] as String?),
               role: Value(data['role'] as String? ?? 'employee'),
               password: Value(data['password'] as String?),
-              tenantId: Value(int.tryParse(tenantId) ?? 1),
+              companyId: Value(int.tryParse(companyId) ?? 1),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -1136,7 +1136,7 @@ await db
 
   Future<void> _upsertInvoice(String uuid, Map<String, dynamic> data) async {
     final customerId = await _customerIdForUuid(data['customer_uuid'] as String?);
-    final tenantIdInt = int.tryParse(tenantId) ?? 1;
+    final companyIdInt = int.tryParse(companyId) ?? 1;
     final incomingNumber = data['invoice_number'] as String? ?? '';
     final existing = await (db.select(
       db.invoices,
@@ -1160,7 +1160,7 @@ await db
       var finalNumber = incomingNumber;
       final clash = await (db.select(db.invoices)
         ..where((t) => t.invoiceNumber.equals(incomingNumber))
-        ..where((t) => t.tenantId.equals(tenantIdInt)))
+        ..where((t) => t.companyId.equals(companyIdInt)))
           .getSingleOrNull();
       if (clash != null) {
         final shortUuid = uuid.substring(0, 4).toUpperCase();
@@ -1187,7 +1187,7 @@ await db
               ),
               total: Value((data['total'] as num?)?.toDouble() ?? 0.0),
               paymentMethod: Value(data['payment_method'] as String?),
-              tenantId: Value(tenantIdInt),
+              companyId: Value(companyIdInt),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -1232,7 +1232,7 @@ await db
               unitPrice: Value((data['unit_price'] as num?)?.toDouble() ?? 0.0),
               discount: Value((data['discount'] as num?)?.toDouble() ?? 0.0),
               totalPrice: Value((data['total_price'] as num?)?.toDouble() ?? 0.0),
-              tenantId: Value(int.tryParse(tenantId) ?? 1),
+              companyId: Value(int.tryParse(companyId) ?? 1),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -1295,7 +1295,7 @@ await db
               status: Value(data['status'] as String? ?? 'COMPLETED'),
               createdBy: Value(data['created_by'] as String?),
               date: Value(data['date'] != null ? DateTime.parse(data['date'] as String) : DateTime.now()),
-              tenantId: Value(int.tryParse(tenantId) ?? 1),
+              companyId: Value(int.tryParse(companyId) ?? 1),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -1380,7 +1380,7 @@ await db
               amount: Value((data['amount'] as num?)?.toDouble() ?? 0.0),
               type: Value(data['type'] as String? ?? 'debit'),
               remarks: Value(data['remarks'] as String?),
-              tenantId: Value(int.tryParse(tenantId) ?? 1),
+              companyId: Value(int.tryParse(companyId) ?? 1),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),
@@ -1427,7 +1427,7 @@ await db
               amount: Value((data['amount'] as num?)?.toDouble() ?? 0.0),
               type: Value(data['type'] as String? ?? 'debit'),
               remarks: Value(data['remarks'] as String?),
-              tenantId: Value(int.tryParse(tenantId) ?? 1),
+              companyId: Value(int.tryParse(companyId) ?? 1),
               updatedAt: Value(DateTime.now()),
               syncStatus: const Value(0),
               isDeleted: Value(data['is_deleted'] as bool? ?? false),

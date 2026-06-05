@@ -61,10 +61,10 @@ class ProfileController extends StateNotifier<ProfileState> {
       // Mirror updated company fields into the local Tenants table so the
       // invoice hydration picks up the fresh values without a re-login.
       final profile = state.profile;
-      final tenantId = ServiceLocator.instance.tenantService.tenantIdOrNull;
-      if (profile != null && tenantId != null) {
+      final companyId = ServiceLocator.instance.sessionService.companyIdOrNull;
+      if (profile != null && companyId != null) {
         await ServiceLocator.instance.database.upsertTenantFromCompany(
-          tenantId: tenantId,
+          companyId: companyId,
           name: profile['businessName'] ?? profile['companyName'] ?? '',
           email: profile['email'] as String?,
           phone: profile['phone'] as String?,

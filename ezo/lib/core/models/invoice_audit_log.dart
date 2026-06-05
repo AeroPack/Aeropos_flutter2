@@ -13,7 +13,7 @@ class InvoiceAuditLog {
   final Map<String, dynamic>? summarySnapshot;
   final String? reason;
   final Map<String, dynamic>? metadata;
-  final int tenantId;
+  final int companyId;
   final SyncStatus syncStatus;
   final String transactionId;
   final String idempotencyKey;
@@ -32,7 +32,7 @@ class InvoiceAuditLog {
     this.summarySnapshot,
     this.reason,
     this.metadata,
-    required this.tenantId,
+    required this.companyId,
     this.syncStatus = SyncStatus.synced,
     required this.transactionId,
     required this.idempotencyKey,
@@ -65,7 +65,7 @@ class InvoiceAuditLog {
           : null,
       reason: json['reason'],
       metadata: json['metadata'] != null ? jsonDecode(json['metadata']) : null,
-      tenantId: json['tenant_id'],
+      companyId: json['tenant_id'],
       syncStatus: SyncStatus.values[json['sync_status'] ?? 0],
       transactionId: json['transaction_id'],
       idempotencyKey: json['idempotency_key'],
@@ -86,7 +86,7 @@ class InvoiceAuditLog {
     'summary_snapshot': summarySnapshotJson,
     'reason': reason,
     'metadata': metadataJson,
-    'tenant_id': tenantId,
+    'tenant_id': companyId,
     'sync_status': syncStatus.index,
     'transaction_id': transactionId,
     'idempotency_key': idempotencyKey,

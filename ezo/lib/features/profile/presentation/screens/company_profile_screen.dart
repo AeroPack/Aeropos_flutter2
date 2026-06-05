@@ -62,9 +62,9 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
 
   Future<void> _loadInvoiceSettings() async {
     try {
-      final tenantId = ref.read(tenantIdProvider);
+      final companyId = ref.read(companyIdProvider);
       final repo = ref.read(invoiceTemplateRepositoryProvider);
-      final result = await repo.getHydratedInvoiceData(tenantId, null);
+      final result = await repo.getHydratedInvoiceData(companyId, null);
       final d = result.data;
       _activeTemplateId = result.templateId;
       if (!mounted) return;
@@ -88,10 +88,10 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
   Future<void> _saveInvoiceSettings() async {
     setState(() => _isSavingInvoiceSettings = true);
     try {
-      final tenantId = ref.read(tenantIdProvider);
+      final companyId = ref.read(companyIdProvider);
       final repo = ref.read(invoiceTemplateRepositoryProvider);
       await repo.saveTemplateSelection(
-        tenantId: tenantId,
+        companyId: companyId,
         templateId: _activeTemplateId,
         taxLabel: _taxLabelController.text.trim(),
         taxRate: double.tryParse(_taxRateController.text) ?? 0.0,

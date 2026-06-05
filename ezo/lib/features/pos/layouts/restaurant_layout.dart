@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aeropos/features/pos/layouts/base_pos_layout.dart';
@@ -206,7 +206,8 @@ class _RestaurantLayoutState extends BasePosLayoutState<RestaurantLayout> {
                           : AppColors.grey400,
                     ),
                     onPressed: () {
-                      if (Platform.isIOS || Platform.isMacOS) {
+                      if (defaultTargetPlatform == TargetPlatform.iOS ||
+                          defaultTargetPlatform == TargetPlatform.macOS) {
                         showModalBottomSheet(
                           context: context,
                           builder: (_) => BarcodeCameraOverlay(

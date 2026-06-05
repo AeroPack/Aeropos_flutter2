@@ -185,12 +185,12 @@ class AuthController extends StateNotifier<AuthState> {
   Future<void> switchCompany(int companyId) async {
     debugPrint(
       'DEBUG switchCompany: CALLED with companyId=$companyId '
-      '(current tenantId=${ServiceLocator.instance.tenantService.tenantId})',
+      '(current companyId=${ServiceLocator.instance.sessionService.companyId})',
     );
     state = AuthState.loading();
     try {
       await _authRepository.switchCompany(companyId);
-      await ServiceLocator.instance.tenantService.setTenantId(companyId);
+      await ServiceLocator.instance.sessionService.setCompanyId(companyId);
 
       final database = ServiceLocator.instance.database;
       await database.clearAllData();
@@ -386,8 +386,8 @@ class AuthController extends StateNotifier<AuthState> {
   ///
   /// Order matters:
   ///   1. Fetch user/company from API (needs token, already in storage).
-  ///   2. Decode JWT to get authoritative tenantId.
-  ///   3. Persist tenantId via TenantService.
+  ///   2. Decode JWT to get authoritative companyId.
+  ///   3. Persist companyId via SessionService.
   ///   4. Activate SyncEngine with real IDs — this is the ONLY place
   ///      startAutoSync() is called (BUG FIX #1).
   ///   5. Fire one immediate pull in the background.
@@ -405,7 +405,7 @@ class AuthController extends StateNotifier<AuthState> {
 
       debugPrint('DEBUG: Parsed company.id = ${company?.id}');
 
-      // Decode JWT for the authoritative tenantId
+      // Decode JWT for the authoritative companyId
       final token = await ServiceLocator.instance.secureStorage
           .read(key: 'auth_token')
           .timeout(const Duration(seconds: 8));
@@ -416,7 +416,7 @@ class AuthController extends StateNotifier<AuthState> {
       final companyIdFromJwt =
           company?.id ?? int.parse(jwtPayload['company_id']?.toString() ?? '0');
 
-      debugPrint('DEBUG: tenantId from JWT = $tenantIdFromJwt');
+      debugPrint('DEBUG: companyId from JWT = $companyIdFromJwt');
 
       if (company != null &&
           company.tenantId != null &&
@@ -429,18 +429,18 @@ class AuthController extends StateNotifier<AuthState> {
 
       if (company != null) {
         debugPrint(
-          'DEBUG: ABOUT TO CALL setTenantId with tenantIdFromJwt=$tenantIdFromJwt',
+          'DEBUG: ABOUT TO CALL setCompanyId with companyIdFromJwt=$companyIdFromJwt',
         );
-        await ServiceLocator.instance.tenantService.setTenantId(tenantIdFromJwt);
+        await ServiceLocator.instance.sessionService.setCompanyId(companyIdFromJwt);
         debugPrint(
-          'DEBUG: AFTER setTenantId, current tenantId='
-          '${ServiceLocator.instance.tenantService.tenantId}',
+          'DEBUG: AFTER setCompanyId, current companyId='
+          '${ServiceLocator.instance.sessionService.companyId}',
         );
 
         // Persist company profile to local Tenants table so invoice
         // generation reads real data instead of template dummy fallbacks.
         await ServiceLocator.instance.database.upsertTenantFromCompany(
-          tenantId: tenantIdFromJwt,
+          companyId: tenantIdFromJwt,
           name: company.businessName,
           email: company.email,
           phone: company.phone,
@@ -450,7 +450,7 @@ class AuthController extends StateNotifier<AuthState> {
 
         // BUG FIX #1: Activate SyncEngine HERE, with real credentials,
         // AFTER we have confirmed the user is authenticated and have a
-        // valid tenantId and companyId. This replaces the old
+        // valid companyId and companyId. This replaces the old
         // startAutoSync() call in ServiceLocator.initialize().
         debugPrint(
           'DEBUG: Activating SyncEngine '

@@ -62,11 +62,11 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
     final t0 = DateTime.now();
     debugPrint('[PDF_SCREEN] start — inv=${widget.invoiceEntity.invoiceNumber}');
 
-    final tenantId = ref.read(tenantIdProvider);
+    final companyId = ref.read(companyIdProvider);
     final repo = ref.read(invoiceTemplateRepositoryProvider);
 
     final (data: invoiceData, templateId: templateId) =
-        await repo.getHydratedInvoiceData(tenantId, null);
+        await repo.getHydratedInvoiceData(companyId, null);
 
     debugPrint(
       '[PDF_SCREEN] hydrate: ${DateTime.now().difference(t0).inMilliseconds} ms',

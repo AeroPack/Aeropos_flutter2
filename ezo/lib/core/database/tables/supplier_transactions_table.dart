@@ -8,7 +8,7 @@ class SupplierTransactions extends Table {
   RealColumn get amount => real()();
   TextColumn get type => text()();
   TextColumn get remarks => text().nullable()();
-  IntColumn get tenantId => integer()();
+  IntColumn get companyId => integer()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();

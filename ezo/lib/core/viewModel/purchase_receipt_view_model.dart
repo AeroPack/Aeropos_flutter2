@@ -11,10 +11,10 @@ class PurchaseReceiptViewModel {
 
   PurchaseReceiptViewModel(this._repository, this._database);
 
-  int get _tenantId => ServiceLocator.instance.tenantService.tenantId;
+  int get _companyId => ServiceLocator.instance.sessionService.companyId;
 
   Stream<List<PurchaseReceiptEntity>> get allReceipts =>
-      _repository.watchAllPurchaseReceipts(_tenantId);
+      _repository.watchAllPurchaseReceipts(_companyId);
 
   Future<List<PurchaseReceiptEntity>> getAllReceipts() =>
       _repository.getAllPurchaseReceipts();
@@ -73,7 +73,7 @@ class PurchaseReceiptViewModel {
       notes: drift.Value(notes),
       status: const drift.Value('COMPLETED'),
       date: drift.Value(date),
-      tenantId: drift.Value(_tenantId),
+      companyId: drift.Value(_companyId),
       syncStatus: const drift.Value(1),
       isDeleted: const drift.Value(false),
       createdAt: drift.Value(DateTime.now()),

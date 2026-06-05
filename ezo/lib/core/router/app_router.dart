@@ -32,7 +32,6 @@ import 'package:aeropos/features/ledger/supplier_ledger/supplier_ledger.dart';
 import 'package:aeropos/features/purchase_receipt/purchase_entry_screen.dart';
 import 'package:aeropos/features/debug_screen.dart';
 
-import 'package:aeropos/features/invoice/screens/invoice_form_screen.dart';
 import 'package:aeropos/features/invoice/screens/invoice_history_screen.dart';
 import 'package:aeropos/features/invoice/invoice_template_editor/main.dart';
 import 'package:aeropos/features/profile/presentation/screens/user_profile_screen.dart';
@@ -269,19 +268,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Index 3: Transactions
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/transactions',
-                builder: (context, state) => const Scaffold(
-                  body: Center(child: Text("Transactions")),
-                ), // Inline placeholder
-              ),
-            ],
-          ),
-
-          // Index 3: Customers (Sidebar Only)
+          // Index 6: Customers
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -291,7 +278,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Index 8: Suppliers (Sidebar Only) - Note: Index will need to match AppShell
+          // Index 7: Suppliers
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -301,7 +288,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Index 9: Sales History
+          // Index 8: Sales History
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -311,7 +298,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Index 4: Reports (Sidebar Only)
+          // Index 9: Reports
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -323,7 +310,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Index 10: Settings (Both)
+          // Index 10: Settings
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -342,17 +329,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-
-          // Index 12: New Invoice
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/new-invoice',
-                builder: (context, state) => const InvoiceFormScreen(),
-              ),
-            ],
-          ),
-          // Index 13: User Profile
+          // Index 11: User Profile
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -367,7 +344,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Index 14: Company Profile
+          // Index 12: Company Profile
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -376,7 +353,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Index 15: Employees
+          // Index 13: Employees
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -386,7 +363,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Index 16: Inventory Dashboard
+          // Index 14: Inventory Dashboard
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -396,7 +373,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Index 17: Purchase Receipt
+          // Index 15: Purchase Receipt
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -415,7 +392,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Index 18: Customer Ledger
+          // Index 16: Customer Ledger
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -432,7 +409,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Index 19: Supplier Ledger
+          // Index 17: Supplier Ledger
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -448,7 +425,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Index 20: Barcode Generation
+          // Index 18: Barcode Generation
           StatefulShellBranch(
             routes: [
               GoRoute(

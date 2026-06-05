@@ -14,10 +14,10 @@ class InvoiceSequenceService {
     return '$y$m$d';
   }
 
-  Future<String> getNextInvoiceNumber(int tenantId) async {
+  Future<String> getNextInvoiceNumber(int companyId) async {
     return _db.transaction(() async {
       final settings = await (_db.select(_db.invoiceSettings)
-        ..where((t) => t.tenantId.equals(tenantId)))
+        ..where((t) => t.companyId.equals(companyId)))
           .getSingleOrNull();
 
       final now = DateTime.now();
@@ -28,7 +28,7 @@ class InvoiceSequenceService {
 
       if (settings == null) {
         final companion = InvoiceSettingsCompanion(
-          tenantId: Value(tenantId),
+          companyId: Value(companyId),
           layout: const Value('thermal'),
           invoiceCounter: const Value(1),
           invoicePrefix: const Value('INV'),
@@ -54,9 +54,9 @@ class InvoiceSequenceService {
     });
   }
 
-  Future<String> regenerateOnConflict(int tenantId, String currentNumber) async {
+  Future<String> regenerateOnConflict(int companyId, String currentNumber) async {
     final settings = await (_db.select(_db.invoiceSettings)
-      ..where((t) => t.tenantId.equals(tenantId)))
+      ..where((t) => t.companyId.equals(companyId)))
         .getSingleOrNull();
 
     final now = DateTime.now();
@@ -77,16 +77,16 @@ class InvoiceSequenceService {
     return '$prefix-$code$todayTag-${nextCounter.toString().padLeft(4, '0')}';
   }
 
-  Future<int> getCurrentCounter(int tenantId) async {
+  Future<int> getCurrentCounter(int companyId) async {
     final settings = await (_db.select(_db.invoiceSettings)
-      ..where((t) => t.tenantId.equals(tenantId)))
+      ..where((t) => t.companyId.equals(companyId)))
         .getSingleOrNull();
     return settings?.invoiceCounter ?? 0;
   }
 
-  Future<void> resetCounter(int tenantId) async {
+  Future<void> resetCounter(int companyId) async {
     final settings = await (_db.select(_db.invoiceSettings)
-      ..where((t) => t.tenantId.equals(tenantId)))
+      ..where((t) => t.companyId.equals(companyId)))
         .getSingleOrNull();
     if (settings != null) {
       final companion = settings.toCompanion(true).copyWith(

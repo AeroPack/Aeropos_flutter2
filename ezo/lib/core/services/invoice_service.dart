@@ -12,15 +12,15 @@ import '../models/invoice.dart';
 import '../models/invoice_template.dart';
 import '../database/app_database.dart';
 import '../di/service_locator.dart';
-import '../services/tenant_service.dart';
+import '../services/session_service.dart';
 
 class InvoiceService {
   final AppDatabase _db;
-  final TenantService _tenantService;
+  final SessionService _sessionService;
 
   InvoiceService()
     : _db = ServiceLocator.instance.database,
-      _tenantService = ServiceLocator.instance.tenantService;
+      _sessionService = ServiceLocator.instance.sessionService;
 
   Future<pw.Document> generateInvoicePdf(
     Invoice invoice,
@@ -35,10 +35,10 @@ class InvoiceService {
       profile = null;
     }
 
-    final tenantId = _tenantService.tenantId;
+    final companyId = _sessionService.companyId;
     final settings = await (_db.select(
       _db.invoiceSettings,
-    )..where((t) => t.tenantId.equals(tenantId))).getSingleOrNull();
+    )..where((t) => t.companyId.equals(companyId))).getSingleOrNull();
 
     final logoPath =
         settings?.logoPath ??

@@ -98,11 +98,6 @@ class _AppShellState extends ConsumerState<AppShell> {
           icon: Icons.branding_watermark_outlined,
           branchIndex: 5,
         ),
-        SidebarItem(
-          label: 'Generate Barcode',
-          icon: Icons.qr_code_scanner,
-          branchIndex: 20,
-        ),
       ],
     ),
 
@@ -114,17 +109,17 @@ class _AppShellState extends ConsumerState<AppShell> {
         SidebarItem(
           label: 'Customers',
           icon: Icons.person_outline,
-          branchIndex: 7,
+          branchIndex: 6,
         ),
         SidebarItem(
           label: 'Suppliers',
           icon: Icons.local_shipping_outlined,
-          branchIndex: 8,
+          branchIndex: 7,
         ),
         SidebarItem(
           label: 'Employees',
           icon: Icons.badge_outlined,
-          branchIndex: 15,
+          branchIndex: 13,
           requiredPermission: AppPermissions.manageEmployees,
         ),
       ],
@@ -135,41 +130,24 @@ class _AppShellState extends ConsumerState<AppShell> {
       icon: Icons.receipt_long_outlined,
       children: [
         SidebarItem(
-          label: 'New Invoice',
-          icon: Icons.add_chart_outlined,
-          branchIndex: 12,
-        ),
-        SidebarItem(
           label: 'Sales History',
           icon: Icons.history_edu_outlined,
-          branchIndex: 9,
-        ),
-        SidebarItem(
-          label: 'Transactions',
-          icon: Icons.swap_horiz_outlined,
-          branchIndex: 6,
-          requiredPermission: AppPermissions.viewTransactions,
+          branchIndex: 8,
         ),
         SidebarItem(
           label: 'Reports',
           icon: Icons.bar_chart,
-          branchIndex: 10,
+          branchIndex: 9,
           requiredPermission: AppPermissions.viewReports,
         ),
         SidebarItem(
-          label: 'Invoice Template',
-          icon: Icons.description_outlined,
+          label: 'POS Billing',
+          icon: Icons.monitor_outlined,
           branchIndex: -1,
-          routePush: '/invoice-templates',
+          routePush: '/pos',
+          requiredPermission: AppPermissions.accessPos,
         ),
       ],
-    ),
-
-    // ── POS Billing ──────────────────────────────────────────────────────────
-    SidebarGroup(
-      label: 'POS Billing',
-      icon: Icons.monitor_outlined,
-      routePush: '/pos',
     ),
 
     // ── Stock Management ────────────────────────────────────────────────────
@@ -180,12 +158,12 @@ class _AppShellState extends ConsumerState<AppShell> {
         SidebarItem(
           label: 'Inventory Dashboard',
           icon: Icons.dashboard_outlined,
-          branchIndex: 16,
+          branchIndex: 14,
         ),
         SidebarItem(
           label: 'Purchase Receipt',
           icon: Icons.shopping_cart_outlined,
-          branchIndex: 17,
+          branchIndex: 15,
         ),
       ],
     ),
@@ -198,12 +176,12 @@ class _AppShellState extends ConsumerState<AppShell> {
         SidebarItem(
           label: 'Customer Ledger',
           icon: Icons.people_outline,
-          branchIndex: 18,
+          branchIndex: 16,
         ),
         SidebarItem(
           label: 'Supplier Ledger',
           icon: Icons.local_shipping_outlined,
-          branchIndex: 19,
+          branchIndex: 17,
         ),
       ],
     ),
@@ -212,7 +190,19 @@ class _AppShellState extends ConsumerState<AppShell> {
     SidebarGroup(
       label: 'Settings',
       icon: Icons.settings_outlined,
-      branchIndex: 11,
+      children: [
+        SidebarItem(
+          label: 'Invoice Template',
+          icon: Icons.description_outlined,
+          branchIndex: -1,
+          routePush: '/invoice-templates',
+        ),
+        SidebarItem(
+          label: 'Barcode Generation',
+          icon: Icons.qr_code_scanner,
+          branchIndex: 18,
+        ),
+      ],
     ),
   ];
 
@@ -250,11 +240,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   bool _isGroupVisible(SidebarGroup group, dynamic user) {
-    if (group.label == 'POS Billing') {
-      return user?.hasPermission(AppPermissions.accessPos) ?? false;
-    }
     if (group.label == 'Settings') {
-      return user?.hasPermission(AppPermissions.manageSettings) ?? true;
+      final hasAccess = user?.hasPermission(AppPermissions.manageSettings) ?? true;
+      if (!hasAccess) return false;
     }
     if (group.isStandalone) return true;
     // Group visible if at least one child is visible
@@ -330,7 +318,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
 
     // ── Mobile/Tablet layout ───────────────────────────────────────────────────
-    // Bottom bar: Dashboard, Sales History, Settings (+ POS if permitted)
+    // Bottom bar: Dashboard, Sales History, Settings
     final bottomItems = <_BottomItem>[
       _BottomItem(
         label: 'Dashboard',
@@ -340,20 +328,13 @@ class _AppShellState extends ConsumerState<AppShell> {
       _BottomItem(
         label: 'History',
         icon: Icons.history_edu_outlined,
-        branchIndex: 9,
+        branchIndex: 8,
       ),
       _BottomItem(
         label: 'Settings',
         icon: Icons.settings_outlined,
-        branchIndex: 11,
+        branchIndex: 10,
       ),
-      if (user?.hasPermission(AppPermissions.accessPos) ?? false)
-        _BottomItem(
-          label: 'POS',
-          icon: Icons.monitor_outlined,
-          branchIndex: -1,
-          routePush: '/pos',
-        ),
     ];
 
     int bottomBarIndex = bottomItems.indexWhere(
@@ -368,12 +349,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: bottomBarIndex,
         onDestinationSelected: (i) {
-          final item = bottomItems[i];
-          if (item.routePush != null) {
-            context.go(item.routePush!);
-          } else {
-            _onBranchSelected(item.branchIndex);
-          }
+          _onBranchSelected(bottomItems[i].branchIndex);
         },
         destinations: bottomItems
             .map(
@@ -431,8 +407,12 @@ class _AppShellState extends ConsumerState<AppShell> {
               : null,
           onTap: () {
             if (!extended) {
-              if (visibleChildren.isNotEmpty) {
-                _onBranchSelected(visibleChildren.first.branchIndex);
+              final firstBranch = visibleChildren.cast<SidebarItem?>().firstWhere(
+                (c) => c!.branchIndex >= 0,
+                orElse: () => null,
+              );
+              if (firstBranch != null) {
+                _onBranchSelected(firstBranch.branchIndex);
               }
             } else {
               _onGroupTap(group);
@@ -715,13 +695,11 @@ class _BottomItem {
   final String label;
   final IconData icon;
   final int branchIndex;
-  final String? routePush;
 
   const _BottomItem({
     required this.label,
     required this.icon,
     required this.branchIndex,
-    this.routePush,
   });
 }
 

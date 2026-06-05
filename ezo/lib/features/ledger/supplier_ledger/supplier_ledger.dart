@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, TargetPlatform, defaultTargetPlatform;
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -77,7 +77,21 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
                     pw.Container(
                       padding: const pw.EdgeInsets.all(8),
                       child: pw.Text(
+                        'S.No',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
                         'Supplier Name',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        'Mobile',
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                       ),
                     ),
@@ -109,35 +123,60 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                       ),
                     ),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        'Balance',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
                   ],
                 ),
-                ...transactions.map(
-                  (t) => pw.TableRow(
-                    children: [
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(8),
-                        child: pw.Text(t.supplierName),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(8),
-                        child: pw.Text(
-                          'Rs${NumberFormat('#,###.00').format(t.amount)}',
+                ...transactions.asMap().entries.map(
+                  (e) {
+                    final t = e.value;
+                    final serial = e.key + 1;
+                    return pw.TableRow(
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(serial.toString()),
                         ),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(8),
-                        child: pw.Text(t.type.displayName),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(8),
-                        child: pw.Text(dateFormat.format(t.createdAt)),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(8),
-                        child: pw.Text(t.remarks ?? '-'),
-                      ),
-                    ],
-                  ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(t.supplierName),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(t.supplierPhone ?? '-'),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(
+                            'Rs${NumberFormat('#,###.00').format(t.amount)}',
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(t.type.displayName),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(dateFormat.format(t.createdAt)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(t.remarks ?? '-'),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(
+                            'Rs${NumberFormat('#,###.00').format(t.runningBalance)}',
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -152,7 +191,8 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
 
     if (kIsWeb) {
       await Printing.sharePdf(bytes: pdfBytes, filename: fileName);
-    } else if (Platform.isAndroid || Platform.isIOS) {
+    } else if (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS) {
       await Printing.layoutPdf(onLayout: (_) async => pdfBytes);
     } else {
       final output = await getApplicationDocumentsDirectory();
@@ -170,21 +210,24 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
     final workbook = excel.Excel.createExcel();
     final sheet = workbook['Supplier Ledger'];
 
-    final headers = ['Supplier Name', 'Amount', 'Type', 'Date', 'Remarks'];
+    final headers = ['S.No', 'Supplier Name', 'Mobile', 'Amount', 'Type', 'Date', 'Remarks', 'Balance'];
     sheet.appendRow(headers.map((h) => excel.TextCellValue(h)).toList());
 
     final transactions = _viewModel.filteredTransactions;
     final dateFormat = DateFormat('dd/MM/yyyy, HH:mm:ss');
 
-    for (final t in transactions) {
+    for (int i = 0; i < transactions.length; i++) {
+      final t = transactions[i];
       sheet.appendRow([
+        excel.TextCellValue((i + 1).toString()),
         excel.TextCellValue(t.supplierName),
+        excel.TextCellValue(t.supplierPhone ?? '-'),
         excel.TextCellValue('Rs${NumberFormat('#,###.00').format(t.amount)}'),
         excel.TextCellValue(t.type.displayName),
         excel.TextCellValue(dateFormat.format(t.createdAt)),
         excel.TextCellValue(t.remarks ?? '-'),
-      ]);
-    }
+        excel.TextCellValue('Rs${NumberFormat('#,###.00').format(t.runningBalance)}'),
+      ]);    }
 
     final excelBytes = workbook.encode()!;
     final fileName =
@@ -197,7 +240,8 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
       await Share.shareXFiles([
         XFile(tempFile.path),
       ], text: 'Supplier Ledger Export');
-    } else if (Platform.isWindows || Platform.isLinux) {
+    } else if (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS) {
       final output = await getApplicationDocumentsDirectory();
       final file = File('${output.path}/$fileName');
       await file.writeAsBytes(excelBytes);
@@ -206,7 +250,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text('Excel exported: ${file.path}')));
       }
-    } else if (Platform.isAndroid || Platform.isIOS) {
+    } else {
       final output = await getApplicationDocumentsDirectory();
       final file = File('${output.path}/$fileName');
       await file.writeAsBytes(excelBytes);
@@ -480,7 +524,10 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
               child: Text('All Suppliers'),
             ),
             ..._viewModel.suppliers.map(
-              (c) => DropdownMenuItem<int?>(value: c.id, child: Text(c.name)),
+              (c) => DropdownMenuItem<int?>(
+                value: c.id,
+                child: Text('${c.name}  (${c.phone ?? "—"})'),
+              ),
             ),
           ],
           onChanged: (value) => _viewModel.setSelectedSupplier(value),
@@ -560,7 +607,9 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
           if (transactions.isEmpty)
             _buildEmptyState()
           else
-            ...transactions.map((t) => _buildTableRow(t)),
+            ...transactions.asMap().entries.map(
+              (e) => _buildTableRow(e.key, e.value),
+            ),
           _buildPagination(),
         ],
       ),
@@ -576,9 +625,19 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
       ),
       child: Row(
         children: [
-          const SizedBox(width: 30),
+          const Expanded(
+            flex: 1,
+            child: Text(
+              'S.No',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: Color(0xFF555555),
+              ),
+            ),
+          ),
           Expanded(
-            flex: 3,
+            flex: 2,
             child: _HeaderCell(
               'Supplier Name',
               sortField: SortField.supplierName,
@@ -587,8 +646,19 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
               onTap: () => _viewModel.setSorting(SortField.supplierName),
             ),
           ),
-          Expanded(
+          const Expanded(
             flex: 2,
+            child: Text(
+              'Supplier Mobile',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: Color(0xFF555555),
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 1,
             child: _HeaderCell(
               'Amount',
               sortField: SortField.amount,
@@ -609,7 +679,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
             ),
           ),
           Expanded(
-            flex: 3,
+            flex: 2,
             child: _HeaderCell(
               'Date',
               sortField: SortField.date,
@@ -620,7 +690,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
             ),
           ),
           const Expanded(
-            flex: 2,
+            flex: 1,
             child: Text(
               'Remarks',
               style: TextStyle(
@@ -630,13 +700,27 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
               ),
             ),
           ),
+          const Expanded(
+            flex: 1,
+            child: Text(
+              'Balance',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: Color(0xFF555555),
+              ),
+              textAlign: TextAlign.right,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTableRow(SupplierTransaction t) {
+  Widget _buildTableRow(int index, SupplierTransaction t) {
     final isDebit = t.type == TransactionType.debit;
+    final isBalanceNegative = t.runningBalance < 0;
+    final serialNumber = (_viewModel.currentPage - 1) * _viewModel.pageSize + index + 1;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       decoration: BoxDecoration(
@@ -644,10 +728,15 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.add, size: 14, color: Colors.grey[400]),
-          const SizedBox(width: 16),
           Expanded(
-            flex: 3,
+            flex: 1,
+            child: Text(
+              serialNumber.toString().padLeft(2, '0'),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ),
+          Expanded(
+            flex: 2,
             child: Text(
               t.supplierName,
               style: const TextStyle(
@@ -658,6 +747,13 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
           ),
           Expanded(
             flex: 2,
+            child: Text(
+              t.supplierPhone ?? '-',
+              style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+            ),
+          ),
+          Expanded(
+            flex: 1,
             child: Text(
               'Rs${NumberFormat('#,###.00').format(t.amount)}',
               style: TextStyle(
@@ -686,7 +782,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
             ),
           ),
           Expanded(
-            flex: 3,
+            flex: 2,
             child: Text(
               DateFormat('dd/MM/yyyy, HH:mm:ss').format(t.createdAt),
               style: TextStyle(fontSize: 13, color: Colors.grey[700]),
@@ -694,10 +790,22 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
             ),
           ),
           Expanded(
-            flex: 2,
+            flex: 1,
             child: Text(
               t.remarks ?? '-',
               style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              textAlign: TextAlign.right,
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Text(
+              'Rs${NumberFormat('#,###.00').format(t.runningBalance)}',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: isBalanceNegative ? Colors.red[700] : Colors.green[700],
+              ),
               textAlign: TextAlign.right,
             ),
           ),

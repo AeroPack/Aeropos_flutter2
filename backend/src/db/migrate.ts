@@ -26,6 +26,7 @@ export async function runMigrations() {
       "013_create_product_units.sql",
       "015_full_schema_sync_alignment.sql",
       "016_add_notes_to_invoices.sql",
+      "017_fix_company_tenant_id.sql",
     ];
 
     for (const file of migrationFiles) {

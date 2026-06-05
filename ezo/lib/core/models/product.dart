@@ -30,7 +30,7 @@ class Product {
   final String? hsn;
   final double discount;
   final bool isPercentDiscount;
-  final int? tenantId;
+  final int? companyId;
   final List<ProductUnit> availableUnits;
 
   Product({
@@ -61,7 +61,7 @@ class Product {
     this.hsn,
     this.discount = 0.0,
     this.isPercentDiscount = false,
-    this.tenantId,
+    this.companyId,
     this.availableUnits = const [],
   });
 
@@ -93,7 +93,7 @@ class Product {
     String? hsn,
     double? discount,
     bool? isPercentDiscount,
-    int? tenantId,
+    int? companyId,
     List<ProductUnit>? availableUnits,
   }) {
     return Product(
@@ -124,7 +124,7 @@ class Product {
       hsn: hsn ?? this.hsn,
       discount: discount ?? this.discount,
       isPercentDiscount: isPercentDiscount ?? this.isPercentDiscount,
-      tenantId: tenantId ?? this.tenantId,
+      companyId: companyId ?? this.companyId,
       availableUnits: availableUnits ?? this.availableUnits,
     );
   }
@@ -156,6 +156,6 @@ class Product {
     'hsn': hsn,
     'discount': discount,
     'is_percent_discount': isPercentDiscount,
-    'tenant_id': tenantId,
+    'tenant_id': companyId,
   };
 }

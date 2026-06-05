@@ -8,7 +8,7 @@ class Units extends Table {
   TextColumn get symbol => text().withLength(min: 1, max: 50)();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
 
-  IntColumn get tenantId => integer()();
+  IntColumn get companyId => integer()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();

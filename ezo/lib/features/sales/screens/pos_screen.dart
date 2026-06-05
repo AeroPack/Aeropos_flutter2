@@ -115,8 +115,8 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     final cartState = ref.read(cartProvider);
     if (cartState.items.isEmpty) return;
 
-    final tenantId = ref.read(tenantIdProvider);
-    final invoiceNumber = await ServiceLocator.instance.invoiceSequenceService.getNextInvoiceNumber(tenantId);
+    final companyId = ref.read(companyIdProvider);
+    final invoiceNumber = await ServiceLocator.instance.invoiceSequenceService.getNextInvoiceNumber(companyId);
 
     final sale = Sale(
       uuid: _uuid.v4(),
@@ -152,7 +152,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
 
       // Fetch hydrated template with company details and stored customizations
       final (data: invoiceData, templateId: templateId) =
-          await repo.getHydratedInvoiceData(tenantId, null);
+          await repo.getHydratedInvoiceData(companyId, null);
 
       // Update with sale specific data
       if (cartState.selectedCustomer != null) {
@@ -1130,8 +1130,8 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         return;
       }
 
-      final tenantId = ref.read(tenantIdProvider);
-      final invoiceNumber = await ServiceLocator.instance.invoiceSequenceService.getNextInvoiceNumber(tenantId);
+      final companyId = ref.read(companyIdProvider);
+      final invoiceNumber = await ServiceLocator.instance.invoiceSequenceService.getNextInvoiceNumber(companyId);
 
       final sale = Sale(
         uuid: _uuid.v4(),
@@ -1160,7 +1160,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
 
       final repo = ref.read(invoiceTemplateRepositoryProvider);
       final (data: invoiceData, templateId: templateId) =
-          await repo.getHydratedInvoiceData(tenantId, null);
+          await repo.getHydratedInvoiceData(companyId, null);
 
       if (cartState.selectedCustomer != null) {
         invoiceData.clientName = cartState.selectedCustomer!.name;

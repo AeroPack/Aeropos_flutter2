@@ -221,7 +221,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   Future<void> _loadInitialData() async {
-    final tenantId = ref.read(tenantIdProvider);
+    final companyId = ref.read(companyIdProvider);
     final repo = ref.read(invoiceTemplateRepositoryProvider);
 
     Map<String, dynamic>? profile;
@@ -240,7 +240,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     }
 
     try {
-      final (data: data, templateId: _) = await repo.getHydratedInvoiceData(tenantId, widget.templateId);
+      final (data: data, templateId: _) = await repo.getHydratedInvoiceData(companyId, widget.templateId);
 
       if (mounted) {
         setState(() {
@@ -468,12 +468,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           logoLocalPath = null;
         });
       } else {
-        final tenantId = ref.read(tenantIdProvider);
+        final companyId = ref.read(companyIdProvider);
         final dir = await getApplicationDocumentsDirectory();
         final logoDir = Directory('${dir.path}/logos');
         if (!await logoDir.exists()) await logoDir.create(recursive: true);
 
-        final localPath = '${logoDir.path}/logo_$tenantId.webp';
+        final localPath = '${logoDir.path}/logo_$companyId.webp';
 
         final XFile? compressed = await FlutterImageCompress.compressAndGetFile(
           image.path,
@@ -518,14 +518,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
     try {
       final repo = ref.read(invoiceTemplateRepositoryProvider);
-      final tenantId = ref.read(tenantIdProvider);
+      final companyId = ref.read(companyIdProvider);
       final storage = ServiceLocator.instance.secureStorage;
 
       final cachedLogoUrl = await storage.read(key: 'cached_logo_url');
       final finalLogoPath = logoPath ?? cachedLogoUrl;
 
       await repo.saveTemplateSelection(
-        tenantId: tenantId,
+        companyId: companyId,
         templateId: activeTemplate.id,
         accentColorHex: '#${themeColor.toARGB32().toRadixString(16).padLeft(8, '0')}',
         fontFamily: fontFamily,

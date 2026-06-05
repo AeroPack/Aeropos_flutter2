@@ -317,8 +317,8 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     final cartState = ref.read(cartProvider);
     if (cartState.items.isEmpty) return;
 
-    final tenantId = ref.read(tenantIdProvider);
-    final invoiceNumber = await ServiceLocator.instance.invoiceSequenceService.getNextInvoiceNumber(tenantId);
+    final companyId = ref.read(companyIdProvider);
+    final invoiceNumber = await ServiceLocator.instance.invoiceSequenceService.getNextInvoiceNumber(companyId);
 
     final sale = Sale(
       uuid: _uuid.v4(),
@@ -354,7 +354,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
 
       // Fetch hydrated template with company details and stored customizations
       final (data: invoiceData, templateId: templateId) =
-          await repo.getHydratedInvoiceData(tenantId, null);
+          await repo.getHydratedInvoiceData(companyId, null);
 
       // Update with sale specific data
       if (cartState.selectedCustomer != null) {
@@ -406,7 +406,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
       // Check for missing invoice fields and warn before showing preview.
       final gaps = completeness.checkInvoiceCompleteness(invoiceData);
       if (gaps.isNotEmpty && mounted) {
-        final proceed = await _showInvoiceCompletenessWarning(gaps, tenantId, templateId);
+        final proceed = await _showInvoiceCompletenessWarning(gaps, companyId, templateId);
         if (!proceed || !mounted) return;
       }
 
@@ -456,7 +456,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   /// Returns true if the user chooses to continue, false if they cancel.
   Future<bool> _showInvoiceCompletenessWarning(
     List<completeness.InvoiceFieldGap> gaps,
-    int tenantId,
+    int companyId,
     String templateId,
   ) async {
     final result = await showModalBottomSheet<bool>(
@@ -465,7 +465,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => _InvoiceCompletenessSheet(
         gaps: gaps,
-        tenantId: tenantId,
+        companyId: companyId,
         templateId: templateId,
       ),
     );
@@ -1370,8 +1370,8 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         return;
       }
 
-      final tenantId = ref.read(tenantIdProvider);
-      final invoiceNumber = await ServiceLocator.instance.invoiceSequenceService.getNextInvoiceNumber(tenantId);
+      final companyId = ref.read(companyIdProvider);
+      final invoiceNumber = await ServiceLocator.instance.invoiceSequenceService.getNextInvoiceNumber(companyId);
 
       final sale = Sale(
         uuid: _uuid.v4(),
@@ -1400,7 +1400,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
 
       final repo = ref.read(invoiceTemplateRepositoryProvider);
       final (data: invoiceData, templateId: templateId) =
-          await repo.getHydratedInvoiceData(tenantId, null);
+          await repo.getHydratedInvoiceData(companyId, null);
 
       if (cartState.selectedCustomer != null) {
         invoiceData.clientName = cartState.selectedCustomer!.name;
@@ -1745,12 +1745,12 @@ class _SplitBillDialogState extends State<_SplitBillDialog> {
 
 class _InvoiceCompletenessSheet extends ConsumerStatefulWidget {
   final List<completeness.InvoiceFieldGap> gaps;
-  final int tenantId;
+  final int companyId;
   final String templateId;
 
   const _InvoiceCompletenessSheet({
     required this.gaps,
-    required this.tenantId,
+    required this.companyId,
     required this.templateId,
   });
 
@@ -1768,7 +1768,7 @@ class _InvoiceCompletenessSheetState
     try {
       final repo = ref.read(invoiceTemplateRepositoryProvider);
       await repo.saveTemplateSelection(
-        tenantId: widget.tenantId,
+        companyId: widget.companyId,
         templateId: widget.templateId,
         showTaxBreakdown: toggleKey == 'showTaxBreakdown' ? false : null,
         showAddress: toggleKey == 'showAddress' ? false : null,

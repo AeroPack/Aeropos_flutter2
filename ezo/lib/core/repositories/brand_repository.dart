@@ -38,7 +38,7 @@ class BrandRepository {
         name: brand.name,
         description: Value(brand.description),
         isActive: Value(brand.isActive),
-        tenantId: 1,
+        companyId: ServiceLocator.instance.sessionService.companyId,
         isDeleted: Value(brand.isDeleted),
       );
       final id = await _database.into(_database.brands).insert(companion);

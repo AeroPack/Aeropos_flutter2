@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
@@ -39,6 +39,7 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
   ProductEntity? _selectedProduct;
   UnitEntity? _selectedUnit;
   final List<Map<String, dynamic>> _selectedItems = [];
+  List<ProductUnitEntity> _selectedProductUnits = [];
   bool _isSaving = false;
   bool _isEditMode = false;
   int? _editingItemIndex;
@@ -57,10 +58,46 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
     if (barcodePattern.hasMatch(query)) {
       final result = await _barcodeService.resolve(query);
       if (result case BarcodeMatched(:final product)) {
-        setState(() => _selectedProduct = product);
         _searchController.clear();
+        _selectProduct(product);
         return;
       }
+    }
+  }
+
+  Future<void> _selectProduct(ProductEntity? product) async {
+    if (product == null) {
+      setState(() {
+        _selectedProduct = null;
+        _selectedUnit = null;
+        _selectedProductUnits = [];
+        _purchaseRateController.clear();
+      });
+      return;
+    }
+
+    if (product.cost != null && product.cost! > 0) {
+      _purchaseRateController.text = product.cost!.toStringAsFixed(2);
+    } else {
+      _purchaseRateController.clear();
+    }
+
+    UnitEntity? primaryUnit;
+    if (product.unitId != null) {
+      final allUnits = await ServiceLocator.instance.database
+          .select(ServiceLocator.instance.database.units)
+          .get();
+      primaryUnit = allUnits.where((u) => u.id == product.unitId).firstOrNull;
+    }
+
+    final productUnits = await _productViewModel.getProductUnits(product.id);
+
+    if (mounted) {
+      setState(() {
+        _selectedProduct = product;
+        _selectedUnit = primaryUnit;
+        _selectedProductUnits = productUnits;
+      });
     }
   }
 
@@ -104,6 +141,7 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
       _editingItemIndex = index;
       _selectedProduct = null;
       _selectedUnit = null;
+      _selectedProductUnits = [];
       _quantityController.text = item['quantity'].toString();
       _purchaseRateController.text = item['rate'].toString();
     });
@@ -146,6 +184,7 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
       _purchaseRateController.clear();
       _selectedProduct = null;
       _selectedUnit = null;
+      _selectedProductUnits = [];
     });
   }
 
@@ -175,7 +214,7 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
                 ),
               )
               .toList(),
-          onChanged: (val) => setState(() => _selectedProduct = val),
+          onChanged: (val) => _selectProduct(val),
         );
       },
     );
@@ -183,9 +222,23 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
 
   Widget _buildUnitDropdown() {
     return StreamBuilder<List<UnitEntity>>(
+      key: ValueKey('inline_unit_${_selectedProduct?.id ?? 'none'}_${_editingItemIndex ?? 'none'}'),
       stream: _unitViewModel.allUnits,
       builder: (context, snapshot) {
-        final units = snapshot.data ?? [];
+        final allUnits = snapshot.data ?? [];
+        List<UnitEntity> units;
+        if (_selectedProduct != null) {
+          final ids = <int>{};
+          if (_selectedProduct!.unitId != null) {
+            ids.add(_selectedProduct!.unitId!);
+          }
+          for (final pu in _selectedProductUnits) {
+            ids.add(pu.unitId);
+          }
+          units = allUnits.where((u) => ids.contains(u.id)).toList();
+        } else {
+          units = allUnits;
+        }
         final currentUnitId = _selectedItems[_editingItemIndex!]['unitId'];
         final currentUnit = units
             .where((u) => u.id == currentUnitId)
@@ -292,6 +345,7 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
     setState(() {
       _selectedProduct = null;
       _selectedUnit = null;
+      _selectedProductUnits = [];
     });
   }
 
@@ -593,7 +647,8 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
                   onChanged: _onItemSearchChanged,
                 ),
               ),
-              if (Platform.isIOS || Platform.isMacOS)
+              if (defaultTargetPlatform == TargetPlatform.iOS ||
+                  defaultTargetPlatform == TargetPlatform.macOS)
                 IconButton(
                   icon: const Icon(Icons.camera_alt),
                   onPressed: () async {
@@ -640,8 +695,7 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
                             ),
                           )
                           .toList(),
-                      onChanged: (val) =>
-                          setState(() => _selectedProduct = val),
+                      onChanged: (val) => _selectProduct(val),
                     );
                   },
                 ),
@@ -649,9 +703,23 @@ class _PurchaseReceiptFormState extends State<PurchaseReceiptForm> {
               const SizedBox(width: 16),
               Expanded(
                 child: StreamBuilder<List<UnitEntity>>(
+                  key: ValueKey('main_unit_${_selectedProduct?.id ?? 'none'}'),
                   stream: _unitViewModel.allUnits,
                   builder: (context, snapshot) {
-                    final units = snapshot.data ?? [];
+                    final allUnits = snapshot.data ?? [];
+                    List<UnitEntity> units;
+                    if (_selectedProduct != null) {
+                      final ids = <int>{};
+                      if (_selectedProduct!.unitId != null) {
+                        ids.add(_selectedProduct!.unitId!);
+                      }
+                      for (final pu in _selectedProductUnits) {
+                        ids.add(pu.unitId);
+                      }
+                      units = allUnits.where((u) => ids.contains(u.id)).toList();
+                    } else {
+                      units = allUnits;
+                    }
                     return DropdownButtonFormField<UnitEntity>(
                       decoration: InputDecoration(
                         labelText: 'Unit',

@@ -12,7 +12,7 @@ class ReturnItems extends Table {
   BoolColumn get restock => boolean().withDefault(const Constant(true))();
   IntColumn get originalInvoiceItemId => integer().nullable()();
 
-  IntColumn get tenantId => integer()();
+  IntColumn get companyId => integer()();
 
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
 

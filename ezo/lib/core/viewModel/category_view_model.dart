@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:aeropos/core/database/app_database.dart';
 import '../services/i_sync_service.dart';
+import '../di/service_locator.dart';
 import 'package:uuid/uuid.dart';
 
 class CategoryViewModel {
@@ -27,7 +28,7 @@ class CategoryViewModel {
       subcategory: drift.Value(subcategory),
       description: drift.Value(description),
       isActive: const drift.Value(true),
-      tenantId: const drift.Value(1),
+      companyId: drift.Value(ServiceLocator.instance.sessionService.companyId),
       syncStatus: const drift.Value(1),
       isDeleted: const drift.Value(false),
       createdAt: drift.Value(DateTime.now()),

@@ -43,7 +43,7 @@ class SupplierRepository {
         phone: Value(user.phone),
         email: Value(user.email),
         address: Value(user.address),
-        tenantId: 1,
+        companyId: ServiceLocator.instance.sessionService.companyId,
         isDeleted: Value(user.isDeleted),
       );
       final id = await _database.into(_database.suppliers).insert(companion);
@@ -67,7 +67,7 @@ class SupplierRepository {
         phone: Value(user.phone),
         email: Value(user.email),
         address: Value(user.address),
-        tenantId: const Value(1),
+        companyId: Value(ServiceLocator.instance.sessionService.companyId),
         updatedAt: Value(DateTime.now()),
         isDeleted: Value(user.isDeleted),
       );

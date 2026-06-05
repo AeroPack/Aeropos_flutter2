@@ -53,9 +53,9 @@ class SalesHistoryNotifier extends StateNotifier<SalesHistoryState> {
   StreamSubscription? _subscription;
   Timer? _debounceTimer;
 
-  int get _tenantId {
-    final tenantId = ServiceLocator.instance.tenantService.tenantId;
-    return tenantId;
+  int get _companyId {
+    final companyId = ServiceLocator.instance.sessionService.companyId;
+    return companyId;
   }
 
   void _listenToChanges() {
@@ -114,14 +114,14 @@ class SalesHistoryNotifier extends StateNotifier<SalesHistoryState> {
         limit: state.limit,
         offset: offset,
         queryStr: state.query.isEmpty ? null : state.query,
-        tenantId: _tenantId,
+        companyId: _companyId,
       );
 
       int totalItems = state.totalItems;
       if (fetchCount) {
         totalItems = await _db.getInvoiceItemsCount(
           queryStr: state.query.isEmpty ? null : state.query,
-          tenantId: _tenantId,
+          companyId: _companyId,
         );
       }
 

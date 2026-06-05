@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../database/app_database.dart';
@@ -61,11 +62,9 @@ class DeviceIdService {
   Future<String> _generateDeviceId() async {
     try {
       String prefix;
-      if (Platform.isAndroid ||
-          Platform.isIOS ||
-          Platform.isMacOS ||
-          Platform.isWindows ||
-          Platform.isLinux) {
+      if (kIsWeb) {
+        prefix = 'WEB';
+      } else {
         final hostname = Platform.localHostname;
         final cleaned = hostname.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
         prefix = cleaned.isEmpty
@@ -74,8 +73,6 @@ class DeviceIdService {
                   0,
                   cleaned.length >= 4 ? 4 : cleaned.length,
                 );
-      } else {
-        prefix = 'WEB';
       }
 
       final uuid = const Uuid();

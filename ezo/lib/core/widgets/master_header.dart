@@ -465,9 +465,7 @@ class MasterHeader extends ConsumerWidget implements PreferredSizeWidget {
         return Icons.local_shipping_outlined;
       case 'Sales History':
         return Icons.history_outlined;
-      case 'New Invoice':
-        return Icons.add_shopping_cart_outlined;
-      case 'Point of Sale (POS)':
+      case 'POS Billing':
         return Icons.point_of_sale_outlined;
       case 'User Profile':
         return Icons.person_outline;
@@ -493,8 +491,7 @@ class MasterHeader extends ConsumerWidget implements PreferredSizeWidget {
     'Customers': '/customers',
     'Suppliers': '/supplier-ledger',
     'Sales History': '/sales-history',
-    'New Invoice': '/new-invoice',
-    'Point of Sale (POS)': '/pos',
+    'POS Billing': '/pos',
     'User Profile': '/profile',
     'Company Profile': '/company-profile',
     'Employee List': '/employees',

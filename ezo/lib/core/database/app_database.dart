@@ -3,11 +3,13 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 import 'connection/connection.dart' as impl;
 
+import 'package:aeropos/core/di/service_locator.dart';
 import 'tables/products_table.dart';
 import 'tables/categories_table.dart';
 import 'tables/units_table.dart';
 import 'tables/product_units_table.dart';
 import 'tables/tenants_table.dart';
+import 'tables/companies_table.dart';
 import 'tables/customers_table.dart';
 import 'tables/suppliers_table.dart';
 import 'tables/employees_table.dart';
@@ -44,6 +46,7 @@ part 'app_database.g.dart';
     Units,
     ProductUnits,
     Tenants,
+    Companies,
     Customers,
     Suppliers,
     Employees,
@@ -74,7 +77,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? e]) : super(e ?? impl.connect());
 
   @override
-  int get schemaVersion => 54;
+  int get schemaVersion => 55;
 
   Future<void> _addColumnIfNotExists(
     String table,
@@ -101,33 +104,33 @@ class AppDatabase extends _$AppDatabase {
           'CREATE INDEX IF NOT EXISTS idx_products_name ON products(name)',
           'CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku)',
           'CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id)',
-          'CREATE INDEX IF NOT EXISTS idx_products_tenant ON products(tenant_id)',
+          'CREATE INDEX IF NOT EXISTS idx_products_company ON products(company_id)',
           'CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name)',
           'CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone)',
           'CREATE INDEX IF NOT EXISTS idx_invoices_date ON invoices(date)',
-          'CREATE INDEX IF NOT EXISTS idx_invoices_tenant ON invoices(tenant_id)',
+          'CREATE INDEX IF NOT EXISTS idx_invoices_company ON invoices(company_id)',
           'CREATE INDEX IF NOT EXISTS idx_invoices_customer ON invoices(customer_id)',
-          'CREATE INDEX IF NOT EXISTS idx_customers_tenant ON customers(tenant_id)',
-          'CREATE INDEX IF NOT EXISTS idx_suppliers_tenant ON suppliers(tenant_id)',
-          'CREATE INDEX IF NOT EXISTS idx_categories_tenant ON categories(tenant_id)',
-          'CREATE INDEX IF NOT EXISTS idx_units_tenant ON units(tenant_id)',
-          'CREATE INDEX IF NOT EXISTS idx_brands_tenant ON brands(tenant_id)',
-          'CREATE INDEX IF NOT EXISTS idx_employees_tenant ON employees(tenant_id)',
-          'CREATE INDEX IF NOT EXISTS idx_product_units_tenant ON product_units(tenant_id)',
-          'CREATE INDEX IF NOT EXISTS idx_invoice_items_tenant ON invoice_items(tenant_id)',
-          'CREATE INDEX IF NOT EXISTS idx_returns_tenant ON returns(tenant_id)',
-          'CREATE INDEX IF NOT EXISTS idx_return_items_tenant ON return_items(tenant_id)',
-          'CREATE INDEX IF NOT EXISTS idx_customer_transactions_tenant ON customer_transactions(tenant_id)',
-          'CREATE INDEX IF NOT EXISTS idx_supplier_transactions_tenant ON supplier_transactions(tenant_id)',
-          'CREATE INDEX IF NOT EXISTS idx_wallet_transactions_tenant ON wallet_transactions(tenant_id)',
-          'CREATE INDEX IF NOT EXISTS idx_inventory_movements_tenant ON inventory_movements(tenant_id)',
-          'CREATE INDEX IF NOT EXISTS idx_purchase_receipts_tenant ON purchase_receipts(tenant_id)',
-          'CREATE INDEX IF NOT EXISTS idx_invoice_audit_logs_tenant ON invoice_audit_logs(tenant_id)',
-          'CREATE INDEX IF NOT EXISTS idx_reserved_skus_tenant ON reserved_skus(tenant_id)',
+          'CREATE INDEX IF NOT EXISTS idx_customers_company ON customers(company_id)',
+          'CREATE INDEX IF NOT EXISTS idx_suppliers_company ON suppliers(company_id)',
+          'CREATE INDEX IF NOT EXISTS idx_categories_company ON categories(company_id)',
+          'CREATE INDEX IF NOT EXISTS idx_units_company ON units(company_id)',
+          'CREATE INDEX IF NOT EXISTS idx_brands_company ON brands(company_id)',
+          'CREATE INDEX IF NOT EXISTS idx_employees_company ON employees(company_id)',
+          'CREATE INDEX IF NOT EXISTS idx_product_units_company ON product_units(company_id)',
+          'CREATE INDEX IF NOT EXISTS idx_invoice_items_company ON invoice_items(company_id)',
+          'CREATE INDEX IF NOT EXISTS idx_returns_company ON returns(company_id)',
+          'CREATE INDEX IF NOT EXISTS idx_return_items_company ON return_items(company_id)',
+          'CREATE INDEX IF NOT EXISTS idx_customer_transactions_company ON customer_transactions(company_id)',
+          'CREATE INDEX IF NOT EXISTS idx_supplier_transactions_company ON supplier_transactions(company_id)',
+          'CREATE INDEX IF NOT EXISTS idx_wallet_transactions_company ON wallet_transactions(company_id)',
+          'CREATE INDEX IF NOT EXISTS idx_inventory_movements_company ON inventory_movements(company_id)',
+          'CREATE INDEX IF NOT EXISTS idx_purchase_receipts_company ON purchase_receipts(company_id)',
+          'CREATE INDEX IF NOT EXISTS idx_invoice_audit_logs_company ON invoice_audit_logs(company_id)',
+          'CREATE INDEX IF NOT EXISTS idx_reserved_skus_company ON reserved_skus(company_id)',
           'CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON invoice_items(invoice_id)',
           'CREATE INDEX IF NOT EXISTS idx_invoice_items_product_id ON invoice_items(product_id)',
           'CREATE INDEX IF NOT EXISTS idx_invoice_items_deleted ON invoice_items(is_deleted)',
-          'CREATE INDEX IF NOT EXISTS idx_invoices_tenant_deleted_date ON invoices(tenant_id, is_deleted, date DESC)',
+          'CREATE INDEX IF NOT EXISTS idx_invoices_tenant_deleted_date ON invoices(company_id, is_deleted, date DESC)',
           'CREATE INDEX IF NOT EXISTS idx_product_units_barcode ON product_units(barcode) WHERE barcode IS NOT NULL AND is_deleted = 0',
         ];
         for (final stmt in indexes) {
@@ -186,7 +189,7 @@ class AppDatabase extends _$AppDatabase {
           await m.createTable(suppliers);
           await m.createTable(employees);
 
-          // Add tenantId to existing tables
+          // Add companyId to existing tables
           final tablesWithTenantId = [
             products,
             categories,
@@ -196,12 +199,12 @@ class AppDatabase extends _$AppDatabase {
             invoiceItems,
           ];
           for (final table in tablesWithTenantId) {
-            // Cast to dynamic to access tenantId property which exists on all these tables
+            // Cast to dynamic to access companyId property which exists on all these tables
             await _safeAddColumn(
               m,
               table,
-              'tenant_id',
-              (table as dynamic).tenantId,
+              'company_id',
+              (table as dynamic).companyId,
             );
           }
         }
@@ -267,7 +270,7 @@ class AppDatabase extends _$AppDatabase {
         if (from < 28) {
           // Add all missing invoice settings enhancements
           final cols = [
-            'tenant_id',
+            'company_id',
             'custom_config',
             'updated_at',
             'footer_message',
@@ -285,7 +288,7 @@ class AppDatabase extends _$AppDatabase {
 
           for (final colName in cols) {
             GeneratedColumn? col;
-            if (colName == 'tenant_id') col = invoiceSettings.tenantId;
+            if (colName == 'company_id') col = invoiceSettings.companyId;
             if (colName == 'custom_config') col = invoiceSettings.customConfig;
             if (colName == 'updated_at') col = invoiceSettings.updatedAt;
             if (colName == 'footer_message') {
@@ -535,11 +538,11 @@ class AppDatabase extends _$AppDatabase {
             'CREATE INDEX IF NOT EXISTS idx_products_name ON products(name)',
             'CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku)',
             'CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id)',
-            'CREATE INDEX IF NOT EXISTS idx_products_tenant ON products(tenant_id)',
+            'CREATE INDEX IF NOT EXISTS idx_products_company ON products(company_id)',
             'CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name)',
             'CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone)',
             'CREATE INDEX IF NOT EXISTS idx_invoices_date ON invoices(date)',
-            'CREATE INDEX IF NOT EXISTS idx_invoices_tenant ON invoices(tenant_id)',
+            'CREATE INDEX IF NOT EXISTS idx_invoices_company ON invoices(company_id)',
             'CREATE INDEX IF NOT EXISTS idx_invoices_customer ON invoices(customer_id)',
           ];
           for (final stmt in indexes) {
@@ -601,7 +604,7 @@ class AppDatabase extends _$AppDatabase {
             'CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON invoice_items(invoice_id)',
             'CREATE INDEX IF NOT EXISTS idx_invoice_items_product_id ON invoice_items(product_id)',
             'CREATE INDEX IF NOT EXISTS idx_invoice_items_deleted ON invoice_items(is_deleted)',
-            'CREATE INDEX IF NOT EXISTS idx_invoices_tenant_deleted_date ON invoices(tenant_id, is_deleted, date DESC)',
+            'CREATE INDEX IF NOT EXISTS idx_invoices_tenant_deleted_date ON invoices(company_id, is_deleted, date DESC)',
           ];
           for (final stmt in indexes) {
             try {
@@ -615,23 +618,23 @@ class AppDatabase extends _$AppDatabase {
         // Migration 45: Add multi-tenant indexes for all remaining tenant-scoped tables
         if (from < 45) {
           final indexes = [
-            'CREATE INDEX IF NOT EXISTS idx_customers_tenant ON customers(tenant_id)',
-            'CREATE INDEX IF NOT EXISTS idx_suppliers_tenant ON suppliers(tenant_id)',
-            'CREATE INDEX IF NOT EXISTS idx_categories_tenant ON categories(tenant_id)',
-            'CREATE INDEX IF NOT EXISTS idx_units_tenant ON units(tenant_id)',
-            'CREATE INDEX IF NOT EXISTS idx_brands_tenant ON brands(tenant_id)',
-            'CREATE INDEX IF NOT EXISTS idx_employees_tenant ON employees(tenant_id)',
-            'CREATE INDEX IF NOT EXISTS idx_product_units_tenant ON product_units(tenant_id)',
-            'CREATE INDEX IF NOT EXISTS idx_invoice_items_tenant ON invoice_items(tenant_id)',
-            'CREATE INDEX IF NOT EXISTS idx_returns_tenant ON returns(tenant_id)',
-            'CREATE INDEX IF NOT EXISTS idx_return_items_tenant ON return_items(tenant_id)',
-            'CREATE INDEX IF NOT EXISTS idx_customer_transactions_tenant ON customer_transactions(tenant_id)',
-            'CREATE INDEX IF NOT EXISTS idx_supplier_transactions_tenant ON supplier_transactions(tenant_id)',
-            'CREATE INDEX IF NOT EXISTS idx_wallet_transactions_tenant ON wallet_transactions(tenant_id)',
-            'CREATE INDEX IF NOT EXISTS idx_inventory_movements_tenant ON inventory_movements(tenant_id)',
-            'CREATE INDEX IF NOT EXISTS idx_purchase_receipts_tenant ON purchase_receipts(tenant_id)',
-            'CREATE INDEX IF NOT EXISTS idx_invoice_audit_logs_tenant ON invoice_audit_logs(tenant_id)',
-            'CREATE INDEX IF NOT EXISTS idx_reserved_skus_tenant ON reserved_skus(tenant_id)',
+            'CREATE INDEX IF NOT EXISTS idx_customers_company ON customers(company_id)',
+            'CREATE INDEX IF NOT EXISTS idx_suppliers_company ON suppliers(company_id)',
+            'CREATE INDEX IF NOT EXISTS idx_categories_company ON categories(company_id)',
+            'CREATE INDEX IF NOT EXISTS idx_units_company ON units(company_id)',
+            'CREATE INDEX IF NOT EXISTS idx_brands_company ON brands(company_id)',
+            'CREATE INDEX IF NOT EXISTS idx_employees_company ON employees(company_id)',
+            'CREATE INDEX IF NOT EXISTS idx_product_units_company ON product_units(company_id)',
+            'CREATE INDEX IF NOT EXISTS idx_invoice_items_company ON invoice_items(company_id)',
+            'CREATE INDEX IF NOT EXISTS idx_returns_company ON returns(company_id)',
+            'CREATE INDEX IF NOT EXISTS idx_return_items_company ON return_items(company_id)',
+            'CREATE INDEX IF NOT EXISTS idx_customer_transactions_company ON customer_transactions(company_id)',
+            'CREATE INDEX IF NOT EXISTS idx_supplier_transactions_company ON supplier_transactions(company_id)',
+            'CREATE INDEX IF NOT EXISTS idx_wallet_transactions_company ON wallet_transactions(company_id)',
+            'CREATE INDEX IF NOT EXISTS idx_inventory_movements_company ON inventory_movements(company_id)',
+            'CREATE INDEX IF NOT EXISTS idx_purchase_receipts_company ON purchase_receipts(company_id)',
+            'CREATE INDEX IF NOT EXISTS idx_invoice_audit_logs_company ON invoice_audit_logs(company_id)',
+            'CREATE INDEX IF NOT EXISTS idx_reserved_skus_company ON reserved_skus(company_id)',
           ];
           for (final stmt in indexes) {
             try {
@@ -720,6 +723,41 @@ class AppDatabase extends _$AppDatabase {
           await _addColumnIfNotExists(
               'invoices', 'is_deleted', 'INTEGER NOT NULL DEFAULT 0');
           await _addColumnIfNotExists('invoices', 'idempotency_key', 'TEXT');
+        }
+
+        // Migration 55: Create Companies table, rename tenant_id → company_id
+        if (from < 55) {
+          await m.createTable(companies);
+          final tablesToRename = [
+            'products', 'categories', 'units', 'brands',
+            'customers', 'suppliers', 'employees',
+            'invoices', 'invoice_items', 'returns', 'return_items',
+            'customer_transactions', 'supplier_transactions',
+            'purchase_receipts', 'purchase_receipt_items',
+            'inventory_movements', 'wallet_transactions',
+            'product_units', 'reserved_skus', 'invoice_audit_logs',
+            'invoice_settings',
+          ];
+          for (final table in tablesToRename) {
+            try {
+              final info = await customSelect(
+                'PRAGMA table_info($table)',
+              ).get();
+              final hasCompanyId = info.any(
+                (r) => r.read<String>('name') == 'company_id',
+              );
+              final hasTenantId = info.any(
+                (r) => r.read<String>('name') == 'tenant_id',
+              );
+              if (!hasCompanyId && hasTenantId) {
+                await customStatement(
+                  'ALTER TABLE "$table" RENAME COLUMN tenant_id TO company_id',
+                );
+              }
+            } catch (e) {
+              debugPrint('Migration 55: skip rename on $table — $e');
+            }
+          }
         }
       },
       beforeOpen: (details) async {
@@ -857,13 +895,13 @@ class AppDatabase extends _$AppDatabase {
       const uuidGen = Uuid();
       final productUuid = uuidGen.v4();
       final unitUuid = uuidGen.v4();
-      const tenantId = 1;
+      final companyId = ServiceLocator.instance.sessionService.companyId;
       const syncStatus = 1;
 
       final productId = await into(products).insert(
         ProductsCompanion.insert(
           uuid: productUuid,
-          tenantId: tenantId,
+          companyId: companyId,
           syncStatus: const Value(syncStatus),
           name: name,
           price: sellingPrice,
@@ -875,7 +913,7 @@ class AppDatabase extends _$AppDatabase {
       final unitId = await into(productUnits).insert(
         ProductUnitsCompanion.insert(
           uuid: unitUuid,
-          tenantId: tenantId,
+          companyId: companyId,
           syncStatus: const Value(syncStatus),
           productId: productId,
           unitId: defaultUnitId,
@@ -966,7 +1004,7 @@ class AppDatabase extends _$AppDatabase {
   /// Called after login and after profile updates so the invoice hydration
   /// always reads real data instead of template dummy fallbacks.
   Future<void> upsertTenantFromCompany({
-    required int tenantId,
+    required int companyId,
     required String name,
     String? email,
     String? phone,
@@ -974,14 +1012,14 @@ class AppDatabase extends _$AppDatabase {
     String? taxId,
   }) async {
     final existing = await (select(tenants)
-          ..where((t) => t.id.equals(tenantId)))
+          ..where((t) => t.id.equals(companyId)))
         .getSingleOrNull();
 
     final companion = TenantsCompanion(
-      id: Value(tenantId),
+      id: Value(companyId),
       uuid: existing != null
           ? Value(existing.uuid)
-          : Value('tenant-$tenantId'),
+          : Value('tenant-$companyId'),
       name: Value(name),
       email: Value(email),
       phone: Value(phone),
@@ -995,7 +1033,7 @@ class AppDatabase extends _$AppDatabase {
       await into(tenants).insert(companion,
           mode: InsertMode.insertOrReplace);
     } else {
-      await (update(tenants)..where((t) => t.id.equals(tenantId)))
+      await (update(tenants)..where((t) => t.id.equals(companyId)))
           .write(companion);
     }
   }
@@ -1116,10 +1154,10 @@ class AppDatabase extends _$AppDatabase {
   Future<InvoiceSettingEntity?> getInvoiceSettings() =>
       select(invoiceSettings).getSingleOrNull();
 
-  Future<InvoiceSettingEntity?> getInvoiceSettingsForTenant(int tenantId) =>
+  Future<InvoiceSettingEntity?> getInvoiceSettingsForTenant(int companyId) =>
       (select(
         invoiceSettings,
-      )..where((t) => t.tenantId.equals(tenantId))).getSingleOrNull();
+      )..where((t) => t.companyId.equals(companyId))).getSingleOrNull();
 
   Future<int> upsertInvoiceSettings(InvoiceSettingsCompanion entry) =>
       into(invoiceSettings).insertOnConflictUpdate(entry);
@@ -1155,12 +1193,12 @@ class AppDatabase extends _$AppDatabase {
   Stream<List<InvoiceEntity>> watchAllInvoices() => select(invoices).watch();
 
   /// Returns the most recent N invoices, with their customer data.
-  Future<List<TypedResult>> getTopInvoices({int limit = 5, int? tenantId}) async {
+  Future<List<TypedResult>> getTopInvoices({int limit = 5, int? companyId}) async {
     final query = select(invoices).join([
       leftOuterJoin(customers, customers.id.equalsExp(invoices.customerId)),
     ]);
-    if (tenantId != null) {
-      query.where(invoices.tenantId.equals(tenantId));
+    if (companyId != null) {
+      query.where(invoices.companyId.equals(companyId));
     }
     query
       ..orderBy([OrderingTerm.desc(invoices.date)])
@@ -1180,25 +1218,25 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // Joined query for history
-  Stream<List<TypedResult>> watchInvoicesWithCustomer({int? tenantId}) {
+  Stream<List<TypedResult>> watchInvoicesWithCustomer({int? companyId}) {
     final query = select(invoices).join([
       leftOuterJoin(customers, customers.id.equalsExp(invoices.customerId)),
     ]);
-    if (tenantId != null) {
-      query.where(invoices.tenantId.equals(tenantId));
+    if (companyId != null) {
+      query.where(invoices.companyId.equals(companyId));
     }
     query.orderBy([OrderingTerm.desc(invoices.date)]);
     return query.watch();
   }
 
-  Stream<List<TypedResult>> watchInvoiceItemsDetailed({int? tenantId}) {
+  Stream<List<TypedResult>> watchInvoiceItemsDetailed({int? companyId}) {
     final query = select(invoiceItems).join([
       innerJoin(invoices, invoices.id.equalsExp(invoiceItems.invoiceId)),
       innerJoin(products, products.id.equalsExp(invoiceItems.productId)),
       leftOuterJoin(customers, customers.id.equalsExp(invoices.customerId)),
     ]);
-    if (tenantId != null) {
-      query.where(invoices.tenantId.equals(tenantId));
+    if (companyId != null) {
+      query.where(invoices.companyId.equals(companyId));
     }
     query.orderBy([
       OrderingTerm.desc(invoices.date),
@@ -1211,7 +1249,7 @@ class AppDatabase extends _$AppDatabase {
     required int limit,
     required int offset,
     String? queryStr,
-    int? tenantId,
+    int? companyId,
   }) {
     final query = select(invoices).join([
       leftOuterJoin(invoiceItems, invoiceItems.invoiceId.equalsExp(invoices.id)),
@@ -1219,8 +1257,8 @@ class AppDatabase extends _$AppDatabase {
       leftOuterJoin(customers, customers.id.equalsExp(invoices.customerId)),
     ]);
 
-    if (tenantId != null) {
-      query.where(invoices.tenantId.equals(tenantId));
+    if (companyId != null) {
+      query.where(invoices.companyId.equals(companyId));
     }
 
     if (queryStr != null && queryStr.isNotEmpty) {
@@ -1241,7 +1279,7 @@ class AppDatabase extends _$AppDatabase {
     return query.get();
   }
 
-  Future<int> getInvoiceItemsCount({String? queryStr, int? tenantId}) async {
+  Future<int> getInvoiceItemsCount({String? queryStr, int? companyId}) async {
     final countExp = invoices.id.count(distinct: true);
     final query = selectOnly(invoices)..addColumns([countExp]);
 
@@ -1251,8 +1289,8 @@ class AppDatabase extends _$AppDatabase {
       leftOuterJoin(customers, customers.id.equalsExp(invoices.customerId)),
     ]);
 
-    if (tenantId != null) {
-      query.where(invoices.tenantId.equals(tenantId));
+    if (companyId != null) {
+      query.where(invoices.companyId.equals(companyId));
     }
 
     if (queryStr != null && queryStr.isNotEmpty) {
@@ -1431,10 +1469,10 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // Reserved SKU methods
-  Future<int?> getMaxSkuSequence(int tenantId) async {
+  Future<int?> getMaxSkuSequence(int companyId) async {
     final query = selectOnly(reservedSkus)
       ..addColumns([reservedSkus.sku])
-      ..where(reservedSkus.tenantId.equals(tenantId));
+      ..where(reservedSkus.companyId.equals(companyId));
     final skus = await query.map((row) => row.read(reservedSkus.sku)).get();
 
     if (skus.isEmpty) return null;
@@ -1451,23 +1489,23 @@ class AppDatabase extends _$AppDatabase {
     return maxSeq;
   }
 
-  Future<void> reserveSku(String sku, int tenantId) async {
+  Future<void> reserveSku(String sku, int companyId) async {
     await into(
       reservedSkus,
-    ).insert(ReservedSkusCompanion.insert(sku: sku, tenantId: tenantId));
+    ).insert(ReservedSkusCompanion.insert(sku: sku, companyId: companyId));
   }
 
-  Future<bool> checkSkuExists(String sku, int tenantId) async {
+  Future<bool> checkSkuExists(String sku, int companyId) async {
     final result =
         await (select(reservedSkus)
-              ..where((t) => t.sku.equals(sku) & t.tenantId.equals(tenantId)))
+              ..where((t) => t.sku.equals(sku) & t.companyId.equals(companyId)))
             .getSingleOrNull();
     if (result != null) return true;
 
     // Check products table too
     final product =
         await (select(products)
-              ..where((t) => t.sku.equals(sku) & t.tenantId.equals(tenantId)))
+              ..where((t) => t.sku.equals(sku) & t.companyId.equals(companyId)))
             .getSingleOrNull();
     return product != null;
   }
@@ -1481,25 +1519,25 @@ class AppDatabase extends _$AppDatabase {
         uuid: Uuid().v4(),
         name: 'Gram',
         symbol: 'g',
-        tenantId: 1,
+        companyId: 1,
       ),
       UnitsCompanion.insert(
         uuid: Uuid().v4(),
         name: 'Kilogram',
         symbol: 'kg',
-        tenantId: 1,
+        companyId: 1,
       ),
       UnitsCompanion.insert(
         uuid: Uuid().v4(),
         name: 'Piece',
         symbol: 'pc',
-        tenantId: 1,
+        companyId: 1,
       ),
       UnitsCompanion.insert(
         uuid: Uuid().v4(),
         name: 'Packet',
         symbol: 'pkt',
-        tenantId: 1,
+        companyId: 1,
       ),
     ];
 

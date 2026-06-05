@@ -75,7 +75,7 @@ class _ReturnDialogState extends ConsumerState<ReturnDialog> {
       await service.processReturn(
         invoiceId: widget.invoice.id,
         userId: 1,
-        tenantId: widget.invoice.tenantId,
+        companyId: widget.invoice.companyId,
         returnItems: returnItems,
         refundMethod: 'wallet',
       );

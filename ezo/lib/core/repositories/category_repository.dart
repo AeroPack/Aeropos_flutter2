@@ -34,7 +34,7 @@ class CategoryRepository {
 
   Future<int> createCategory(Category category) async {
     final syncRepo = ServiceLocator.instance.syncRepository;
-    final tenantId = category.id > 0 ? 0 : 1;
+    final companyId = ServiceLocator.instance.sessionService.companyId;
 
     return await _database.transaction(() async {
       final companion = CategoriesCompanion.insert(
@@ -43,7 +43,7 @@ class CategoryRepository {
         subcategory: Value(category.subcategory),
         description: Value(category.description),
         isActive: Value(category.isActive),
-        tenantId: tenantId,
+        companyId: companyId,
         isDeleted: Value(category.isDeleted),
       );
       final id = await _database.into(_database.categories).insert(companion);

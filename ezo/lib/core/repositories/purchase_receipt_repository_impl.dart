@@ -3,6 +3,7 @@ import 'package:aeropos/core/database/app_database.dart';
 import 'package:aeropos/core/repositories/purchase_receipt_repository.dart';
 import 'package:aeropos/core/di/service_locator.dart';
 import 'package:aeropos/core/services/unit_conversion_service.dart';
+import 'package:uuid/uuid.dart';
 
 class PurchaseReceiptRepositoryImpl implements PurchaseReceiptRepository {
   final AppDatabase db;
@@ -35,10 +36,10 @@ class PurchaseReceiptRepositoryImpl implements PurchaseReceiptRepository {
   }
 
   @override
-  Stream<List<PurchaseReceiptEntity>> watchAllPurchaseReceipts(int tenantId) {
+  Stream<List<PurchaseReceiptEntity>> watchAllPurchaseReceipts(int companyId) {
     return (db.select(db.purchaseReceipts)
           ..where(
-            (t) => t.isDeleted.equals(false) & t.tenantId.equals(tenantId),
+            (t) => t.isDeleted.equals(false) & t.companyId.equals(companyId),
           )
           ..orderBy([(t) => OrderingTerm.desc(t.date)]))
         .watch();
@@ -153,6 +154,18 @@ fromUnitId: unitId,
           data: data,
         );
       }
+
+      await db.into(db.supplierTransactions).insert(
+        SupplierTransactionsCompanion(
+          uuid: Value(const Uuid().v4()),
+          supplierId: header.supplierId,
+          amount: header.totalAmount,
+          type: const Value('debit'),
+          remarks: Value('Purchase: ${header.invoiceNumber.value}'),
+          companyId: header.companyId,
+          syncStatus: const Value(1),
+        ),
+      );
 
       return receiptId;
     });

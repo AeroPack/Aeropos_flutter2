@@ -244,7 +244,7 @@ class ExcelImportService {
                       ? Value(data['description'])
                       : const Value.absent(),
                   isActive: const Value(true),
-                  tenantId: const Value(1),
+                  companyId: Value(ServiceLocator.instance.sessionService.companyId),
                   syncStatus: const Value(1),
                   isDeleted: const Value(false),
                   createdAt: Value(DateTime.now()),

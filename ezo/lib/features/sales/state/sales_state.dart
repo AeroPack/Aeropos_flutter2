@@ -6,8 +6,8 @@ import '../../../core/models/sale_stats.dart';
 
 final salesListStreamProvider = StreamProvider.autoDispose<List<TypedResult>>((ref) {
   final database = ServiceLocator.instance.database;
-  final tenantId = ServiceLocator.instance.tenantService.tenantId;
-  return database.watchInvoicesWithCustomer(tenantId: tenantId);
+  final companyId = ServiceLocator.instance.sessionService.companyId;
+  return database.watchInvoicesWithCustomer(companyId: companyId);
 });
 
 final salesStatsProvider = Provider.autoDispose<AsyncValue<SaleStats>>((ref) {

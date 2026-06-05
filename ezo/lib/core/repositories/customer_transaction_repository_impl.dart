@@ -62,7 +62,7 @@ class CustomerTransactionRepositoryImpl
       amount: Value(transaction.amount),
       type: Value(transaction.type.name),
       remarks: Value(transaction.remarks),
-      tenantId: const Value(1),
+      companyId: Value(ServiceLocator.instance.sessionService.companyId),
       syncStatus: Value(SyncStatus.pending.value),
     );
     await _dao.insert(companion);

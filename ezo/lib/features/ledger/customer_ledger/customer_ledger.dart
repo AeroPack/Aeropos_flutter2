@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, TargetPlatform, defaultTargetPlatform;
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -152,7 +152,8 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
     if (kIsWeb) {
       await Printing.sharePdf(bytes: pdfBytes, filename: fileName);
-    } else if (Platform.isAndroid || Platform.isIOS) {
+    } else if (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS) {
       await Printing.layoutPdf(onLayout: (_) async => pdfBytes);
     } else {
       final output = await getApplicationDocumentsDirectory();
@@ -197,7 +198,8 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
       await Share.shareXFiles([
         XFile(tempFile.path),
       ], text: 'Customer Ledger Export');
-    } else if (Platform.isWindows || Platform.isLinux) {
+    } else if (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS) {
       final output = await getApplicationDocumentsDirectory();
       final file = File('${output.path}/$fileName');
       await file.writeAsBytes(excelBytes);
@@ -206,7 +208,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text('Excel exported: ${file.path}')));
       }
-    } else if (Platform.isAndroid || Platform.isIOS) {
+    } else {
       final output = await getApplicationDocumentsDirectory();
       final file = File('${output.path}/$fileName');
       await file.writeAsBytes(excelBytes);
