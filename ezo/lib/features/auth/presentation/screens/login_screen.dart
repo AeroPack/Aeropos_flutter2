@@ -45,21 +45,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     });
 
+    // Width-based responsiveness: < 600 logical px is treated as a phone.
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
+
     return Scaffold(
-      body: Center(
-        child: Container(
-          width: 400,
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20),
-            ],
-          ),
-          child: Form(
-            key: _formKey,
-            child: Column(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: isCompact ? 16 : 24,
+              vertical: 24,
+            ),
+            child: ConstrainedBox(
+              // Shrinks to fit on phones, caps at 400 on tablet/desktop.
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(isCompact ? 20 : 32),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  // Drop the floating-card shadow on phones; it reads as
+                  // full-bleed there.
+                  boxShadow: isCompact
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 20,
+                          ),
+                        ],
+                ),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -161,7 +180,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   onPressed: () => context.go('/signup'),
                   child: const Text('Don\'t have an account? Sign up'),
                 ),
-              ],
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ),
