@@ -1039,149 +1039,165 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   ],
 
                   extraSections: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: PosContentCard(
-                            title: "Product Image",
-                            child: Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
-                              children: [
-                                if (_selectedImageFile != null ||
-                                    _imageUrl != null ||
-                                    _currentLocalPath != null)
-                                  Stack(
-                                    children: [
-                                      Container(
-                                        width: 100,
-                                        height: 100,
-                                        decoration: BoxDecoration(
-                                          border: Border.all(color: PosColors.border),
-                                          borderRadius: BorderRadius.circular(8),
-                                          color: Colors.grey.shade50,
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
-                                          child: _selectedImageFile != null
-                                              ? (_selectedImageBytes != null
-                                                    ? Image.memory(
-                                                        _selectedImageBytes!,
-                                                        fit: BoxFit.cover,
-                                                      )
-                                                    : Image.file(
-                                                        File(
-                                                          _selectedImageFile!.path,
-                                                        ),
-                                                        fit: BoxFit.cover,
-                                                      ))
-                                              : _imageUrl != null
-                                              ? _buildImageFromUrl(_imageUrl!)
-                                              : _currentLocalPath != null
-                                              ? (kIsWeb
-                                            ? CachedNetworkImage(
-                                                imageUrl: _currentLocalPath!,
-                                                fit: BoxFit.cover,
-                                              )
-                                                    : Image.file(
-                                                        File(_currentLocalPath!),
-                                                        fit: BoxFit.cover,
-                                                      ))
-                                              : const SizedBox(),
-                                        ),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isMobile = constraints.maxWidth < 600;
+
+                        final imageCard = PosContentCard(
+                          title: "Product Image",
+                          child: Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: [
+                              if (_selectedImageFile != null ||
+                                  _imageUrl != null ||
+                                  _currentLocalPath != null)
+                                Stack(
+                                  children: [
+                                    Container(
+                                      width: 100,
+                                      height: 100,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: PosColors.border),
+                                        borderRadius: BorderRadius.circular(8),
+                                        color: Colors.grey.shade50,
                                       ),
-                                      Positioned(
-                                        top: -4,
-                                        right: -4,
-                                        child: IconButton(
-                                          icon: Container(
-                                            padding: const EdgeInsets.all(2),
-                                            decoration: const BoxDecoration(
-                                              color: Colors.red,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: const Icon(
-                                              Icons.close,
-                                              color: Colors.white,
-                                              size: 16,
-                                            ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: _selectedImageFile != null
+                                            ? (_selectedImageBytes != null
+                                                  ? Image.memory(
+                                                      _selectedImageBytes!,
+                                                      fit: BoxFit.cover,
+                                                    )
+                                                  : Image.file(
+                                                      File(
+                                                        _selectedImageFile!.path,
+                                                      ),
+                                                      fit: BoxFit.cover,
+                                                    ))
+                                            : _imageUrl != null
+                                            ? _buildImageFromUrl(_imageUrl!)
+                                            : _currentLocalPath != null
+                                            ? (kIsWeb
+                                          ? CachedNetworkImage(
+                                              imageUrl: _currentLocalPath!,
+                                              fit: BoxFit.cover,
+                                            )
+                                                  : Image.file(
+                                                      File(_currentLocalPath!),
+                                                      fit: BoxFit.cover,
+                                                    ))
+                                            : const SizedBox(),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: -4,
+                                      right: -4,
+                                      child: IconButton(
+                                        icon: Container(
+                                          padding: const EdgeInsets.all(2),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
                                           ),
-                                          onPressed: () {
-                                            setState(() {
-                                              _selectedImageFile = null;
-                                              _selectedImageBytes = null;
-                                              _imageUrl = null;
-                                              _currentLocalPath = null;
-                                            });
-                                          },
+                                          child: const Icon(
+                                            Icons.close,
+                                            color: Colors.white,
+                                            size: 16,
+                                          ),
+                                        ),
+                                        onPressed: () {
+                                          setState(() {
+                                            _selectedImageFile = null;
+                                            _selectedImageBytes = null;
+                                            _imageUrl = null;
+                                            _currentLocalPath = null;
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              InkWell(
+                                onTap: _showImageSourceOptions,
+                                child: Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: PosColors.border,
+                                      width: 2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                    color: Colors.grey.shade50,
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.add_circle_outline,
+                                        size: 32,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        "Add Image",
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey.shade600,
                                         ),
                                       ),
                                     ],
                                   ),
-                                InkWell(
-                                  onTap: _showImageSourceOptions,
-                                  child: Container(
-                                    width: 100,
-                                    height: 100,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: PosColors.border,
-                                        width: 2,
-                                      ),
-                                      borderRadius: BorderRadius.circular(8),
-                                      color: Colors.grey.shade50,
-                                    ),
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.add_circle_outline,
-                                          size: 32,
-                                          color: Colors.grey.shade400,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          "Add Image",
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey.shade600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(width: 24),
-                        Expanded(
-                          child: PosContentCard(
-                            title: "Description",
-                            child: TextField(
-                              controller: _descController,
-                              maxLines: 4,
-                              decoration: InputDecoration(
-                                hintText: "Enter detailed product description...",
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                    color: PosColors.border,
-                                  ),
+                        );
+
+                        final descCard = PosContentCard(
+                          title: "Description",
+                          child: TextField(
+                            controller: _descController,
+                            maxLines: 4,
+                            decoration: InputDecoration(
+                              hintText: "Enter detailed product description...",
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: PosColors.border,
                                 ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                    color: PosColors.border,
-                                  ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: PosColors.border,
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        );
+
+                        if (isMobile) {
+                          return Column(
+                            children: [
+                              imageCard,
+                              const SizedBox(height: 16),
+                              descCard,
+                            ],
+                          );
+                        }
+
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: imageCard),
+                            const SizedBox(width: 24),
+                            Expanded(child: descCard),
+                          ],
+                        );
+                      },
                     ),
 
                     _buildProductUnitsSection(),
@@ -1241,8 +1257,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
         final baseUnitName =
             baseUnitMatches.isNotEmpty ? baseUnitMatches.first.name : 'unit';
 
+        final isNarrow = MediaQuery.of(context).size.width < 600;
         return Container(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(isNarrow ? 16.0 : 24.0),
           decoration: BoxDecoration(
             color: const Color.fromARGB(255, 252, 252, 252),
             borderRadius: BorderRadius.circular(12),
@@ -1506,28 +1523,27 @@ class _AddItemScreenState extends State<AddItemScreen> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               const Text('Price:', style: TextStyle(fontWeight: FontWeight.w500)),
-              const SizedBox(width: 12),
               _PriceToggleChip(
                 label: 'Auto',
                 selected: _editPriceIsAuto,
                 onTap: () => setState(() => _editPriceIsAuto = true),
               ),
-              const SizedBox(width: 6),
               _PriceToggleChip(
                 label: 'Custom',
                 selected: !_editPriceIsAuto,
                 onTap: () => setState(() => _editPriceIsAuto = false),
               ),
-              if (_editPriceIsAuto && autoPrice != null) ...[
-                const SizedBox(width: 8),
+              if (_editPriceIsAuto && autoPrice != null)
                 Text(
                   'Rs${autoPrice.toStringAsFixed(2)}',
                   style: TextStyle(color: Colors.grey[600], fontSize: 13),
                 ),
-              ],
             ],
           ),
           if (!_editPriceIsAuto) ...[
