@@ -254,11 +254,15 @@ class _BulkImportDialogState extends State<BulkImportDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        width: 400,
-        padding: const EdgeInsets.all(24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(isCompact ? 16 : 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,6 +392,7 @@ class _BulkImportDialogState extends State<BulkImportDialog> {
               ],
             ),
           ],
+        ),
         ),
       ),
     );

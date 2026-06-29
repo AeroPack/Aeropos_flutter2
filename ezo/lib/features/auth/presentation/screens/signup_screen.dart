@@ -70,18 +70,24 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       }
     });
 
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
+
     return Scaffold(
       body: Center(
-        child: Container(
-          width: 400,
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20),
-            ],
-          ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(isCompact ? 16 : 32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: isCompact
+                  ? null
+                  : [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20),
+                    ],
+            ),
           child: SingleChildScrollView(
             child: Form(
               key: _formKey,
@@ -201,6 +207,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
               ),
             ),
           ),
+        ),
         ),
       ),
     );

@@ -127,15 +127,22 @@ class _QuantityWithUnitDialogState extends State<QuantityWithUnitDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
     return Dialog(
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 16 : 40,
+        vertical: 24,
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       backgroundColor: Colors.white,
       child: Container(
-        width: 400,
-        padding: const EdgeInsets.all(24),
+        constraints: BoxConstraints(maxWidth: isCompact ? 360 : 400),
+        width: double.infinity,
+        padding: EdgeInsets.all(isCompact ? 16 : 24),
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : Column(
+            : SingleChildScrollView(
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -363,7 +370,7 @@ class _QuantityWithUnitDialogState extends State<QuantityWithUnitDialog> {
                       _selectedUnit!.entity.barcode!.trim().isNotEmpty) ...[
                     Center(
                       child: SizedBox(
-                        width: 200,
+                        width: isCompact ? 150 : 200,
                         height: 50,
                         child: bw.BarcodeWidget(
                           barcode: bw.Barcode.code128(),
@@ -443,6 +450,7 @@ class _QuantityWithUnitDialogState extends State<QuantityWithUnitDialog> {
                   ),
                 ],
               ),
+            ),
       ),
     );
   }

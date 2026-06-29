@@ -532,6 +532,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
       barrierDismissible: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
+          final isCompact = MediaQuery.sizeOf(context).width < 600;
           final discountValue = double.tryParse(controller.text) ?? 0;
           final itemSubtotal = item.product.price * item.quantity;
           double previewDiscount = 0;
@@ -543,14 +544,21 @@ class _PosScreenState extends ConsumerState<PosScreen> {
           final discountedPrice = itemSubtotal - previewDiscount;
 
           return Dialog(
+            insetPadding: EdgeInsets.symmetric(
+              horizontal: isCompact ? 16 : 40,
+              vertical: 24,
+            ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
             elevation: 0,
             backgroundColor: Colors.transparent,
             child: Container(
-              width: 420,
-              constraints: const BoxConstraints(maxHeight: 580),
+              constraints: BoxConstraints(
+                maxWidth: isCompact ? 360 : 420,
+                maxHeight: isCompact ? 520 : 580,
+              ),
+              width: double.infinity,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
@@ -567,7 +575,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                 children: [
                   // Header
                   Container(
-                    padding: const EdgeInsets.fromLTRB(24, 20, 20, 16),
+                    padding: EdgeInsets.fromLTRB(isCompact ? 16 : 24, 20, isCompact ? 12 : 20, 16),
                     decoration: BoxDecoration(
                       color: AppColors.accent.withValues(alpha: 0.06),
                       borderRadius: const BorderRadius.vertical(
@@ -630,7 +638,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                   // Body
                   Flexible(
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                      padding: EdgeInsets.fromLTRB(isCompact ? 16 : 24, 20, isCompact ? 16 : 24, 8),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -952,7 +960,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
 
                   // Footer
                   Container(
-                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+                    padding: EdgeInsets.fromLTRB(isCompact ? 16 : 24, 12, isCompact ? 16 : 24, 20),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       border: Border(top: BorderSide(color: AppColors.grey100)),
@@ -1488,51 +1496,54 @@ class _PosScreenState extends ConsumerState<PosScreen> {
 
       showDialog(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Recall Order'),
-          content: SizedBox(
-            width: 400,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: heldOrders.length,
-              itemBuilder: (context, index) {
-                final order = heldOrders[index];
-                return ListTile(
-                  leading: const Icon(Icons.receipt),
-                  title: Text('Order #${order.id}'),
-                  subtitle: Text(
-                    '${order.items.length} items - Rs${order.total.toStringAsFixed(2)}',
-                  ),
-                  trailing: Text(
-                    _formatDateTime(order.createdAt),
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  onTap: () {
-                    for (final item in order.items) {
-                      cartNotifier.addProduct(
-                        item.product,
-                        quantity: item.quantity,
-                        modifiers: item.modifiers,
-                        course: item.course,
+        builder: (ctx) {
+          final isCompact = MediaQuery.sizeOf(ctx).width < 600;
+          return AlertDialog(
+            title: const Text('Recall Order'),
+            content: SizedBox(
+              width: isCompact ? 320 : 400,
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: heldOrders.length,
+                itemBuilder: (context, index) {
+                  final order = heldOrders[index];
+                  return ListTile(
+                    leading: const Icon(Icons.receipt),
+                    title: Text('Order #${order.id}'),
+                    subtitle: Text(
+                      '${order.items.length} items - Rs${order.total.toStringAsFixed(2)}',
+                    ),
+                    trailing: Text(
+                      _formatDateTime(order.createdAt),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    onTap: () {
+                      for (final item in order.items) {
+                        cartNotifier.addProduct(
+                          item.product,
+                          quantity: item.quantity,
+                          modifiers: item.modifiers,
+                          course: item.course,
+                        );
+                      }
+                      Navigator.pop(ctx);
+                      PosToast.showSuccess(
+                        context,
+                        'Order #${order.id} recalled',
                       );
-                    }
-                    Navigator.pop(ctx);
-                    PosToast.showSuccess(
-                      context,
-                      'Order #${order.id} recalled',
-                    );
-                  },
-                );
-              },
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Close'),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        },
       );
     }
 
@@ -1855,7 +1866,7 @@ class _InvoiceCompletenessSheetState
             const Divider(height: 1),
             ConstrainedBox(
               constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.45,
+                maxHeight: MediaQuery.sizeOf(context).height * 0.45,
               ),
               child: ListView(
                 shrinkWrap: true,

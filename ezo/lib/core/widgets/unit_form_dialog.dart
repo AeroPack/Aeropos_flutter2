@@ -65,15 +65,19 @@ class _UnitFormDialogState extends State<UnitFormDialog> {
     final title = widget.unit == null ? "Add New Unit" : "Edit Unit";
     final btnLabel = widget.unit == null ? "Create Unit" : "Save Changes";
 
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        width: 400,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-        ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(isCompact ? 16 : 24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,6 +143,7 @@ class _UnitFormDialogState extends State<UnitFormDialog> {
               ],
             )
           ],
+        ),
         ),
       ),
     );

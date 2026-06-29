@@ -138,11 +138,16 @@ class _InvoiceTemplateEditorScreenState
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7F8),
       appBar: _buildAppBar(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 16 : 40,
+          vertical: isCompact ? 16 : 32,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -160,6 +165,8 @@ class _InvoiceTemplateEditorScreenState
   }
 
   PreferredSizeWidget _buildAppBar() {
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
+
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
@@ -208,24 +215,25 @@ class _InvoiceTemplateEditorScreenState
         ],
       ),
       actions: [
-        Container(
-          width: 250,
-          height: 40,
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const TextField(
-            decoration: InputDecoration(
-              hintText: 'Search POS layouts...',
-              prefixIcon: Icon(LucideIcons.search, size: 16),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.only(top: 8),
+        if (!isCompact)
+          Container(
+            width: 250,
+            height: 40,
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const TextField(
+              decoration: InputDecoration(
+                hintText: 'Search POS layouts...',
+                prefixIcon: Icon(LucideIcons.search, size: 16),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.only(top: 8),
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 16),
+        if (!isCompact) const SizedBox(width: 16),
         const CircleAvatar(
           backgroundImage: NetworkImage(
             'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
@@ -238,42 +246,81 @@ class _InvoiceTemplateEditorScreenState
   }
 
   Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Select POS Template',
-              style: TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -1,
-                color: Color(0xFF1E293B),
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
+
+    return isCompact
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Select POS Template',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1,
+                  color: Color(0xFF1E293B),
+                ),
               ),
-            ),
-            Text(
-              'Choose a bill format optimized for your industry',
-              style: TextStyle(fontSize: 18, color: Colors.grey[500]),
-            ),
-          ],
-        ),
-        ElevatedButton.icon(
-          onPressed: () {},
-          icon: const Icon(LucideIcons.plus, size: 18),
-          label: const Text('Custom POS Layout'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF4F46E5),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
-      ],
-    );
+              const SizedBox(height: 4),
+              Text(
+                'Choose a bill format optimized for your industry',
+                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(LucideIcons.plus, size: 18),
+                  label: const Text('Custom POS Layout'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4F46E5),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          )
+        : Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Select POS Template',
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  Text(
+                    'Choose a bill format optimized for your industry',
+                    style: TextStyle(fontSize: 18, color: Colors.grey[500]),
+                  ),
+                ],
+              ),
+              ElevatedButton.icon(
+                onPressed: () {},
+                icon: const Icon(LucideIcons.plus, size: 18),
+                label: const Text('Custom POS Layout'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F46E5),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          );
   }
 
   Widget _buildFormatTabs() {
@@ -356,6 +403,7 @@ class _InvoiceTemplateEditorScreenState
   }
 
   Widget _buildTemplateGrid() {
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
     final list = filteredTemplates;
     if (list.isEmpty) {
       return Center(
@@ -377,11 +425,11 @@ class _InvoiceTemplateEditorScreenState
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 5,
-        childAspectRatio: 0.65,
-        crossAxisSpacing: 32,
-        mainAxisSpacing: 32,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: isCompact ? 2 : 5,
+        childAspectRatio: isCompact ? 0.55 : 0.65,
+        crossAxisSpacing: isCompact ? 12 : 32,
+        mainAxisSpacing: isCompact ? 12 : 32,
       ),
       itemCount: list.length,
       itemBuilder: (context, index) {
@@ -743,8 +791,10 @@ class _InvoiceDesignEditorScreenState
   }
 
   Widget _buildSidebar() {
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
+
     return Container(
-      width: 400,
+      width: isCompact ? 300 : 400,
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(right: BorderSide(color: Color(0xFFE2E8F0))),

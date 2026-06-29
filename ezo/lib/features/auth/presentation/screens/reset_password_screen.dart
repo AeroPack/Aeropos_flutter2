@@ -67,15 +67,20 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       }
     });
 
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Reset Password')),
       body: Center(
-        child: Container(
-          width: 400,
-          padding: const EdgeInsets.all(32),
-          child: _resetSuccess
-              ? _buildSuccessView(context)
-              : _buildFormView(isLoading),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(isCompact ? 16 : 32),
+            child: _resetSuccess
+                ? _buildSuccessView(context)
+                : _buildFormView(isLoading),
+          ),
         ),
       ),
     );

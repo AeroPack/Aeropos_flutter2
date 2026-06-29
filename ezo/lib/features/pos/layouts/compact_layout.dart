@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aeropos/features/pos/layouts/base_pos_layout.dart';
-// import 'package:aeropos/features/pos/widgets/common/product_card.dart';
 import 'package:aeropos/features/pos/widgets/common/totals_display.dart';
 import 'package:aeropos/features/pos/widgets/quantity_with_unit_dialog.dart';
 import 'package:aeropos/features/pos/widgets/barcode_camera_overlay.dart';
@@ -53,7 +52,6 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
   bool _showNotes = false;
   bool _showBarcodeScan = false;
   String _selectedPaymentMethod = 'cash';
-  final List<ProductEntity> _recentItems = [];
   final Set<int> _favoriteProductIds = {};
   bool _showFavoritesOnly = false;
   bool _mobileCartOpen = false;
@@ -959,11 +957,6 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
 
   void _addToCart(ProductEntity product) {
     widget.onProductTap(product);
-    setState(() {
-      _recentItems.removeWhere((p) => p.id == product.id);
-      _recentItems.insert(0, product);
-      if (_recentItems.length > 8) _recentItems.removeLast();
-    });
   }
 
   // ─── CART WIDGETS (shared between mobile sheet and desktop panel) ─────────
