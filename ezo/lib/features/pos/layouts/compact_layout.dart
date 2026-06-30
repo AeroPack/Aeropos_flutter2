@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:aeropos/config/app_config.dart';
 import 'package:aeropos/features/pos/layouts/base_pos_layout.dart';
 import 'package:aeropos/features/pos/widgets/common/totals_display.dart';
 import 'package:aeropos/features/pos/widgets/quantity_with_unit_dialog.dart';
@@ -710,12 +714,9 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
         : null;
     final cartQty = cartItem?.quantity ?? 0;
 
-    double price = 0.0;
-    int stock = 0;
-    String? imageUrl;
-    try { price = (product as dynamic).price?.toDouble() ?? 0.0; } catch (_) {}
-    try { stock = (product as dynamic).stock ?? (product as dynamic).quantity ?? 0; } catch (_) {}
-    try { imageUrl = (product as dynamic).imageUrl ?? (product as dynamic).image; } catch (_) {}
+    final double price = product.price;
+    final int stock = product.stockQuantity;
+    final String? imageUrl = product.imageUrl;
 
     // 3D Theme Variables
     final Color cardBorderColor = inCart ? _primaryBlue : const Color(0xFFE2E8F0); // Beautiful Slate 200
@@ -769,7 +770,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
                       height: double.infinity,
                       color: Colors.grey[50],
                       child: imageUrl != null && imageUrl.isNotEmpty
-                          ? Image.network(imageUrl, fit: BoxFit.cover)
+                          ? _buildProductImage(imageUrl, product.localPath)
                           : _buildDummyImage(product.name),
                     ),
                   ),
@@ -931,6 +932,49 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildProductImage(String imageUrl, String? localPath) {
+    if (imageUrl.startsWith('data:')) {
+      try {
+        final commaIndex = imageUrl.indexOf(',');
+        if (commaIndex == -1) return _buildFallbackImage();
+        final bytes = base64Decode(imageUrl.substring(commaIndex + 1));
+        return Image.memory(bytes, fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => _buildFallbackImage(),
+        );
+      } catch (_) {
+        return _buildFallbackImage();
+      }
+    }
+    if (!kIsWeb && localPath != null && localPath.isNotEmpty) {
+      return Image.file(File(localPath), fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => _resolveNetworkImage(imageUrl),
+      );
+    }
+    return _resolveNetworkImage(imageUrl);
+  }
+
+  Widget _resolveNetworkImage(String rawUrl) {
+    final base = AppConfig.apiBaseUrl.replaceAll(RegExp(r'/$'), '');
+    final url = rawUrl.startsWith('http') ? rawUrl : '$base$rawUrl';
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: BoxFit.cover,
+      placeholder: (_, _) => Container(color: Colors.grey.shade100,
+        child: const Center(child: SizedBox(width: 20, height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        )),
+      ),
+      errorWidget: (_, _, _) => _buildFallbackImage(),
+    );
+  }
+
+  Widget _buildFallbackImage() {
+    return Container(
+      color: Colors.grey.shade100,
+      child: Icon(Icons.inventory_2_outlined, color: Colors.grey.shade400, size: 32),
     );
   }
 
@@ -1445,10 +1489,13 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
             child: ElevatedButton(
               onPressed: isEmpty
                   ? null
-                  : () => widget.onCheckout(
+                  : () {
+                      widget.onCheckout(
                         shouldSave: true,
                         paymentMethod: _selectedPaymentMethod,
-                      ),
+                      );
+                      if (mounted) setState(() => _mobileCartOpen = false);
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: _primaryBlue,
                 foregroundColor: Colors.white,

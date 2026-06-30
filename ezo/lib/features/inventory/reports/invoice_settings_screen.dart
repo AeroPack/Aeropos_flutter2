@@ -29,6 +29,7 @@ class _InvoiceSettingsScreenState extends ConsumerState<InvoiceSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final currentTemplate = ref.watch(invoiceTemplateProvider);
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
 
     return Scaffold(
       appBar: AppBar(
@@ -48,23 +49,45 @@ class _InvoiceSettingsScreenState extends ConsumerState<InvoiceSettingsScreen> {
             const SizedBox(height: 16),
 
             // 1. Template Grid/List
-            Row(
-              children: [
-                _templateCard(
-                  "Thermal",
-                  Icons.receipt,
-                  InvoiceLayout.thermal,
-                  currentTemplate.layout == InvoiceLayout.thermal,
-                ),
-                const SizedBox(width: 16),
-                _templateCard(
-                  "Modern A4",
-                  Icons.description,
-                  InvoiceLayout.modern,
-                  currentTemplate.layout == InvoiceLayout.modern,
-                ),
-              ],
-            ),
+            if (isCompact)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _templateCard(
+                    "Thermal",
+                    Icons.receipt,
+                    InvoiceLayout.thermal,
+                    currentTemplate.layout == InvoiceLayout.thermal,
+                    expanded: false,
+                  ),
+                  const SizedBox(height: 16),
+                  _templateCard(
+                    "Modern A4",
+                    Icons.description,
+                    InvoiceLayout.modern,
+                    currentTemplate.layout == InvoiceLayout.modern,
+                    expanded: false,
+                  ),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  _templateCard(
+                    "Thermal",
+                    Icons.receipt,
+                    InvoiceLayout.thermal,
+                    currentTemplate.layout == InvoiceLayout.thermal,
+                  ),
+                  const SizedBox(width: 16),
+                  _templateCard(
+                    "Modern A4",
+                    Icons.description,
+                    InvoiceLayout.modern,
+                    currentTemplate.layout == InvoiceLayout.modern,
+                  ),
+                ],
+              ),
 
             const SizedBox(height: 16),
 
@@ -113,10 +136,10 @@ class _InvoiceSettingsScreenState extends ConsumerState<InvoiceSettingsScreen> {
     String title,
     IconData icon,
     InvoiceLayout layout,
-    bool isSelected,
-  ) {
-    return Expanded(
-      child: GestureDetector(
+    bool isSelected, {
+    bool expanded = true,
+  }) {
+    final card = GestureDetector(
         onTap: () {
           ref
               .read(invoiceTemplateProvider.notifier)
@@ -154,8 +177,9 @@ class _InvoiceSettingsScreenState extends ConsumerState<InvoiceSettingsScreen> {
             ],
           ),
         ),
-      ),
     );
+
+    return expanded ? Expanded(child: card) : card;
   }
 
   void _updateTemplate() {

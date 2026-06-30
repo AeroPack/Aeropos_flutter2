@@ -222,84 +222,95 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isMobile = screenWidth < 600;
+    final horizontalPadding = isMobile ? 12.0 : 24.0;
+
     return Scaffold(
       backgroundColor: bgColor,
       body: _viewModel.isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+              padding: EdgeInsets.all(horizontalPadding),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildTopHeader(),
+                  _buildTopHeader(isMobile),
                   const SizedBox(height: 20),
-                  _buildFilterCard(),
+                  _buildFilterCard(isMobile),
                   const SizedBox(height: 24),
-                  _buildTableContainer(),
+                  _buildTableContainer(isMobile),
                 ],
               ),
             ),
     );
   }
 
-  Widget _buildTopHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildTopHeader(bool isMobile) {
+    final titleSection = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Customer Ledger',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF333333),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Manage Your Customer\'s Ledger',
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-            ),
-          ],
+        const Text(
+          'Customer Ledger',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF333333),
+          ),
         ),
-        Row(
-          children: [
-            _buildActionIcon(
-              Icons.picture_as_pdf,
-              Colors.red[400]!,
-              _exportToPdf,
-            ),
-            const SizedBox(width: 8),
-            _buildActionIcon(Icons.grid_on, Colors.green[500]!, _exportToExcel),
-            const SizedBox(width: 8),
-            _buildActionIcon(
-              Icons.refresh,
-              Colors.grey[600]!,
-              () => _viewModel.loadTransactions(),
-            ),
-            const SizedBox(width: 12),
-            ElevatedButton.icon(
-              onPressed: () => context.push('/customer-ledger/add'),
-              icon: const Icon(Icons.add_circle_outline, size: 18),
-              label: const Text('Add New Transaction'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryBlue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                elevation: 0,
-              ),
-            ),
-          ],
+        const SizedBox(height: 4),
+        Text(
+          'Manage Your Customer\'s Ledger',
+          style: TextStyle(fontSize: 13, color: Colors.grey[600]),
         ),
       ],
+    );
+
+    final actions = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        _buildActionIcon(
+          Icons.picture_as_pdf,
+          Colors.red[400]!,
+          _exportToPdf,
+        ),
+        _buildActionIcon(Icons.grid_on, Colors.green[500]!, _exportToExcel),
+        _buildActionIcon(
+          Icons.refresh,
+          Colors.grey[600]!,
+          () => _viewModel.loadTransactions(),
+        ),
+        ElevatedButton.icon(
+          onPressed: () => context.push('/customer-ledger/add'),
+          icon: const Icon(Icons.add_circle_outline, size: 18),
+          label: const Text('Add New Transaction'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryBlue,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
+            elevation: 0,
+          ),
+        ),
+      ],
+    );
+
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [titleSection, const SizedBox(height: 16), actions],
+      );
+    }
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [titleSection, actions],
     );
   }
 
@@ -318,7 +329,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
     );
   }
 
-  Widget _buildFilterCard() {
+  Widget _buildFilterCard(bool isMobile) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -328,46 +339,56 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
       ),
       child: Column(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 3,
-                child: _filterLabelWrapper('Date Range', _buildDatePickerBox()),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                flex: 3,
-                child: _filterLabelWrapper(
-                  'Customer',
-                  _buildCustomerDropdown(),
+          if (isMobile) ...[
+            _filterLabelWrapper('Date Range', _buildDatePickerBox()),
+            const SizedBox(height: 16),
+            _filterLabelWrapper('Customer', _buildCustomerDropdown()),
+            const SizedBox(height: 16),
+            _filterLabelWrapper('Transaction Type', _buildTypeDropdown()),
+          ] else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: _filterLabelWrapper('Date Range', _buildDatePickerBox()),
                 ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                flex: 3,
-                child: _filterLabelWrapper(
-                  'Transaction Type',
-                  _buildTypeDropdown(),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Align(
-            alignment: Alignment.centerRight,
-            child: SizedBox(
-              width: 180,
-              child: ElevatedButton(
-                onPressed: _viewModel.resetFilters,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryBlue,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
+                const SizedBox(width: 20),
+                Expanded(
+                  flex: 3,
+                  child: _filterLabelWrapper(
+                    'Customer',
+                    _buildCustomerDropdown(),
                   ),
                 ),
-                child: const Text('Reset Filters'),
+                const SizedBox(width: 20),
+                Expanded(
+                  flex: 3,
+                  child: _filterLabelWrapper(
+                    'Transaction Type',
+                    _buildTypeDropdown(),
+                  ),
+                ),
+              ],
+            ),
+          const SizedBox(height: 20),
+          Align(
+            alignment: isMobile ? Alignment.center : Alignment.centerRight,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 180),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _viewModel.resetFilters,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryBlue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                  child: const Text('Reset Filters'),
+                ),
               ),
             ),
           ),
@@ -523,7 +544,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
     );
   }
 
-  Widget _buildTableContainer() {
+  Widget _buildTableContainer(bool isMobile) {
     final transactions = _viewModel.paginatedTransactions;
     return Container(
       decoration: BoxDecoration(
@@ -537,32 +558,53 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Align(
               alignment: Alignment.centerRight,
-              child: SizedBox(
-                width: 200,
-                height: 38,
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search',
-                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: borderColor),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 200),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 38,
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search',
+                      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: primaryBlue),
+                      ),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: primaryBlue),
-                    ),
+                    onChanged: (value) => _viewModel.setSearchQuery(value),
                   ),
-                  onChanged: (value) => _viewModel.setSearchQuery(value),
                 ),
               ),
             ),
           ),
-          _buildTableHeader(),
-          if (transactions.isEmpty)
-            _buildEmptyState()
-          else
-            ...transactions.map((t) => _buildTableRow(t)),
+          if (isMobile)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: 650,
+                child: Column(
+                  children: [
+                    _buildTableHeader(),
+                    if (transactions.isEmpty)
+                      _buildEmptyState()
+                    else
+                      ...transactions.map((t) => _buildTableRow(t)),
+                  ],
+                ),
+              ),
+            )
+          else ...[
+            _buildTableHeader(),
+            if (transactions.isEmpty)
+              _buildEmptyState()
+            else
+              ...transactions.map((t) => _buildTableRow(t)),
+          ],
           _buildPagination(),
         ],
       ),

@@ -143,11 +143,14 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
     final isEditing = widget.employee != null;
     final title = isEditing ? "Edit Employee" : "Add New Employee";
     final btnLabel = isEditing ? "Save Changes" : "Create Employee";
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isMobile = screenWidth < 560;
+    final dialogWidth = isMobile ? screenWidth * 0.95 : 520.0;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        width: 520,
+        width: dialogWidth,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -218,25 +221,38 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
                 ),
                 const SizedBox(height: 16),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: PosTextInput(
-                        label: "Phone",
-                        placeholder: "e.g. +123456789",
-                        controller: _phoneController,
+                if (isMobile) ...[
+                  PosTextInput(
+                    label: "Phone",
+                    placeholder: "e.g. +123456789",
+                    controller: _phoneController,
+                  ),
+                  const SizedBox(height: 16),
+                  PosTextInput(
+                    label: "Email",
+                    placeholder: "john@example.com",
+                    controller: _emailController,
+                  ),
+                ] else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: PosTextInput(
+                          label: "Phone",
+                          placeholder: "e.g. +123456789",
+                          controller: _phoneController,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: PosTextInput(
-                        label: "Email",
-                        placeholder: "john@example.com",
-                        controller: _emailController,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: PosTextInput(
+                          label: "Email",
+                          placeholder: "john@example.com",
+                          controller: _emailController,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
                 const SizedBox(height: 16),
 
                 PosTextInput(
@@ -248,29 +264,46 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
                 const SizedBox(height: 16),
 
                 if (!isEditing) ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: PosTextInput(
-                          label: "Password",
-                          placeholder: "******",
-                          controller: _passwordController,
-                          isRequired: true,
-                          isPassword: true,
+                  if (isMobile) ...[
+                    PosTextInput(
+                      label: "Password",
+                      placeholder: "******",
+                      controller: _passwordController,
+                      isRequired: true,
+                      isPassword: true,
+                    ),
+                    const SizedBox(height: 16),
+                    PosTextInput(
+                      label: "Confirm Password",
+                      placeholder: "******",
+                      controller: _confirmPasswordController,
+                      isRequired: true,
+                      isPassword: true,
+                    ),
+                  ] else
+                    Row(
+                      children: [
+                        Expanded(
+                          child: PosTextInput(
+                            label: "Password",
+                            placeholder: "******",
+                            controller: _passwordController,
+                            isRequired: true,
+                            isPassword: true,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: PosTextInput(
-                          label: "Confirm Password",
-                          placeholder: "******",
-                          controller: _confirmPasswordController,
-                          isRequired: true,
-                          isPassword: true,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: PosTextInput(
+                            label: "Confirm Password",
+                            placeholder: "******",
+                            controller: _confirmPasswordController,
+                            isRequired: true,
+                            isPassword: true,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
                   const SizedBox(height: 16),
                 ],
               ],

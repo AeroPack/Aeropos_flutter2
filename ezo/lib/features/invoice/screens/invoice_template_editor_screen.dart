@@ -328,33 +328,36 @@ class _InvoiceTemplateEditorScreenState
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
       ),
-      child: Row(
-        children: formats.map((f) {
-          bool isActive = activeFormat == f;
-          return InkWell(
-            onTap: () => setState(() => activeFormat = f),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: isActive
-                        ? const Color(0xFF4F46E5)
-                        : Colors.transparent,
-                    width: 2,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: formats.map((f) {
+            bool isActive = activeFormat == f;
+            return InkWell(
+              onTap: () => setState(() => activeFormat = f),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: isActive
+                          ? const Color(0xFF4F46E5)
+                          : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                ),
+                child: Text(
+                  f,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isActive ? const Color(0xFF1E293B) : Colors.grey[500],
                   ),
                 ),
               ),
-              child: Text(
-                f,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isActive ? const Color(0xFF1E293B) : Colors.grey[500],
-                ),
-              ),
-            ),
-          );
-        }).toList(),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -809,13 +812,18 @@ class _InvoiceDesignEditorScreenState
               (val) => setState(() => businessName = val),
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: _buildTextField('Email', (val) {})),
-                const SizedBox(width: 8),
-                Expanded(child: _buildTextField('Phone', (val) {})),
-              ],
-            ),
+            if (isCompact) ...[
+              _buildTextField('Email', (val) {}),
+              const SizedBox(height: 12),
+              _buildTextField('Phone', (val) {}),
+            ] else
+              Row(
+                children: [
+                  Expanded(child: _buildTextField('Email', (val) {})),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildTextField('Phone', (val) {})),
+                ],
+              ),
             const SizedBox(height: 12),
             _buildTextField('Address', (val) {}, maxLines: 2),
           ]),
@@ -1165,65 +1173,71 @@ class _InvoiceDesignEditorScreenState
   }
 
   Widget _buildTable() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: widget.template.styleColor.withValues(alpha: 0.1),
-          ),
-          child: const Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: Text(
-                  'Description',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: SizedBox(
+        width: 450,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: widget.template.styleColor.withValues(alpha: 0.1),
               ),
-              Expanded(
-                child: Text(
-                  'Qty',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  'Rate',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  'Total',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-        ),
-        ...items.map(
-          (item) => Container(
-            padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9))),
-            ),
-            child: Row(
-              children: [
-                Expanded(flex: 3, child: Text(item.desc)),
-                Expanded(child: Text(item.qty.toString())),
-                Expanded(child: Text('Rs${item.rate}')),
-                Expanded(
-                  child: Text(
-                    'Rs${item.total}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+              child: const Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      'Description',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: Text(
+                      'Qty',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      'Rate',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      'Total',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+            ...items.map(
+              (item) => Container(
+                padding: const EdgeInsets.all(12),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9))),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(flex: 3, child: Text(item.desc)),
+                    Expanded(child: Text(item.qty.toString())),
+                    Expanded(child: Text('Rs${item.rate}')),
+                    Expanded(
+                      child: Text(
+                        'Rs${item.total}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
