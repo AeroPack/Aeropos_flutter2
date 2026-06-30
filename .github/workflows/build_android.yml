@@ -27,20 +27,32 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.44.0"
+          flutter-version: "3.44.4"
           channel: "stable"
           cache: true
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build debug APK
-        run: flutter build apk --debug --dart-define=BACKEND_URL=${{ secrets.BACKEND_URL }}
+      - name: Build release APK
+        run: flutter build apk --release --dart-define=BACKEND_URL=${{ secrets.BACKEND_URL }}
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-debug-apk
-          path: ezo/build/app/outputs/flutter-apk/app-debug.apk
+          name: android-release-apk
+          path: ezo/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 14
           if-no-files-found: error
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy APK to VPS
+        run: |
+          scp build/app/outputs/flutter-apk/app-release.apk \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/downloads/android.apk
