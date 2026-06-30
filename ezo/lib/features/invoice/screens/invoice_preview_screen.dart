@@ -14,15 +14,22 @@ import 'package:aeropos/core/services/pdf_generator_isolate.dart';
 import 'package:drift/drift.dart' show TypedResult;
 
 class InvoicePreviewScreen extends ConsumerStatefulWidget {
-  final InvoiceEntity invoiceEntity;
+  // DB-entity path (used from invoice history)
+  final InvoiceEntity? invoiceEntity;
+  final List<TypedResult>? items;
+  // Pre-built path (used from POS checkout — data already in memory)
+  final editor_models.InvoiceData? prebuiltData;
+  final String? prebuiltTemplateId;
+
   final CustomerEntity? customer;
-  final List<TypedResult> items;
 
   const InvoicePreviewScreen({
     super.key,
-    required this.invoiceEntity,
+    this.invoiceEntity,
+    this.items,
+    this.prebuiltData,
+    this.prebuiltTemplateId,
     this.customer,
-    required this.items,
   });
 
   @override
@@ -60,7 +67,17 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
 
   Future<Uint8List> _generatePdf() async {
     final t0 = DateTime.now();
-    debugPrint('[PDF_SCREEN] start — inv=${widget.invoiceEntity.invoiceNumber}');
+    debugPrint(
+      '[PDF_SCREEN] start — inv=${widget.prebuiltData?.invoiceNumber ?? widget.invoiceEntity?.invoiceNumber}',
+    );
+
+    // POS checkout path — data already built in memory, skip DB fetch.
+    if (widget.prebuiltData != null) {
+      final bytes =
+          await generatePdfInIsolate(widget.prebuiltData!, widget.prebuiltTemplateId!);
+      if (mounted) setState(() => _pdfBytes = bytes);
+      return bytes;
+    }
 
     final companyId = ref.read(companyIdProvider);
     final repo = ref.read(invoiceTemplateRepositoryProvider);
@@ -75,17 +92,17 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
     invoiceData.clientName = widget.customer?.name ?? 'Walk-in Customer';
     invoiceData.clientAddress = widget.customer?.address ?? '';
     invoiceData.showClientContact = widget.customer != null;
-    invoiceData.invoiceNumber = widget.invoiceEntity.invoiceNumber;
-    invoiceData.invoiceDate = widget.invoiceEntity.date;
-    invoiceData.paymentMethod = widget.invoiceEntity.paymentMethod ?? '';
-    invoiceData.totalDiscount = widget.invoiceEntity.discount;
+    invoiceData.invoiceNumber = widget.invoiceEntity!.invoiceNumber;
+    invoiceData.invoiceDate = widget.invoiceEntity!.date;
+    invoiceData.paymentMethod = widget.invoiceEntity!.paymentMethod ?? '';
+    invoiceData.totalDiscount = widget.invoiceEntity!.discount;
     invoiceData.clientPhone = widget.customer?.phone ?? '';
     invoiceData.clientEmail = widget.customer?.email ?? '';
     invoiceData.clientGstin = widget.customer?.gstin ?? '';
     invoiceData.amountInWords =
-        convertToIndianRupees(widget.invoiceEntity.total);
+        convertToIndianRupees(widget.invoiceEntity!.total);
 
-    invoiceData.items = widget.items.map((res) {
+    invoiceData.items = widget.items!.map((res) {
       final itemRow =
           res.readTable(ServiceLocator.instance.database.invoiceItems);
       final productRow =
@@ -171,7 +188,7 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
           tooltip: 'Back',
         ),
         title: Text(
-          inv.invoiceNumber,
+          (inv?.invoiceNumber ?? ''),
           style: const TextStyle(
             color: Colors.white,
             fontSize: 14,
@@ -198,7 +215,7 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
                   color: Colors.white, size: 20),
               onPressed: () => Printing.sharePdf(
                 bytes: _pdfBytes!,
-                filename: 'Invoice_${inv.invoiceNumber}.pdf',
+                filename: 'Invoice_${(inv?.invoiceNumber ?? '')}.pdf',
               ),
               tooltip: 'Download',
             ),
@@ -209,9 +226,9 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
 
     // Tablet / Desktop: tall bar with meta chips and labelled action buttons.
     final isTablet = screenWidth < 1024;
-    final dateStr = DateFormat('MMM d, yyyy').format(inv.date);
+    final dateStr = DateFormat('MMM d, yyyy').format((inv?.date ?? DateTime.now()));
     final amountStr =
-        'Rs ${NumberFormat('#,##,##0.00', 'en_IN').format(inv.total)}';
+        'Rs ${NumberFormat('#,##,##0.00', 'en_IN').format((inv?.total ?? 0.0))}';
 
     return PreferredSize(
       preferredSize: const Size.fromHeight(64),
@@ -235,7 +252,7 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        inv.invoiceNumber,
+                        (inv?.invoiceNumber ?? ''),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -251,10 +268,10 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
                             _metaChip(dateStr, Icons.calendar_today_outlined),
                             const SizedBox(width: 8),
                             _metaChip(amountStr, Icons.currency_rupee),
-                            if (inv.paymentMethod != null) ...[
+                            if (inv?.paymentMethod != null) ...[
                               const SizedBox(width: 8),
                               _metaChip(
-                                inv.paymentMethod!.toUpperCase(),
+                                (inv?.paymentMethod ?? '').toUpperCase(),
                                 Icons.payment_outlined,
                               ),
                             ],
@@ -276,7 +293,7 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
                       ? null
                       : () async {
                           await Printing.layoutPdf(
-                            name: 'Invoice_${inv.invoiceNumber}',
+                            name: 'Invoice_${(inv?.invoiceNumber ?? '')}',
                             onLayout: (_) async => _pdfBytes!,
                           );
                         },
@@ -291,7 +308,7 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
                       ? null
                       : () => Printing.sharePdf(
                             bytes: _pdfBytes!,
-                            filename: 'Invoice_${inv.invoiceNumber}.pdf',
+                            filename: 'Invoice_${(inv?.invoiceNumber ?? '')}.pdf',
                           ),
                 ),
                 const SizedBox(width: 8),
@@ -367,7 +384,7 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
     final inv = widget.invoiceEntity;
     final customerName = widget.customer?.name ?? 'Walk-in Customer';
     final amountStr =
-        'Rs ${NumberFormat('#,##,##0.00', 'en_IN').format(inv.total)}';
+        'Rs ${NumberFormat('#,##,##0.00', 'en_IN').format((inv?.total ?? 0.0))}';
     final cardWidth =
         isMobile ? (screenWidth - 48).clamp(0.0, 400.0) : 320.0;
 
@@ -444,19 +461,19 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
                   ),
                   child: Column(
                     children: [
-                      _detailRow('Invoice', inv.invoiceNumber, isCode: true),
+                      _detailRow('Invoice', (inv?.invoiceNumber ?? ''), isCode: true),
                       const SizedBox(height: 12),
                       _detailRow(
                         'Date',
-                        DateFormat('MMM d, yyyy  HH:mm').format(inv.date),
+                        DateFormat('MMM d, yyyy  HH:mm').format((inv?.date ?? DateTime.now())),
                       ),
                       const SizedBox(height: 12),
                       _detailRow('Customer', customerName),
                       const SizedBox(height: 12),
                       _detailRow('Amount', amountStr, isAmount: true),
-                      if (inv.paymentMethod != null) ...[
+                      if (inv?.paymentMethod != null) ...[
                         const SizedBox(height: 12),
-                        _detailRow('Payment', inv.paymentMethod!),
+                        _detailRow('Payment', inv?.paymentMethod ?? ''),
                       ],
                     ],
                   ),

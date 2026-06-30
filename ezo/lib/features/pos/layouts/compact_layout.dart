@@ -55,6 +55,7 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
   final Set<int> _favoriteProductIds = {};
   bool _showFavoritesOnly = false;
   bool _mobileCartOpen = false;
+  bool _isMobile = false;
 
   static const Color _primaryBlue = Color(0xFF1976D2);
   static const Color _primaryBlueDark = Color(0xFF0D47A1);
@@ -92,7 +93,8 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = constraints.maxWidth;
-        if (w < _mobileBreak) {
+        _isMobile = w < _mobileBreak;
+        if (_isMobile) {
           return _buildMobileLayout(context, constraints);
         }
         return _buildSideBySideLayout(
@@ -703,6 +705,10 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
   Widget _buildModernProductCard(ProductEntity product) {
     final isFavorite = _favoriteProductIds.contains(product.id);
     final inCart = widget.cartState.items.any((i) => i.product.id == product.id);
+    final cartItem = inCart
+        ? widget.cartState.items.firstWhere((i) => i.product.id == product.id)
+        : null;
+    final cartQty = cartItem?.quantity ?? 0;
 
     double price = 0.0;
     int stock = 0;
@@ -716,7 +722,16 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
     final Color cardShadowColor = inCart ? _primaryBlue.withValues(alpha: 0.3) : const Color(0xFFCBD5E1); // Slate 300
 
     return GestureDetector(
-      onTap: () => _addToCart(product),
+      onTap: () {
+        if (_isMobile && inCart) {
+          widget.cartNotifier.removeProduct(
+            cartItem!.product,
+            selectedUnit: cartItem.selectedUnit,
+          );
+        } else {
+          _addToCart(product);
+        }
+      },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -765,6 +780,29 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
                     left: 8,
                     child: _buildStockBadge(stock),
                   ),
+
+                  // Bottom right: quantity badge when in cart
+                  if (inCart)
+                    Positioned(
+                      bottom: 6,
+                      right: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: _primaryBlue,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '×${cartQty % 1 == 0 ? cartQty.toInt() : cartQty.toStringAsFixed(1)}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
 
                   // Top Right: Favorite Button
                   Positioned(
@@ -863,14 +901,24 @@ class _CompactLayoutState extends BasePosLayoutState<CompactLayout> {
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: inCart ? _primaryBlue : const Color(0xFFF1F5F9), // Slate 100
+                          color: (_isMobile && inCart)
+                              ? Colors.red[400]
+                              : (inCart
+                                  ? _primaryBlue
+                                  : const Color(0xFFF1F5F9)),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: inCart ? _primaryBlueDark : const Color(0xFFE2E8F0),
+                            color: (_isMobile && inCart)
+                                ? Colors.red[600]!
+                                : (inCart
+                                    ? _primaryBlueDark
+                                    : const Color(0xFFE2E8F0)),
                           ),
                         ),
                         child: Icon(
-                          inCart ? Icons.check : Icons.add,
+                          (_isMobile && inCart)
+                              ? Icons.remove
+                              : (inCart ? Icons.check : Icons.add),
                           size: 16,
                           color: inCart ? Colors.white : _primaryBlue,
                         ),

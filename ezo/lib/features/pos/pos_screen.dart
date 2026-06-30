@@ -24,7 +24,7 @@ import '../../core/widgets/pos_toast.dart';
 import '../../core/widgets/customer_form_dialog.dart';
 import '../../core/di/service_locator.dart';
 import '../../core/exceptions/sale_validation_exception.dart';
-import '../sales/screens/invoice_preview_screen.dart';
+import 'package:aeropos/features/invoice/screens/invoice_preview_screen.dart';
 import '../../core/widgets/master_header.dart';
 import 'package:aeropos/features/invoice/invoice_template_editor/template_repository.dart';
 import 'package:aeropos/features/invoice/invoice_template_editor/models.dart'
@@ -34,7 +34,6 @@ import 'package:aeropos/features/invoice/invoice_template_editor/invoice_complet
 import 'package:aeropos/core/providers/tenant_provider.dart';
 import 'package:aeropos/core/theme/app_theme.dart';
 import 'package:aeropos/core/utils/number_to_words.dart';
-import 'package:aeropos/core/services/pdf_generator_isolate.dart';
 
 class HeldOrder {
   final String id;
@@ -415,13 +414,9 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         barrierDismissible: true,
         barrierColor: Colors.black.withValues(alpha: 0.5),
         builder: (context) => InvoicePreviewScreen(
-          invoiceNumber: sale.invoiceNumber,
-          onLayout: (format) async {
-            return generatePdfInIsolate(invoiceData, templateId);
-          },
-          onPrintComplete: () {
-            if (mounted) Navigator.pop(context);
-          },
+          prebuiltData: invoiceData,
+          prebuiltTemplateId: templateId,
+          customer: cartState.selectedCustomer,
         ),
       );
     } on SaleValidationException catch (e) {
@@ -1453,14 +1448,9 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         barrierDismissible: true,
         barrierColor: Colors.black.withValues(alpha: 0.5),
         builder: (context) => InvoicePreviewScreen(
-          invoiceNumber: sale.invoiceNumber,
-          onLayout: (format) async {
-            return generatePdfInIsolate(invoiceData, templateId);
-          },
-          onPrintComplete: () {
-            if (mounted) Navigator.pop(context);
-            PosToast.showSuccess(context, 'Receipt printed successfully');
-          },
+          prebuiltData: invoiceData,
+          prebuiltTemplateId: templateId,
+          customer: cartState.selectedCustomer,
         ),
       );
     }

@@ -59,6 +59,7 @@ class _RestaurantLayoutState extends BasePosLayoutState<RestaurantLayout> {
   final Set<int> _favoriteProductIds = {};
   bool _showFavoritesOnly = false;
   bool _showRecentOnly = false;
+  bool _mobileCartOpen = false;
 
   @override
   void initState() {
@@ -76,6 +77,17 @@ class _RestaurantLayoutState extends BasePosLayoutState<RestaurantLayout> {
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 600) {
+          return _buildMobileLayout(constraints);
+        }
+        return _buildDesktopLayout();
+      },
+    );
+  }
+
+  Widget _buildDesktopLayout() {
     return Row(
       children: [
         Expanded(
@@ -132,6 +144,171 @@ class _RestaurantLayoutState extends BasePosLayoutState<RestaurantLayout> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMobileLayout(BoxConstraints constraints) {
+    final cartOpenHeight = constraints.maxHeight * 0.88;
+    final itemCount = widget.cartState.items.length;
+
+    return Stack(
+      children: [
+        Column(
+          children: [
+            _buildToolbar(),
+            widget.categories.when(
+              data: (cats) => _buildCategoryTabs(cats),
+              loading: () => const SizedBox(height: 48),
+              error: (e, _) =>
+                  SizedBox(height: 48, child: Center(child: Text('$e'))),
+            ),
+            Expanded(
+              child: widget.products.when(
+                data: (products) => _buildProductGrid(products),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text('Error: $e')),
+              ),
+            ),
+            const SizedBox(height: 72),
+          ],
+        ),
+        if (_mobileCartOpen)
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () => setState(() => _mobileCartOpen = false),
+              child: Container(color: Colors.black.withValues(alpha: 0.35)),
+            ),
+          ),
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: _mobileCartOpen ? cartOpenHeight : 72,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: _buildMobileCartPanel(itemCount),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileCartPanel(int itemCount) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 24,
+            offset: const Offset(0, -6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 10, bottom: 2),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.grey300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => setState(() => _mobileCartOpen = !_mobileCartOpen),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: itemCount > 0
+                          ? AppColors.accent
+                          : AppColors.grey400,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '$itemCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      itemCount == 0
+                          ? 'Cart is empty'
+                          : '$itemCount item${itemCount != 1 ? 's' : ''}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        color: itemCount > 0
+                            ? AppColors.text
+                            : AppColors.grey500,
+                      ),
+                    ),
+                  ),
+                  if (itemCount > 0) ...[
+                    Text(
+                      'Rs ${widget.cartState.total.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        color: AppColors.accent,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  AnimatedRotation(
+                    turns: _mobileCartOpen ? 0.5 : 0.0,
+                    duration: const Duration(milliseconds: 300),
+                    child: Icon(
+                      Icons.keyboard_arrow_up,
+                      color: itemCount > 0
+                          ? AppColors.accent
+                          : AppColors.grey400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_mobileCartOpen)
+            Expanded(
+              child: Column(
+                children: [
+                  Divider(height: 1, color: AppColors.grey200),
+                  _buildCustomerSection(),
+                  Expanded(
+                    child: widget.cartState.items.isEmpty
+                        ? _buildEmptyCart()
+                        : _buildCartItems(),
+                  ),
+                  if (_showNotes) _buildNotesSection(),
+                  _buildQuickActionsBar(),
+                  PosTotalsDisplay(
+                    cartState: widget.cartState,
+                    onCheckout: () => widget.onCheckout(shouldSave: true),
+                  ),
+                  SafeArea(top: false, child: _buildPaymentSection()),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 

@@ -48,6 +48,7 @@ class _TouchLayoutState extends BasePosLayoutState<TouchLayout> {
   bool _showCustomerSearch = false;
   bool _showFavoritesOnly = false;
   bool _showRecentOnly = false;
+  bool _mobileCartOpen = false;
   final List<ProductEntity> _recentItems = [];
   final Set<int> _favoriteProductIds = {};
   String _selectedPaymentMethod = 'cash';
@@ -69,12 +70,168 @@ class _TouchLayoutState extends BasePosLayoutState<TouchLayout> {
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 600) {
+          return _buildMobileLayout(constraints);
+        }
+        return _buildDesktopLayout();
+      },
+    );
+  }
+
+  Widget _buildDesktopLayout() {
     return Container(
       color: const Color(0xFFF1F5F9),
       child: Row(
         children: [
           Expanded(flex: 4, child: _buildCartPanel()),
           Expanded(flex: 7, child: _buildProductPanel()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(BoxConstraints constraints) {
+    final cartOpenHeight = constraints.maxHeight * 0.88;
+    final itemCount = widget.cartState.items.length;
+    final cart = widget.cartState;
+
+    return Stack(
+      children: [
+        Column(
+          children: [
+            Expanded(child: _buildProductPanel()),
+            const SizedBox(height: 72),
+          ],
+        ),
+        if (_mobileCartOpen)
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () => setState(() => _mobileCartOpen = false),
+              child: Container(color: Colors.black.withValues(alpha: 0.35)),
+            ),
+          ),
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: _mobileCartOpen ? cartOpenHeight : 72,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: _buildMobileCartPanel(itemCount, cart),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileCartPanel(int itemCount, CartState cart) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 24,
+            offset: const Offset(0, -6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 10, bottom: 2),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => setState(() => _mobileCartOpen = !_mobileCartOpen),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: itemCount > 0
+                          ? const Color(0xFF3B82F6)
+                          : Colors.grey[400],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '$itemCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      itemCount == 0
+                          ? 'Cart is empty'
+                          : '$itemCount item${itemCount != 1 ? 's' : ''}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        color: itemCount > 0
+                            ? const Color(0xFF1E293B)
+                            : Colors.grey[500],
+                      ),
+                    ),
+                  ),
+                  if (itemCount > 0) ...[
+                    Text(
+                      'Rs ${cart.total.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        color: Color(0xFF3B82F6),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  AnimatedRotation(
+                    turns: _mobileCartOpen ? 0.5 : 0.0,
+                    duration: const Duration(milliseconds: 300),
+                    child: Icon(
+                      Icons.keyboard_arrow_up,
+                      color: itemCount > 0
+                          ? const Color(0xFF3B82F6)
+                          : Colors.grey[400],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_mobileCartOpen)
+            Expanded(
+              child: Column(
+                children: [
+                  const Divider(height: 1),
+                  Expanded(child: _buildCartItems()),
+                  if (_showNotes) _buildNotesSection(),
+                  _buildQuickActions(),
+                  _buildTotalsSection(cart),
+                  SafeArea(top: false, child: _buildPaymentSection(cart)),
+                ],
+              ),
+            ),
         ],
       ),
     );

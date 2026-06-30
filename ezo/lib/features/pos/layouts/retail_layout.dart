@@ -134,7 +134,7 @@ class _RetailLayoutState extends BasePosLayoutState<RetailLayout> {
       backgroundColor: surfaceColor,
       endDrawer: isSmallScreen
           ? Drawer(
-              width: 350,
+              width: (screenWidth * 0.92).clamp(0.0, 350.0),
               child: SafeArea(child: _buildInvoiceSidebar()),
             )
           : null,

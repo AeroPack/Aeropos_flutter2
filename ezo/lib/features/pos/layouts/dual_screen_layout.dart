@@ -51,6 +51,148 @@ class _DualScreenLayoutState extends BasePosLayoutState<DualScreenLayout> {
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 600) {
+          return _buildMobileLayout();
+        }
+        return _buildDesktopLayout();
+      },
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return Container(
+      color: const Color(0xFFF8F9FA),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            color: Colors.white,
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                  onPressed: widget.onBack,
+                  tooltip: 'Back',
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 10),
+                        Icon(Icons.search, color: Colors.grey[400], size: 18),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Search products...',
+                              border: InputBorder.none,
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 8),
+                              isDense: true,
+                              hintStyle: TextStyle(
+                                  color: Colors.grey[400], fontSize: 13),
+                            ),
+                            onChanged: widget.onSearch,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: widget.cartState.items.isEmpty
+                      ? null
+                      : () => widget.onCheckout(shouldSave: true),
+                  icon: const Icon(Icons.check_circle, size: 18),
+                  label: Text(
+                    widget.cartState.items.isEmpty
+                        ? 'Empty'
+                        : 'Pay  Rs ${widget.cartState.total.toInt()}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF007AFF),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 48,
+            child: widget.categories.when(
+              data: (cats) => ListView(
+                scrollDirection: Axis.horizontal,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                children: [
+                  PosCategoryChip(
+                    name: 'All',
+                    isActive: widget.selectedCategoryId == null,
+                    onTap: () => widget.onCategoryTap(null),
+                  ),
+                  const SizedBox(width: 6),
+                  ...cats.map(
+                    (c) => Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: PosCategoryChip(
+                        name: c.name,
+                        isActive: widget.selectedCategoryId == c.id,
+                        onTap: () => widget.onCategoryTap(c.id),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              loading: () => const SizedBox(),
+              error: (e, _) => Center(child: Text('$e')),
+            ),
+          ),
+          Expanded(
+            child: widget.products.when(
+              data: (products) => GridView.builder(
+                padding: const EdgeInsets.all(8),
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.85,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
+                itemCount: products.length,
+                itemBuilder: (context, i) => PosProductCard(
+                  product: products[i],
+                  onTap: () => widget.onProductTap(products[i]),
+                  size: PosCardSize.medium,
+                ),
+              ),
+              loading: () =>
+                  const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Error: $e')),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout() {
     return Row(
       children: [
         // LEFT — Cashier controls (50%)
