@@ -11,6 +11,7 @@ import 'package:aeropos/features/invoice/invoice_template_editor/template_reposi
 import 'package:aeropos/features/invoice/invoice_template_editor/models.dart'
     as editor_models;
 import 'package:aeropos/core/services/pdf_generator_isolate.dart';
+import 'package:aeropos/core/utils/thermal_print_helper.dart';
 import 'package:drift/drift.dart' show TypedResult;
 
 class InvoicePreviewScreen extends ConsumerStatefulWidget {
@@ -175,7 +176,16 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
   // ── App bar ──────────────────────────────────────────────────────────────
 
   PreferredSizeWidget _buildAppBar(double screenWidth, bool isMobile) {
-    final inv = widget.invoiceEntity;
+    final invNumber = widget.invoiceEntity?.invoiceNumber ??
+        widget.prebuiltData?.invoiceNumber ??
+        '';
+    final invDate = widget.invoiceEntity?.date ??
+        widget.prebuiltData?.invoiceDate ??
+        DateTime.now();
+    final invTotal =
+        widget.invoiceEntity?.total ?? widget.prebuiltData?.total ?? 0.0;
+    final invPaymentMethod =
+        widget.invoiceEntity?.paymentMethod ?? widget.prebuiltData?.paymentMethod;
 
     // Mobile: standard-height bar, icon-only actions to avoid overflow.
     if (isMobile) {
@@ -188,7 +198,7 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
           tooltip: 'Back',
         ),
         title: Text(
-          (inv?.invoiceNumber ?? ''),
+          invNumber,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 14,
@@ -215,7 +225,7 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
                   color: Colors.white, size: 20),
               onPressed: () => Printing.sharePdf(
                 bytes: _pdfBytes!,
-                filename: 'Invoice_${(inv?.invoiceNumber ?? '')}.pdf',
+                filename: 'Invoice_$invNumber.pdf',
               ),
               tooltip: 'Download',
             ),
@@ -226,9 +236,9 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
 
     // Tablet / Desktop: tall bar with meta chips and labelled action buttons.
     final isTablet = screenWidth < 1024;
-    final dateStr = DateFormat('MMM d, yyyy').format((inv?.date ?? DateTime.now()));
+    final dateStr = DateFormat('MMM d, yyyy').format(invDate);
     final amountStr =
-        'Rs ${NumberFormat('#,##,##0.00', 'en_IN').format((inv?.total ?? 0.0))}';
+        'Rs ${NumberFormat('#,##,##0.00', 'en_IN').format(invTotal)}';
 
     return PreferredSize(
       preferredSize: const Size.fromHeight(64),
@@ -252,7 +262,7 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        (inv?.invoiceNumber ?? ''),
+                        invNumber,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -268,10 +278,10 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
                             _metaChip(dateStr, Icons.calendar_today_outlined),
                             const SizedBox(width: 8),
                             _metaChip(amountStr, Icons.currency_rupee),
-                            if (inv?.paymentMethod != null) ...[
+                            if (invPaymentMethod != null) ...[
                               const SizedBox(width: 8),
                               _metaChip(
-                                (inv?.paymentMethod ?? '').toUpperCase(),
+                                invPaymentMethod.toUpperCase(),
                                 Icons.payment_outlined,
                               ),
                             ],
@@ -292,10 +302,14 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
                   onTap: _pdfBytes == null
                       ? null
                       : () async {
-                          await Printing.layoutPdf(
-                            name: 'Invoice_${(inv?.invoiceNumber ?? '')}',
-                            onLayout: (_) async => _pdfBytes!,
-                          );
+                          final printed =
+                              await tryThermalPrint(context, _pdfBytes!);
+                          if (!printed && context.mounted) {
+                            await Printing.layoutPdf(
+                              name: 'Invoice_$invNumber',
+                              onLayout: (_) async => _pdfBytes!,
+                            );
+                          }
                         },
                 ),
                 const SizedBox(width: 6),
@@ -308,7 +322,7 @@ class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen>
                       ? null
                       : () => Printing.sharePdf(
                             bytes: _pdfBytes!,
-                            filename: 'Invoice_${(inv?.invoiceNumber ?? '')}.pdf',
+                            filename: 'Invoice_$invNumber.pdf',
                           ),
                 ),
                 const SizedBox(width: 8),

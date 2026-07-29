@@ -39,6 +39,7 @@ import 'package:aeropos/features/profile/presentation/screens/company_profile_sc
 import 'package:aeropos/features/profile/presentation/screens/my_companies_screen.dart';
 import 'package:aeropos/features/settings/screens/settings_screen.dart';
 import 'package:aeropos/features/settings/screens/role_settings_screen.dart';
+import 'package:aeropos/features/settings/screens/printer_settings_screen.dart';
 import 'package:aeropos/features/ledger/customer_ledger/add_customer_ledger.dart';
 import 'package:aeropos/features/ledger/supplier_ledger/add_supplier_ledger.dart';
 import 'package:aeropos/features/barcode/screens/barcode_generation_screen.dart';
@@ -324,6 +325,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'roles',
                     builder: (context, state) => const RoleSettingsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'printer',
+                    builder: (context, state) => const PrinterSettingsScreen(),
                   ),
                 ],
               ),

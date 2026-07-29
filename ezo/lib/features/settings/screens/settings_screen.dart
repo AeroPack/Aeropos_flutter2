@@ -34,6 +34,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         elevation: 1,
       ),
       body: ListView(
+        primary: false,
         padding: const EdgeInsetsDirectional.all(16),
         children: [
           // ── POS Layout Selection ──
@@ -91,6 +92,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               icon: Icons.verified_user_outlined,
               onTap: () => context.go('/settings/roles'),
             ),
+          ),
+
+          // ── Thermal Printer ──
+          _buildSettingsItem(
+            context,
+            title: 'Thermal Printer',
+            subtitle: 'Configure Bluetooth label/receipt printer',
+            icon: Icons.print_outlined,
+            onTap: () => context.go('/settings/printer'),
           ),
         ],
       ),

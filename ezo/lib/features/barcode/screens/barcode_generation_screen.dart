@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:aeropos/core/di/service_locator.dart';
 import 'package:aeropos/core/database/app_database.dart';
+import 'package:aeropos/core/utils/thermal_print_helper.dart';
 import 'package:aeropos/features/inventory/products/barcode_label_generator.dart';
 import 'package:barcode_widget/barcode_widget.dart' as bw;
 import 'package:printing/printing.dart';
@@ -281,8 +283,14 @@ class _BarcodeGenerationScreenState extends State<BarcodeGenerationScreen> {
       await _generateBarcodes();
       if (_generatedPdfBytes == null) return;
     }
-    await Printing.layoutPdf(
-        onLayout: (_) async => _generatedPdfBytes!);
+
+    if (Platform.isAndroid) {
+      final printed = await tryThermalPrint(context, _generatedPdfBytes!);
+      if (printed) return;
+      if (!mounted) return;
+    }
+
+    await Printing.layoutPdf(onLayout: (_) async => _generatedPdfBytes!);
   }
 
   Future<void> _downloadPdf() async {
@@ -347,6 +355,7 @@ class _BarcodeGenerationScreenState extends State<BarcodeGenerationScreen> {
     return Scaffold(
       backgroundColor: _bgColor,
       body: SingleChildScrollView(
+        primary: false,
         padding: EdgeInsets.symmetric(
           horizontal: mobile ? 16.0 : 40.0,
           vertical: mobile ? 24.0 : 40.0,

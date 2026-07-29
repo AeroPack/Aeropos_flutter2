@@ -9,7 +9,10 @@
       "Bash(grep -n 'class TenantsCompanion\\\\|class $TenantsTable' /home/dell/Documents/Aeropos/testing_barcode_impl/Aeropos_flutter2/ezo/lib/core/database/app_database.g.dart)",
       "Bash(grep -n 'class $TenantsTable\\\\|mapFromDatabase\\\\|toColumns' /home/dell/Documents/Aeropos/testing_barcode_impl/Aeropos_flutter2/ezo/lib/core/database/app_database.g.dart)",
       "Bash(grep -n 'class $TenantsTable' /home/dell/Documents/Aeropos/testing_barcode_impl/Aeropos_flutter2/ezo/lib/core/database/app_database.g.dart)",
-      "Bash(grep \"\\\\.dart$\")"
+      "Bash(grep \"\\\\.dart$\")",
+      "Bash(flutter pub *)",
+      "Bash(grep -v \"settings_screen.dart$\")",
+      "Bash(grep -v \"invoice_history_screen.dart$\")"
     ],
     "additionalDirectories": [
       "/home/dell/Documents/Aeropos/testing_barcode_impl/Aeropos_flutter2/ezo/.claude"

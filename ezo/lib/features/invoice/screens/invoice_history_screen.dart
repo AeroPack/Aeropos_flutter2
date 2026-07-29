@@ -58,6 +58,7 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
           final showSerialNo = width >= 900;
 
           return SingleChildScrollView(
+            primary: false,
             child: Align(
               alignment: Alignment.topCenter,
               child: ConstrainedBox(

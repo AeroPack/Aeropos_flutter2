@@ -27,6 +27,7 @@ class DashboardScreen extends ConsumerWidget {
 
             return statsAsync.when(
               data: (stats) => SingleChildScrollView(
+                primary: false,
                 padding: EdgeInsets.all(padding),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

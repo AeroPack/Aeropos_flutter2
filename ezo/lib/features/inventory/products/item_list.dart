@@ -62,6 +62,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
               snapshot.connectionState == ConnectionState.waiting;
 
           return SingleChildScrollView(
+            primary: false,
             padding: const EdgeInsets.all(24.0),
             child: GenericDataTable<TypedResult>(
               data: results,

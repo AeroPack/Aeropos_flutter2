@@ -22,6 +22,7 @@ import 'package:aeropos/core/models/unit.dart';
 import 'package:aeropos/core/models/brand.dart';
 import 'package:aeropos/features/pos/widgets/barcode_camera_overlay.dart';
 import 'package:aeropos/features/inventory/products/barcode_label_generator.dart';
+import 'package:aeropos/core/utils/thermal_print_helper.dart';
 import 'package:printing/printing.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:cached_network_image/cached_network_image.dart';
@@ -1622,6 +1623,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       sellingPrice: price,
                       unitName: entry.unitName,
                     );
+                    if (Platform.isAndroid) {
+                      final printed = await tryThermalPrint(context, bytes);
+                      if (printed) return;
+                      if (!context.mounted) return;
+                    }
                     await Printing.layoutPdf(onLayout: (_) => bytes);
                   },
                 ),
