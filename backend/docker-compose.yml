@@ -1,5 +1,8 @@
+name: aeropackpos
+
 services:
   backend:
+    container_name: aeropackpos_backend
     build:
       context: ./
     restart: always
@@ -10,12 +13,14 @@ services:
       - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:test123@db:5432/mydb}
     depends_on:
       - db
+    networks:
+      - aeropackpos_network
     volumes:
       - uploads_data:/app/uploads # Removed bind mount (./:/app) for production
 
   db:
     image: postgres:15-alpine
-    container_name: new_project_db # Changed name to avoid conflict
+    container_name: aeropackpos_db
     restart: always
     environment:
       POSTGRES_USER: postgres
@@ -23,8 +28,15 @@ services:
       POSTGRES_DB: mydb
     ports:
       - "5435:5432" # Host 5435 -> Container 5432
+    networks:
+      - aeropackpos_network
     volumes:
       - new_postgres_data:/var/lib/postgresql/data
+
+networks:
+  aeropackpos_network:
+    name: aeropackpos_network
+    driver: bridge
 
 volumes:
   new_postgres_data:
