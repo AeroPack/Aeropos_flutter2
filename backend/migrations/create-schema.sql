@@ -206,13 +206,6 @@ ALTER TABLE employees ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS created_by_employee_id INTEGER;
 ALTER TABLE employees DROP CONSTRAINT IF EXISTS employees_email_unique;
 
--- Missing columns on tenants
-ALTER TABLE tenants ADD COLUMN IF NOT EXISTS email TEXT;
-ALTER TABLE tenants ADD COLUMN IF NOT EXISTS phone TEXT;
-ALTER TABLE tenants ADD COLUMN IF NOT EXISTS business_name TEXT;
-ALTER TABLE tenants ADD COLUMN IF NOT EXISTS business_address TEXT;
-ALTER TABLE tenants ADD COLUMN IF NOT EXISTS tax_id TEXT;
-
 -- Missing columns on invoices
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_method TEXT;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_status TEXT NOT NULL DEFAULT 'PENDING';

@@ -30,6 +30,12 @@ CREATE INDEX IF NOT EXISTS idx_tenants_external ON tenants(external_key);
 CREATE INDEX IF NOT EXISTS idx_tenants_slug ON tenants(slug);
 CREATE INDEX IF NOT EXISTS idx_tenants_status ON tenants(status);
 
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS business_name TEXT;
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS business_address TEXT;
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS tax_id TEXT;
+
 -- ============================================================================
 -- PHASE A: ADD TENANT FK TO COMPANIES
 -- ============================================================================
