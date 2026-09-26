@@ -6,6 +6,7 @@ name: Deploy Backend to VPS
       - main
     paths:
       - "backend/**"
+  workflow_dispatch:
 
 jobs:
   deploy-backend:
@@ -62,11 +63,11 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            set -euo pipefail
             cd ~/aeropos-backend
-            docker compose pull || true
-            docker compose up -d --build
+            docker-compose pull --ignore-buildable
+            docker-compose up -d --build --wait
             docker image prune -f
-            echo "Deployment complete"
 
       - name: Run database migrations
         uses: appleboy/ssh-action@master
@@ -75,6 +76,6 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            set -euo pipefail
             cd ~/aeropos-backend
-            docker compose exec -T backend npm run db:migrate
-            echo "Migrations complete"
+            docker-compose exec -T backend npm run db:migrate
