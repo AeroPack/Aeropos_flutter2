@@ -40,4 +40,8 @@ networks:
 
 volumes:
   new_postgres_data:
+    external: true
+    name: aeropos-backend_new_postgres_data
   uploads_data:
+    external: true
+    name: aeropos-backend_uploads_data
