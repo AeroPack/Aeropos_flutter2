@@ -41,7 +41,6 @@ jobs:
             PORT=5004
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
             DATABASE_SSL=false
             DATABASE_POOL_SIZE=10
             EMAIL_HOST=${{ secrets.EMAIL_HOST }}
