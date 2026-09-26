@@ -11,6 +11,7 @@ export async function runMigrations() {
 
   try {
     const migrationFiles = [
+      "create-schema.sql",
       "001_sync_core.sql",
       "002_uuid_constraints.sql",
       "003_soft_delete_columns.sql",
